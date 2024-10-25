@@ -19,7 +19,8 @@ I added a graphical Interface to edit the card. Everything is managable from GUI
  - customization of domains and device classes
  - can show extra entities
  - you can hide certain entities
- - graphical editor 
+ - graphical editor
+ - should work in all available HA languages
 
 # How does it work?
 
