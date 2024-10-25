@@ -5,7 +5,7 @@ This is my first custom card for Home Assistant.
 I am not a coder and have no background in coding. I always tried to achieve something like this with different approaches but nothing was the way in wanted to.
 So i tried a bit and i was able to create my own custom card.
 
-![image](https://github.com/user-attachments/assets/c3034ed1-2eea-487a-a7d3-d86303b66172)
+![image](https://github.com/user-attachments/assets/519bbdf9-a31e-4ff1-b214-45c7ccb1fbb6)
 
 This card i highly influenced by [Dwains Dashboard](https://github.com/dwainscheeren/dwains-lovelace-dashboard).
 I tried to to have this in every dashboard i want and dont want to be restricted by Dwains Dashboard. 
@@ -31,17 +31,20 @@ Please keep attention that it will only show entities which are linked to any ar
 
 # Screenshots
 ### Graphical Editor
-![image](https://github.com/user-attachments/assets/4bf112b5-8375-4d47-831e-e74c7aa89f34)
+![image](https://github.com/user-attachments/assets/fe60135b-9f1e-4a47-aec5-f60577af0076)
 
 ### Adding Extra Entities
-![image](https://github.com/user-attachments/assets/a7e06813-57f1-4378-8b1a-292537a0cb28)
+![image](https://github.com/user-attachments/assets/f50a3d55-9b42-4780-b64e-4ed85c34907e)
+
 
 ## Customization of Domains or Device Classes
-![image](https://github.com/user-attachments/assets/725b83c0-e4fa-4fd5-af5a-04b849e47efb)
+![image](https://github.com/user-attachments/assets/b35b23e3-fbda-43c4-8274-f43ea095925b)
+
 
 ## Bulk Mode
 
-![image](https://github.com/user-attachments/assets/1be4b008-dee1-458a-8bb2-0bfba2428c32)
+![image](https://github.com/user-attachments/assets/11f1ac3b-7463-4302-a90f-47a4b8d76649)
+
 
 ## Installation
 
