@@ -5,11 +5,10 @@ import { translateState } from './translations.js';
 class BaseCard extends LitElement {
   constructor() {
     super();
-    this.entityConfig = this.initializeEntityConfig(); // Initialisiere hier, wenn du eine Instanz erzeugst.
+    this.entityConfig = this.initializeEntityConfig(); 
   }
 
   initializeEntityConfig() {
-    // Konsolidierte Icons und deviceClasses mit Sortierung
     const entityConfig = {
       update: { icon: 'mdi:update', sortOrder: 1 },
       light: { icon: 'mdi:lightbulb', sortOrder: 2 },
@@ -1350,13 +1349,11 @@ class StatusCardEditor extends BaseCard {
 
 customElements.define('status-card-editor', StatusCardEditor);
 
-
-// Registrierung der Karte
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "status-card",
   name: "Status Card",
-  preview: true, // Optional - defaults to false
-  description: "A custom card that displays active entities grouped by domain.", // Optional
-  documentationURL: "https://developers.home-assistant.io/docs/frontend/custom-ui/custom-card", // Hilfslinie in der Benutzeroberfläche
+  preview: true, 
+  description: "A custom card that displays active entities grouped by domain.", 
+  documentationURL: "https://developers.home-assistant.io/docs/frontend/custom-ui/custom-card", 
 });
