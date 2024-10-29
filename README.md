@@ -70,11 +70,11 @@ https://github.com/xBourner/status-card
 | showPerson    | bool          | true          | choose if you want to see person entities or not |
 | hidden_entities| string         | none         | choose which entities will not be shown in the card  |
 | bulkMode      | bool          | false         | toggles a mode in which you get a list instead of cards which can be copy pasted  |
-| domainColors  | array         | none          |  shows settings for domain icon color |
+| colors        | array         | none          |  shows settings for domain icon color |
 |  - domain     | color         | none          | will change the icon color of the domain |
-| domainNames  | array         | none          |  shows settings for domain names|
+| names  | array         | none          |  shows settings for domain names|
 |  - domain     | name        | none          | will change the name of the domain |
-| domainIcons  | array         | none          |  shows settings for domain icons |
+| icons  | array         | none          |  shows settings for domain icons |
 |  - domain     | icon         | none          | will change the icon of the domain |
 | newSortorder  | array         | none          |  lets you change the default sorting by domains/device classes |
 
