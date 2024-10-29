@@ -78,8 +78,5 @@ https://github.com/xBourner/status-card
 |  - domain     | icon         | none          | will change the icon of the domain |
 | newSortorder  | array         | none          |  lets you change the default sorting by domains/device classes |
 
-# To-Do
-
-Change the method in which Icons/Names and Icon Colors are handled. So the Editor Code is not so messy.
 
 
