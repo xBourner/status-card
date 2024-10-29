@@ -1,13 +1,13 @@
 {
   "name": "status-card",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "status-card.js",
   "scripts": {
     "build": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "xBourner",
   "license": "ISC",
   "devDependencies": {
     "@babel/core": "^x.x.x",
