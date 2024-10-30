@@ -1,23 +1,14 @@
 {
   "name": "status-card",
   "version": "1.1.0",
-  "description": "",
+  "description": "A card that will show certain entities when active grouped by domain/device class",
   "main": "status-card.js",
-  "scripts": {
-    "build": "webpack",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "author": "xBourner",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
-    "@babel/core": "^x.x.x",
-    "@babel/preset-env": "^x.x.x",
-    "babel-loader": "^x.x.x",
-    "webpack": "^x.x.x",
-    "webpack-cli": "^x.x.x"
+    "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "custom-card-helpers": "^1.9.0",
-    "lit": "^3.2.0"
+    "lit": "^3.2.1"
   }
 }
