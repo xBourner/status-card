@@ -1,5 +1,5 @@
 # status-card
-A status card for home assistant dashboard TEST
+A status card for home assistant dashboard
 
 This is my first custom card for Home Assistant.
 I am not a coder and have no background in coding. I always tried to achieve something like this with different approaches but nothing was the way in wanted to.
