@@ -1,5 +1,5 @@
 # status-card
-A status card for home assistant dashboard
+A status card for home assistant dashboard TEST
 
 This is my first custom card for Home Assistant.
 I am not a coder and have no background in coding. I always tried to achieve something like this with different approaches but nothing was the way in wanted to.
@@ -8,7 +8,7 @@ So i tried a bit and i was able to create my own custom card.
 ![image](https://github.com/user-attachments/assets/e70e11d7-beca-4db3-813a-2fd7263dea50)
 
 This card i highly influenced by [Dwains Dashboard](https://github.com/dwainscheeren/dwains-lovelace-dashboard).
-I tried to to have this in every dashboard i want and dont want to be restricted by Dwains Dashboard. 
+I tried to to have this in every dashboard i want and dont want to be restricted by Dwains Dashboard.
 
 I also made some tweaks so it has some more functions.
 I added a graphical Interface to edit the card. Everything is managable from GUI :)
