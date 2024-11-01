@@ -348,9 +348,10 @@ class StatusCard extends BaseCard {
       static get styles() {
         return css`
             paper-tabs { height: 110px; }
+            paper-tab {padding: 0 5px; }
             .entity, .extra-entity { display: flex; flex-direction: column; align-items: center;}
             .entity-icon { width: 50px; height: 50px; border-radius: 50%;
-                background-color: var(--primary-background-color);
+                background-color: rgba(var(--rgb-primary-text-color), 0.15);
                 display: flex; align-items: center; justify-content: center;
                 overflow: hidden;}
             .entity-icon img {width: 100%; height: 100%; object-fit: cover; border-radius: 50%;}
