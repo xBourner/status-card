@@ -5,7 +5,7 @@ This is my first custom card for Home Assistant.
 I am not a coder and have no background in coding. I always tried to achieve something like this with different approaches but nothing was the way in wanted to.
 So i tried a bit and i was able to create my own custom card.
 
-![image](https://github.com/user-attachments/assets/4d522c20-d310-4c8f-a903-4ddb34905044)
+![image](https://github.com/user-attachments/assets/47737116-74d8-4e38-ac47-62c3442277b0)
 
 This card i highly influenced by [Dwains Dashboard](https://github.com/dwainscheeren/dwains-lovelace-dashboard).
 I tried to to have this in every dashboard i want and dont want to be restricted by Dwains Dashboard.
