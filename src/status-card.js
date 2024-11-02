@@ -138,6 +138,9 @@ class StatusCard extends BaseCard {
     const state = this.hass.states[group.entity_id]?.state;
 
     if (propertyType === 'sortOrder') {
+      if (type === 'extra') {
+        return this._config.newSortOrder?.['extra']?.[deviceClassName] ?? -1;
+      }
         return deviceClassName 
             ? this._config.newSortOrder?.[type]?.[deviceClassName] ?? (entityConfig?.deviceClasses?.find(dc => dc.name === deviceClassName)?.sortOrder || Infinity)
             : this._config.newSortOrder?.[type] ?? (entityConfig?.sortOrder || Infinity);
@@ -167,13 +170,14 @@ class StatusCard extends BaseCard {
     }
 
     if (propertyType === 'status') {
-        return state === 'home' ? this.hass.localize('component.person.entity_component._.state.home')
-            : state === 'not_home' ? this.hass.localize('component.person.entity_component._.state.not_home')
-            : (type === 'lock' || ['window', 'lock', 'door'].includes(originalName)) ? this.hass.localize('component.cover.entity_component._.state.open')
-            : (type === 'cover' || ['awning', 'blind', 'curtain', 'damper', 'garage', 'gate', 'shade', 'shutter'].includes(originalName)) ? this.hass.localize('component.cover.entity_component._.state.open')
-            : this.hass.localize('component.light.entity_component._.state.on');
-    }
-
+      if (group.entity_id && group.entity_id.startsWith('person.')) {
+          return state === 'home' ? this.hass.localize('component.person.entity_component._.state.home') : state === 'not_home' ? this.hass.localize('component.person.entity_component._.state.not_home') : state; 
+      }
+      return type === 'device_tracker' ? this.hass.localize('component.person.entity_component._.state.home')
+          : (type === 'lock' || ['window', 'lock', 'door'].includes(originalName)) ? this.hass.localize('component.cover.entity_component._.state.open')
+          : (type === 'cover' || ['awning', 'blind', 'curtain', 'damper', 'garage', 'gate', 'shade', 'shutter'].includes(originalName)) ? this.hass.localize('component.cover.entity_component._.state.open')
+          : this.hass.localize('component.light.entity_component._.state.on');
+  }
     return null;
   }
 
@@ -212,13 +216,13 @@ class StatusCard extends BaseCard {
   
   render() {
     const entityConfig = this.initializeEntityConfig();
-    const states_off = ["closed", "locked", "off", "docked", "idle", "standby", "paused", "auto", "not_home", "disarmed"];
-    const unavailable_states = ["unavailable", "unknown"];
-    const extraEntities = this._config?.extra_entities || [];
-    const personEntities = this.showPerson ? this.entities.filter(entity =>
-        entity.entity_id.startsWith('person.') && !this.hiddenEntities.includes(entity.entity_id)
-    ) : [];
+    const statesOff = new Set(["closed", "locked", "off", "docked", "idle", "standby", "paused", "auto", "not_home", "disarmed"]);
+    const unavailableStates = new Set(["unavailable", "unknown"]);
     
+    const personEntities = this.showPerson 
+        ? this.entities.filter(entity => entity.entity_id.startsWith('person.') && !this.hiddenEntities.includes(entity.entity_id)) 
+        : [];
+
     const areaDeviceMap = this.areas.map(area => ({
         area,
         devices: new Set(this.devices.filter(device => device.area_id === area.area_id).map(device => device.id))
@@ -234,7 +238,7 @@ class StatusCard extends BaseCard {
             const state = this.hass.states[entity_id]?.state;
             const deviceClass = this.hass.states[entity_id]?.attributes.device_class;
 
-            if (!entityConfig[domain] || !state || unavailable_states.includes(state) || this.hiddenEntities.includes(entity_id)) continue;
+            if (!entityConfig[domain] || !state || unavailableStates.has(state) || this.hiddenEntities.includes(entity_id)) continue;
 
             const isAreaMatched = area_id ? area_id === area.area_id : areaDevices.has(device_id);
 
@@ -244,107 +248,131 @@ class StatusCard extends BaseCard {
                     deviceClassEntities[domain][deviceClass] ||= [];
                     deviceClassEntities[domain][deviceClass].push(entity);
                 }
-            } else if (isAreaMatched && !states_off.includes(state)) {
+            } else if (isAreaMatched && !statesOff.has(state)) {
                 groupedEntities[domain] ||= [];
                 groupedEntities[domain].push(entity);
             }
         }
     }
 
+    const extraEntities = (this._config?.extra_entities || []).map(({ entity, status, icon, color }) => {
+        const selectedEntity = entity ? this.hass.states[entity] : null;
+        const friendlyName = selectedEntity?.attributes?.friendly_name || entity;
+        const isVisible = selectedEntity && selectedEntity.state === status;
+        const sortOrder = this._config.newSortOrder?.['extra']?.[entity] ?? -1;
+
+        return isVisible ? {
+            type: 'extra',
+            originalName: friendlyName,
+            entities: [selectedEntity],
+            icon,
+            color,
+            device_class: entity,
+            sortOrder
+        } : null;
+    }).filter(Boolean);
+
     const allEntities = [
-      ...Object.entries(groupedEntities).map(([domain, entities]) => ({
-          type: domain,
-          originalName: domain,
-          entities,
-          sortOrder: entityConfig[domain]?.sortOrder || 100
-      })),
-      ...["cover", "binary_sensor"].flatMap(domain =>
-          Object.entries(deviceClassEntities[domain]).map(([deviceClass, entities]) => ({
-              type: domain,
-              originalName: deviceClass,
-              device_class: deviceClass,
-              entities,
-              sortOrder: entityConfig[domain]?.deviceClasses.find(dc => dc.name === deviceClass)?.sortOrder || 100
-          }))
-      )
-    ].sort((a, b) => (this.getProperty(a, 'sortOrder') || 100) - (this.getProperty(b, 'sortOrder') || 100));
-    
+        ...extraEntities,
+        ...Object.entries(groupedEntities).map(([domain, entities]) => ({
+            type: domain,
+            originalName: domain,
+            entities,
+            sortOrder: entityConfig[domain]?.sortOrder || 100
+        })),
+        ...["cover", "binary_sensor"].flatMap(domain =>
+            Object.entries(deviceClassEntities[domain]).map(([deviceClass, entities]) => ({
+                type: domain,
+                originalName: deviceClass,
+                device_class: deviceClass,
+                entities,
+                sortOrder: entityConfig[domain]?.deviceClasses.find(dc => dc.name === deviceClass)?.sortOrder || 100
+            }))
+        )
+    ];
+
+    allEntities.sort((a, b) => (this.getProperty(a, 'sortOrder') || 100) - (this.getProperty(b, 'sortOrder') || 100));
+
     return html`
-      <ha-card>
-        <paper-tabs selected="0" scrollable hide-scroll-buttons>
-          ${personEntities.map(entity => html`
-            <paper-tab @click=${() => this.showMoreInfo(entity)}>
-              <div class="entity">
-                <div class="entity-icon">
-                  <img src="${this.hass.states[entity.entity_id]?.attributes.entity_picture || ''}" alt="Person Picture" />
-                </div>
-                <div class="entity-info">
-                  <div class="entity-name">${this.hass.states[entity.entity_id]?.attributes.friendly_name}</div>
-                  <div class="entity-state">${this.getProperty(entity, 'status')}</div>
-                </div>
-              </div>
-            </paper-tab>
-          `)}       
-          ${extraEntities.map(({ entity, status, icon, color }) => {
-            const selectedEntity = entity ? this.hass.states[entity] : null;
-            const friendlyName = selectedEntity?.attributes?.friendly_name || entity;
-            const isVisible = selectedEntity && selectedEntity.state === status;
-            return isVisible
-              ? html`
-                <paper-tab @click=${() => this.showMoreInfo(selectedEntity)}>
-                  <div class="extra-entity">
-                    <div class="entity-icon" style="color: var(--${color || ''}-color);">
-                      <ha-icon icon="${icon}"></ha-icon>
-                    </div>
-                    <div class="entity-info">
-                      <div class="entity-name">${friendlyName}</div>
-                      <div class="entity-state">${translateState(selectedEntity?.state, this.hass.language)}</div>
-                    </div>
-                  </div>
-                </paper-tab>
-              `  : null;
-          })}         
-          ${allEntities.filter(group => !this.getProperty(group, 'hide')).map(group => html`
-            <paper-tab @click=${() => this.toggleMoreInfo('show', group.type, group.entities, this.getProperty(group, 'names'))}>
-              <div class="entity">
-                <div class="entity-icon" style="color: var(--${this.getProperty(group, 'colors') || ''}-color);">
-                  <ha-icon icon="${this.getProperty(group, 'icons')}"></ha-icon>
-                </div>
-                <div class="entity-info">
-                  <div class="entity-name">${this.getProperty(group, 'names')}</div>
-                  <div class="entity-state">${group.entities.length} ${this.getProperty(group, 'status')}</div>
-                </div>
-              </div>
-            </paper-tab>
-          `)}
-        </paper-tabs>
-          </ha-card>
-          <ha-dialog id="more-info-dialog" style="display:none;">
+        <ha-card>
+            <paper-tabs selected="0" scrollable hide-scroll-buttons>
+                ${personEntities.map(entity => html`
+                    <paper-tab @click=${() => this.showMoreInfo(entity)}>
+                        <div class="entity">
+                            <div class="entity-icon">
+                                <img src="${this.hass.states[entity.entity_id]?.attributes.entity_picture || ''}" alt="Person Picture" />
+                            </div>
+                            <div class="entity-info">
+                                <div class="entity-name">${this.hass.states[entity.entity_id]?.attributes.friendly_name}</div>
+                                <div class="entity-state">${this.getProperty(entity, 'status')}</div>
+                            </div>
+                        </div>
+                    </paper-tab>
+                `)}
+                ${extraEntities.map(({ entity, icon, color }) => {
+                    const selectedEntity = entity ? this.hass.states[entity] : null;
+                    const friendlyName = selectedEntity?.attributes?.friendly_name || entity;
+                    return selectedEntity ? html`
+                        <paper-tab @click=${() => this.showMoreInfo(selectedEntity)}>
+                            <div class="extra-entity">
+                                <div class="entity-icon" style="color: var(--${color || ''}-color);">
+                                    <ha-icon icon="${icon}"></ha-icon>
+                                </div>
+                                <div class="entity-info">
+                                    <div class="entity-name">${friendlyName}</div>
+                                    <div class="entity-state">${translateState(selectedEntity?.state, this.hass.language)}</div>
+                                </div>
+                            </div>
+                        </paper-tab>
+                    ` : null;
+                })}
+                ${allEntities.filter(group => !this.getProperty(group, 'hide')).map(group => html`
+                    <paper-tab @click=${() => { 
+                        const showInfo = group.type === 'extra' ? this.showMoreInfo(group.entities[0]) : this.toggleMoreInfo('show', group.type, group.entities, this.getProperty(group, 'names'));
+                        showInfo;
+                    }}>
+                        <div class="entity">
+                            <div class="entity-icon" style="color: var(--${group.color || this.getProperty(group, 'colors') || ''}-color);">
+                                <ha-icon icon="${group.icon || this.getProperty(group, 'icons')}"></ha-icon>
+                            </div>
+                            <div class="entity-info">
+                                <div class="entity-name">${group.type === 'extra' ? group.originalName : this.getProperty(group, 'names')}</div>
+                                <div class="entity-state">
+                                    ${group.type === 'extra' && group.entities?.[0]
+                                        ? translateState(group.entities[0].state, this.hass.language)
+                                        : `${group.entities.length} ${this.getProperty(group, 'status')}`}
+                                </div>
+                            </div>
+                        </div>
+                    </paper-tab>
+                `)}
+            </paper-tabs>
+        </ha-card>
+        <ha-dialog id="more-info-dialog" style="display:none;">
             <div class="dialog-header">
-              <ha-icon-button slot="navigationIcon" dialogaction="cancel" @click=${() => this.toggleMoreInfo('close')} title="Schließen">
-                <ha-icon icon="mdi:close"></ha-icon>
-              </ha-icon-button>
-              <h3>${this.hass.localize("ui.panel.lovelace.editor.card.entities.name")} in ${this.selectedEntityName}:</h3>
+                <ha-icon-button slot="navigationIcon" dialogaction="cancel" @click=${() => this.toggleMoreInfo('close')} title="Schließen">
+                    <ha-icon icon="mdi:close"></ha-icon>
+                </ha-icon-button>
+                <h3>${this.hass.localize("ui.panel.lovelace.editor.card.entities.name")} in ${this.selectedEntityName}:</h3>
             </div>
             <div class="tile-container">
-              ${this.bulkMode 
-                ? html`<ul class="entity-list">${this.entitiesInDomain.map(entity => html`<li class="entity-item">- ${entity.entity_id}</li>`)}</ul>`
-                : html`${this.entitiesInDomain.map(entity => html`
-                  <div class="entity-card" .entity="${entity.entity_id}">
-                    ${this.createCard({
-                      type: 'tile',
-                      entity: entity.entity_id,
-                      ...(this.selectedDomain === 'light' && { features: [{ type: "light-brightness" }] }),
-                      ...(this.selectedDomain === 'cover' && { features: [{ type: "cover-open-close" }, { type: "cover-position" }] })
-                    })}
-                  </div>
-                `)}
-              `}
+                ${this.bulkMode 
+                    ? html`<ul class="entity-list">${this.entitiesInDomain.map(entity => html`<li class="entity-item">- ${entity.entity_id}</li>`)}</ul>` 
+                    : this.entitiesInDomain.map(entity => html`
+                        <div class="entity-card" .entity="${entity.entity_id}">
+                            ${this.createCard({
+                                type: 'tile',
+                                entity: entity.entity_id,
+                                ...(this.selectedDomain === 'light' && { features: [{ type: "light-brightness" }] }),
+                                ...(this.selectedDomain === 'cover' && { features: [{ type: "cover-open-close" }, { type: "cover-position" }] })
+                            })}
+                        </div>
+                    `)}
             </div>
-          </ha-dialog>
-        `;
-      }
-      
+        </ha-dialog>
+    `;
+}
+
       static get styles() {
         return css`
             paper-tabs { height: 110px; }
@@ -362,11 +390,12 @@ class StatusCard extends BaseCard {
             .dialog-header ha-icon-button { margin-right: 10px; }
             .dialog-header h3 { margin-bottom: 10px; }
             ha-dialog#more-info-dialog { --mdc-dialog-max-width: 90vw; } 
-            .tile-container { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px; justify-content: center; }
+            .tile-container { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px; }
             .entity-card { width: 21vw; box-sizing: border-box; }
             .entity-list { list-style: none; }
             @media (max-width: 768px) {
                 .entity-card { flex-basis: 100%; max-width: 100%; }
+                .tile-container { width: 100%; }
             }
         `;
     }
@@ -440,7 +469,7 @@ class StatusCardEditor extends BaseCard {
 
   showMoreHiddenEntities() {
     this.showMore = true;
-    this.requestUpdate(); // Update der Ansicht
+    this.requestUpdate(); 
   }
 
   toggleDetails(type, domain, deviceClassName) {
@@ -467,12 +496,13 @@ class StatusCardEditor extends BaseCard {
   
     this.configChanged(this._config);
     this.requestUpdate();
-  }
+}
+
   
-  updateSortOrder(domain, deviceClassName, newSortOrder) {
-    this.updateConfig('newSortOrder', domain, deviceClassName, newSortOrder);
-  }
-  
+updateSortOrder(domain, deviceClassName, newSortOrder) {
+  this.updateConfig('newSortOrder', domain, deviceClassName, newSortOrder);
+}
+
   updateIcons(domain, deviceClassName, icon) {
     this.updateConfig('icons', domain, deviceClassName, icon);
   }
@@ -482,9 +512,8 @@ class StatusCardEditor extends BaseCard {
   }
   
   updateColors(domain, deviceClassName, color) {
-    this.updateConfig('colors', domain, deviceClassName, color === '' ? '' : color);
+    this.updateConfig('colors', domain, deviceClassName, color);
   }
-  
   
   updateVisibility(domain, deviceClassName, visible) {
     this.updateConfig('hide', domain, deviceClassName, visible);
@@ -536,7 +565,7 @@ class StatusCardEditor extends BaseCard {
           ${renderHaForm("bulkMode", { boolean: {} }, { bulkMode: this._config.bulkMode !== undefined ? this._config.bulkMode : false }, this._computeLabel, (e) => this.toggleSetting('bulkMode', e.detail.value.bulkMode))}
         </div>
   
-        <p @click=${() => this.toggleDetails('domain', 'customization')} class="toggle-header">
+        <p @click=${(e) => { e.stopPropagation(); this.toggleDetails('domain', 'customization')}} class="toggle-header">
           ${translateState('edit_domains', this.hass.language)}
           <ha-icon icon="${this.openedDomains.includes('customization') ? 'hass:chevron-up' : 'hass:chevron-down'}"></ha-icon>
         </p>
@@ -546,7 +575,8 @@ class StatusCardEditor extends BaseCard {
               .filter(domain => domain !== 'cover' && domain !== 'binary_sensor')
               .map(domain => html`
                 <div class="domain-container">
-                  <div @click=${() => this.toggleDetails('domain', domain)} class="domain-header">
+                  <div @click=${(e) => { e.stopPropagation(); this.toggleDetails('domain', domain); }} class="domain-header">
+
                     ${this.hass.localize(`component.${domain}.entity_component._.name`) || domain}
                     <ha-icon class="toggle-icon" icon="${this.openedDomains.includes(domain) ? 'hass:chevron-up' : 'hass:chevron-down'}"></ha-icon>
                   </div>
@@ -555,9 +585,7 @@ class StatusCardEditor extends BaseCard {
                       ${renderHaForm("hideDomain", { boolean: {} }, { hideDomain: this._config.hide?.[domain] || false }, (schema) => this._computeLabel(schema, domain), (e) => this.updateVisibility(domain, null, e.detail.value.hideDomain))}
                       ${renderHaForm("domainName", { text: {} }, { domainName: this._config.names?.[domain] || '' }, this._computeLabel, (e) => this.updateNames(domain, null, e.detail.value.domainName))}
                       ${renderHaForm("icon", { icon: {} }, this._config.icons?.[domain] ? { icon: this._config.icons[domain] } : { icon: '' }, this._computeLabel, (e) => this.updateIcons(domain, null, e.detail.value.icon))}
-                      ${renderHaForm("color", { ui_color: {} }, { color: this._config.colors?.[domain] || '' }, this._computeLabel, (e) => { const newValue = e.detail.value.color; this.updateColors(domain, null, newValue); })}
-
-
+                      ${renderHaForm("color", { ui_color: {} }, { color: this._config.colors?.[domain] || '' }, this._computeLabel, (e) => {if (e.detail.value.color !== (this._config.colors?.[domain] || '')) { this.updateColors(domain, null, e.detail.value.color);}})}
                       ${renderHaForm("sortOrder", { number: {} }, { sortOrder: this._config.newSortOrder?.[domain] !== undefined ? this._config.newSortOrder?.[domain] : this.entityConfig[domain]?.sortOrder || 0 }, this._computeLabel, (e) => { const newValue = Number(e.detail.value.sortOrder); this.newSortOrder = newValue; this.updateSortOrder(domain, null, newValue); })}
                     </div>
                   ` : ''}
@@ -584,7 +612,7 @@ class StatusCardEditor extends BaseCard {
                       ${renderHaForm(`hide_${domain}_DeviceClass`, { boolean: {} }, { [`hide_${domain}_DeviceClass`]: this._config.hide?.[domain]?.[deviceClass.name] || false }, (schema) => this._computeLabel(schema, domain, deviceClass.name), (e) => this.updateVisibility(domain, deviceClass.name, e.detail.value[`hide_${domain}_DeviceClass`]))}
                       ${renderHaForm("deviceClassName", { text: {} }, { deviceClassName: this._config.names?.[domain]?.[deviceClass.name] || '' }, this._computeLabel, (e) => this.updateNames(domain, deviceClass.name, e.detail.value.deviceClassName))}
                       ${renderHaForm("icon", { icon: {} }, this._config.icons?.[domain]?.[deviceClass.name] ? { icon: this._config.icons[domain][deviceClass.name] } : { icon: '' }, this._computeLabel, (e) => this.updateIcons(domain, deviceClass.name, e.detail.value.icon))}
-                      ${renderHaForm("color", { ui_color: {} }, { color: this._config.colors?.[domain]?.[deviceClass.name] || '' }, this._computeLabel, (e) => { const newValue = e.detail.value.color; this.updateColors(domain, deviceClass.name, newValue); })}
+                      ${renderHaForm("color", { ui_color: {} }, { color: this._config.colors?.[domain]?.[deviceClass.name] || '' }, this._computeLabel, (e) => {if (e.detail.value.color !== (this._config.colors?.[domain]?.[deviceClass.name] || '')) { this.updateColors(domain, deviceClass.name, e.detail.value.color);}})}   
                       ${renderHaForm("sortOrder", { number: {} }, { sortOrder: (this._config.newSortOrder?.[domain]?.[deviceClass.name] !== undefined) ? this._config.newSortOrder[domain][deviceClass.name] : deviceClass.sortOrder || 0 }, this._computeLabel, (e) => this.updateSortOrder(domain, deviceClass.name, Number(e.detail.value.sortOrder)))}
                     </div>
                   ` : ''}
@@ -601,22 +629,27 @@ class StatusCardEditor extends BaseCard {
           </ha-icon-button>
         </div>
 
-        ${this._config.extra_entities.map((entity, index) => html`
-          <div class="extra-entity-input">
-            ${renderHaForm("entity", { entity: {} }, { entity: entity.entity }, this._computeLabel, (e) => this.manageExtraEntity('update', index, 'entity', e.detail.value.entity))}
-            ${renderHaForm("status", { text: {} }, { status: entity.status }, this._computeLabel, (e) => this.manageExtraEntity('update', index, 'status', e.detail.value.status))}
-          </div>
-          <div class="extra-entity-input-down">
-            ${renderHaForm("icon", { icon: {} }, { icon: entity.icon || '' }, this._computeLabel, (e) => this.manageExtraEntity('update', index, 'icon', e.detail.value.icon))}
-            ${renderHaForm("color", { ui_color: {} }, { color: entity.color || '' }, this._computeLabel, (e) => this.manageExtraEntity('update', index, 'color', e.detail.value.color))}
-            <ha-icon-button
-              class="remove-button"
-              icon="mdi:minus"
-              @click=${() => this.manageExtraEntity('remove', index)}>
-              <ha-icon icon="mdi:minus"></ha-icon>
-            </ha-icon-button>
-          </div>
-        `)}
+        ${this._config.extra_entities.map((entity, index) => {
+          const deviceClassName = entity.entity; 
+          return html`
+            <div class="extra-entity-input">
+              ${renderHaForm("entity", { entity: {} }, { entity: entity.entity }, this._computeLabel, (e) => this.manageExtraEntity('update', index, 'entity', e.detail.value.entity))}
+              ${renderHaForm("status", { text: {} }, { status: entity.status }, this._computeLabel, (e) => this.manageExtraEntity('update', index, 'status', e.detail.value.status))}
+            </div>
+            <div class="extra-entity-input-down">
+              ${renderHaForm("icon", { icon: {} }, { icon: entity.icon || '' }, this._computeLabel, (e) => this.manageExtraEntity('update', index, 'icon', e.detail.value.icon))}
+              ${renderHaForm("color", { ui_color: {} }, { color: entity.color || '' }, this._computeLabel, (e) => this.manageExtraEntity('update', index, 'color', e.detail.value.color))}
+              ${renderHaForm("sortOrder", { number: {} }, { sortOrder: (this._config.newSortOrder?.['extra']?.[deviceClassName] !== undefined) ? this._config.newSortOrder['extra'][deviceClassName] :  '' }, this._computeLabel, (e) => this.updateSortOrder('extra', deviceClassName, Number(e.detail.value.sortOrder)))}
+              <ha-icon-button
+                class="remove-button"
+                icon="mdi:minus"
+                @click=${() => { this.manageExtraEntity('remove', index); this.updateSortOrder('extra', deviceClassName, '');}}>
+                <ha-icon icon="mdi:minus"></ha-icon>
+              </ha-icon-button>
+            </div>
+          `;
+      })}
+      
 
         <div>
           <h3>${this.hass.localize("ui.panel.lovelace.editor.entities.remove")}</h3>
@@ -647,10 +680,6 @@ class StatusCardEditor extends BaseCard {
             ` : ''}
           </ul>
         ` : ''}
-        
-        
-        
-        
       </div>
     `;    
   }
@@ -687,10 +716,9 @@ class StatusCardEditor extends BaseCard {
       .status-text { flex: 3; }
       .extra-entities { display: flex; justify-content: space-between; align-items: center; }
       .extra-entity-input, .extra-entity-input-down { display: flex; gap: 10px; margin-bottom: 5px; }
-      .extra-entity-input > ha-form:nth-of-type(1), 
-      .extra-entity-input-down > ha-form:nth-of-type(1) { flex: 8; }
-      .extra-entity-input > ha-form:nth-of-type(2), 
-      .extra-entity-input-down > ha-form:nth-of-type(2) { flex: 2; }
+      .extra-entity-input > * { flex: 4; }
+      .extra-entity-input-down > ha-form:nth-of-type(1), .extra-entity-input-down > ha-form:nth-of-type(2) { flex: 4; min-width: 0; }
+      .extra-entity-input-down > ha-form:nth-of-type(3) { flex: 2; }
       .toggle { display: flex; gap: 20px; padding: 0 10px; }
       .toggle > ha-form { flex: 1; }
       .domain-group { margin-bottom: 16px; cursor: pointer; }
