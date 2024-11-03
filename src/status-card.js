@@ -214,6 +214,10 @@ class StatusCard extends BaseCard {
     return html`<p>Kartenkonfiguration fehlgeschlagen</p>`;
   }
   
+  isEntityHidden(entity) {
+    return this.hiddenEntities.includes(entity.entity_id) || entity.hidden_by;
+  }
+
   render() {
     const entityConfig = this.initializeEntityConfig();
     const statesOff = new Set(["closed", "locked", "off", "docked", "idle", "standby", "paused", "auto", "not_home", "disarmed"]);
@@ -238,7 +242,7 @@ class StatusCard extends BaseCard {
             const state = this.hass.states[entity_id]?.state;
             const deviceClass = this.hass.states[entity_id]?.attributes.device_class;
 
-            if (!entityConfig[domain] || !state || unavailableStates.has(state) || this.hiddenEntities.includes(entity_id)) continue;
+            if (!entityConfig[domain] || !state || unavailableStates.has(state) || this.isEntityHidden(entity)) continue;
 
             const isAreaMatched = area_id ? area_id === area.area_id : areaDevices.has(device_id);
 
