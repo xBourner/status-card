@@ -16,6 +16,7 @@ I added a graphical Interface to edit the card. Everything is managable from GUI
 # Features
  - shows person entities
  - shows all entities which aren't off grouped by domain or deivce class
+ - filter for areas/floors
  - customization of domains and device classes
  - can show extra entities
  - you can hide certain entities
@@ -32,7 +33,11 @@ Please keep attention that it will only show entities which are linked to any ar
 
 # Screenshots
 ### Graphical Editor
-![image](https://github.com/user-attachments/assets/b5d15fc9-25c1-4470-a90c-73f917d06155)
+![image](https://github.com/user-attachments/assets/f1ac4f58-646f-4d77-b043-5769c16a484e)
+
+### Area/ Floor Filter
+![image](https://github.com/user-attachments/assets/7066112b-e883-40d2-85ef-464cff43f725)
+
 
 ### Adding Extra Entities
 ![image](https://github.com/user-attachments/assets/4c48eed1-b348-4151-9a41-fc4705b1bcd5) ![image](https://github.com/user-attachments/assets/794319c1-1204-4369-9137-b8e7993eb005)
@@ -77,6 +82,10 @@ https://github.com/xBourner/status-card
 | icons  | array         | none          |  shows settings for domain icons |
 |  - domain     | icon         | none          | will change the icon of the domain |
 | newSortorder  | array         | none          |  lets you change the default sorting by domains/device classes |
+| area_filter  |         | none          |  lets you change the default sorting by domains/device classes |
+|  - area  |    string     | none          |  sets filter to an area. only entities from that area are shown |
+|  - floor  |   string      | none          |  sets filter to a floor. only entities from that floor are shown |
+
 
 
 
