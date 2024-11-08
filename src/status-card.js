@@ -97,10 +97,6 @@ class StatusCard extends BaseCard {
       };
   }
 
-  constructor() {
-    super();
-    this.entityDataCache = new Map();
-  }
 
   shouldComponentUpdate(nextProps, nextState) {
     if (nextProps.config !== this.props.config || nextState !== this.state) {
@@ -286,17 +282,15 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
 
   
   getEntityData(entity_id) {
-    if (!this.entityDataCache.has(entity_id)) {
-      const entity = this.hass.states[entity_id];
-      const data = {
-        state: entity?.state,
-        deviceClass: entity?.attributes.device_class,
-        friendlyName: entity?.attributes?.friendly_name || entity_id,
-        entityPicture: entity?.attributes?.entity_picture || ''
-      };
-      this.entityDataCache.set(entity_id, data);
+    const entityDataCache = new Map();
+    if (!entityDataCache.has(entity_id)) {
+      const state = this.hass.states[entity_id]?.state;
+      const deviceClass = this.hass.states[entity_id]?.attributes.device_class;
+      const friendlyName = this.hass.states[entity_id]?.attributes?.friendly_name || entity_id;
+      const entityPicture = this.hass.states[entity_id]?.attributes?.entity_picture || '';
+      entityDataCache.set(entity_id, { state, deviceClass, friendlyName, entityPicture });
     }
-    return this.entityDataCache.get(entity_id);
+    return entityDataCache.get(entity_id);
   }
   
   loadPersonEntities() {
@@ -512,7 +506,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
     }
           
     static getConfigElement() {
-        return document.createElement("dev-status-card-editor");
+        return document.createElement("status-card-editor");
     }
   
     static getStubConfig() {
@@ -585,6 +579,7 @@ class StatusCardEditor extends BaseCard {
     areaFloorFilter: (hass) =>
       `${hass.localize("ui.components.selectors.selector.types.area")} / ${hass.localize("ui.components.selectors.selector.types.floor")} Filter`,
   };
+
 
   _computeLabel(schema, domain, deviceClass) {
     const labelGenerator = StatusCardEditor.labelMap[schema.name];
@@ -921,6 +916,7 @@ render() {
     `;
   }
 }
+
 
 
 customElements.define('status-card-editor', StatusCardEditor);
