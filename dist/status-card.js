@@ -222,7 +222,7 @@
       </ha-card>
       ${this.renderMoreInfoDialog()}
     `}static get styles(){return s`
-            paper-tabs { height: 110px; }
+            paper-tabs { height: 110px; padding: 4px 8px }
             paper-tab {padding: 0 5px; }
             .entity, .extra-entity { display: flex; flex-direction: column; align-items: center;}
             .entity-icon { width: 50px; height: 50px; border-radius: 50%;
