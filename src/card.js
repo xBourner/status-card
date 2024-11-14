@@ -409,7 +409,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
 
       static get styles() {
         return css`
-            paper-tabs { height: 110px; }
+            paper-tabs { height: 110px; padding: 4px 8px }
             paper-tab {padding: 0 5px; }
             .entity, .extra-entity { display: flex; flex-direction: column; align-items: center;}
             .entity-icon { width: 50px; height: 50px; border-radius: 50%;
