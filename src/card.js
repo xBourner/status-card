@@ -370,7 +370,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
     return html`
       <ha-dialog id="more-info-dialog" style="display:none;">
         <div class="dialog-header">
-          <ha-icon-button slot="navigationIcon" dialogaction="cancel" @click=${() => this.toggleMoreInfo('close')} title="Schließen">
+          <ha-icon-button class="dialog-icon-button-header" slot="navigationIcon" dialogaction="cancel" @click=${() => this.toggleMoreInfo('close')} title="Schließen">
             <ha-icon icon="mdi:close"></ha-icon>
           </ha-icon-button>
           <h3>${this.hass.localize("ui.panel.lovelace.editor.card.entities.name")} in ${this.selectedEntityName}:</h3>
@@ -420,11 +420,12 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
             .entity-info { text-align: center; margin-top: 5px; }
             .entity-name { font-weight: bold; margin-bottom: 2px; }
             .entity-state { color: var(--secondary-text-color); font-size: 0.9em; }
-            .dialog-header { display: flex; align-items: center; justify-content: flex-start;}  
+            .dialog-header { display: flex; align-items: center; justify-content: space-between; flex-direction: row-reverse; gap: 8px; margin-bottom: 1.5vh}  
             .dialog-header ha-icon-button { margin-right: 10px; }
-            .dialog-header h3 { margin-bottom: 10px; }
+            .dialog-header h3 { margin: 0 }
             ha-dialog#more-info-dialog { --mdc-dialog-max-width: 90vw; } 
             .tile-container { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px; }
+            .tile-container .dialog-icon-button-header { margin: 0; border-radius:100vh; background-color: rgba(0,0,0,0.3); }
             .entity-card { width: 21vw; box-sizing: border-box; }
             .entity-list { list-style: none; }
             @media (max-width: 768px) {
