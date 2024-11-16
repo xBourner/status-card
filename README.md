@@ -5,7 +5,7 @@ This is my first custom card for Home Assistant.
 I am not a coder and have no background in coding. I always tried to achieve something like this with different approaches but nothing was the way in wanted to.
 So i tried a bit and i was able to create my own custom card.
 
-![image](https://github.com/user-attachments/assets/47737116-74d8-4e38-ac47-62c3442277b0)
+![image](https://github.com/user-attachments/assets/32335d69-4286-4b92-9bb4-eccf0730ff87)
 
 This card i highly influenced by [Dwains Dashboard](https://github.com/dwainscheeren/dwains-lovelace-dashboard).
 I tried to to have this in every dashboard i want and dont want to be restricted by Dwains Dashboard.
@@ -33,7 +33,8 @@ Please keep attention that it will only show entities which are linked to any ar
 
 # Screenshots
 ### Graphical Editor
-![image](https://github.com/user-attachments/assets/f1ac4f58-646f-4d77-b043-5769c16a484e)
+![image](https://github.com/user-attachments/assets/bab6c931-9a37-41ba-80b2-3ef868257c46)
+
 
 ### Area/ Floor Filter
 ![image](https://github.com/user-attachments/assets/7066112b-e883-40d2-85ef-464cff43f725)
@@ -45,6 +46,10 @@ Please keep attention that it will only show entities which are linked to any ar
 
 ## Customization of Domains or Device Classes
 ![image](https://github.com/user-attachments/assets/87291197-6e72-494e-8707-1503021f9b80) ![image](https://github.com/user-attachments/assets/d59d0feb-54db-473e-86c3-d3c23ce904a8)
+
+## Hiding Names for Person, Domains, Device Classes & Extra Entities
+
+![image](https://github.com/user-attachments/assets/b2b42de3-1d26-47f9-ba84-801dd088ead9)
 
 
 ## Bulk Mode
@@ -73,6 +78,8 @@ https://github.com/xBourner/status-card
 |   - icon      | mdi:icon      | none          | custom mdi:icon |
 |   - color     | color         | none          | custom color |
 | showPerson    | bool          | true          | choose if you want to see person entities or not |
+| showPersonName| bool          | true          |  choose if you want to see names of person entities or not |
+| showBadgeName | bool          | true          | choose if you want to see names of domains, device classes and extra entities or not |
 | hidden_entities| string         | none         | choose which entities will not be shown in the card  |
 | bulkMode      | bool          | false         | toggles a mode in which you get a list instead of cards which can be copy pasted  |
 | colors        | array         | none          |  shows settings for domain icon color |
