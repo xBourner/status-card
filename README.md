@@ -70,15 +70,17 @@ https://github.com/xBourner/status-card
 
 # Settings
 
+All settings are optional. The card should work without setting any parameters in yaml or via GUI. 
+
 ```yaml
 type: custom:dev-status-card
 bulkMode: false  # enable buk mode for accessing entities as text you can copy (easy to add hidden_entities)
 showPerson: true  # show person entities in card
 showBadgeName: false  # show names for domains/device classes/exta entities
 showPersonName: false # show names for person entities
-area_filter:  # area filter can have the option to filter for an area or a floor (only entities from that area/floor will be shown) !only one filter per card!
-  area: living_room
-  floor: first_floor
+area_filter:  # option to filter for an area/floor (only entities from that area/floor will be shown)
+  area: living_room #  !only one filter per card!
+  floor: first_floor #  !only one filter per card!
 hide:  # domains/device classes which are hidden from card
   light: false
 names:  # domain/device classes that will show another name
