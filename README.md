@@ -70,28 +70,39 @@ https://github.com/xBourner/status-card
 
 # Settings
 
-| Name          | Type          | Default       |   Description |
-| ------------- | ------------- | ------------- | ------------- |
-| extra_entities| Array         | none          | will show an extra entity |
-|   -entity     | entity_id     | none          | which entity will be shown |
-|   - status    | state         | none          | entity will only be shown if it has this state |
-|   - icon      | mdi:icon      | none          | custom mdi:icon |
-|   - color     | color         | none          | custom color |
-| showPerson    | bool          | true          | choose if you want to see person entities or not |
-| showPersonName| bool          | true          |  choose if you want to see names of person entities or not |
-| showBadgeName | bool          | true          | choose if you want to see names of domains, device classes and extra entities or not |
-| hidden_entities| string         | none         | choose which entities will not be shown in the card  |
-| bulkMode      | bool          | false         | toggles a mode in which you get a list instead of cards which can be copy pasted  |
-| colors        | array         | none          |  shows settings for domain icon color |
-|  - domain     | color         | none          | will change the icon color of the domain |
-| names  | array         | none          |  shows settings for domain names|
-|  - domain     | name        | none          | will change the name of the domain |
-| icons  | array         | none          |  shows settings for domain icons |
-|  - domain     | icon         | none          | will change the icon of the domain |
-| newSortorder  | array         | none          |  lets you change the default sorting by domains/device classes |
-| area_filter  |         | none          |  lets you change the default sorting by domains/device classes |
-|  - area  |    string     | none          |  sets filter to an area. only entities from that area are shown |
-|  - floor  |   string      | none          |  sets filter to a floor. only entities from that floor are shown |
+All settings are optional. The card should work without setting any parameters in yaml or via GUI. 
+
+```yaml
+type: custom:dev-status-card
+bulkMode: false  # enable buk mode for accessing entities as text you can copy (easy to add hidden_entities)
+showPerson: true  # show person entities in card
+showBadgeName: false  # show names for domains/device classes/exta entities
+showPersonName: false # show names for person entities
+area_filter:  # option to filter for an area/floor (only entities from that area/floor will be shown)
+  area: living_room #  !only one filter per card!
+  floor: first_floor #  !only one filter per card!
+hide:  # domains/device classes which are hidden from card
+  light: false
+names:  # domain/device classes that will show another name
+  light: asd
+icons:  # domain/device classes that will show another icon
+  light: mdi:account-plus
+colors:  # domain/device classes that will show another icon color
+  light: dark-grey
+newSortOrder: # change the sort order of a domain/device class/extra entity
+  light: 10
+  extra:
+    light.living-room: 4
+extra_entities: # settings for extra entity that will be shown in card when the state is the same like you configured
+  - entity: light.living-room
+    status: "off"
+    icon: mdi:ceiling-fan-light
+    color: lime
+hidden_entities: # enttites which will be hidden from card
+  - update.0x5c0272fffeae0368
+```
+
+
 
 
 
