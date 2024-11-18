@@ -88,6 +88,7 @@ const STATES_OFF = new Set(["closed", "locked", "off", "docked", "idle", "standb
 const UNAVAILABLE_STATES = new Set(["unavailable", "unknown"]);
 
 class StatusCard extends BaseCard {
+  
   static get properties() {
     return {
       config: { type: Object },
@@ -382,10 +383,14 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
     return allEntities;
   }
 
+  
+
   renderPersonEntities() {
     const personEntities = this.loadPersonEntities();
+    
     return personEntities.map(entity => {
       const cachedData = this.getEntityData(entity.entity_id);
+
       return html`
         <paper-tab @click=${() => this.showMoreInfo(entity)}>
           <div class="entity">
@@ -393,7 +398,8 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
               <img src="${cachedData.entityPicture}" alt="Person Picture" />
             </div>
             <div class="entity-info">
-              <div class="entity-name">${this.showPersonName ? cachedData.friendlyName.split(' ')[0] : ''}</div>
+                <div class="entity-name">${this.showPersonName ? `${this.getEntityData(entity.entity_id).friendlyName.split(' ')[0]} test` : ''}</div>
+
               <div class="entity-state">${this.getProperty(entity, 'status')}</div>
             </div>
           </div>
@@ -401,6 +407,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
       `;
     });
   }
+  
 
   renderExtraEntities() {
     const extraEntities = this.loadExtraEntities();
@@ -516,7 +523,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
     }
           
     static getConfigElement() {
-        return document.createElement("status-card-editor");
+        return document.createElement("dev-status-card-editor");
     }
   
     static getStubConfig() {
@@ -547,7 +554,7 @@ class StatusCardEditor extends BaseCard {
     super();
     this.openedDomains = [];
     this.openedDeviceClasses = [];
-    this.entityConfig = initializeEntityConfig();
+    this.entityConfig = this.initializeEntityConfig();
     this.config = {
       extra_entities: [],
       hidden_entities: [],
@@ -559,7 +566,7 @@ class StatusCardEditor extends BaseCard {
     this.config = config;
     if (!config.extra_entities) delete this.config.extra_entities;
     if (!config.hidden_entities) delete this.config.hidden_entities;
-    this.entityConfig = initializeEntityConfig();
+    this.entityConfig = this.initializeEntityConfig();
   }
 
   configChanged(newConfig) {
@@ -602,11 +609,15 @@ class StatusCardEditor extends BaseCard {
   }
   
   toggleSetting(type, checked) {
-    if (['showPerson', 'bulkMode', 'showPersonName', , 'showBadgeName'].includes(type)) {
-        this.config[type] = checked; 
-        this.configChanged(this.config);
+    console.log('State:', this.config);
+  
+    if (['showPerson', 'bulkMode', 'showPersonName', 'showBadgeName'].includes(type)) {
+      this.config[type] = checked; 
+        console.log('Changed State:', this.config);
+      this.configChanged(this.config);
     }
   }
+  
 
   showMoreHiddenEntities() {
     this.showMore = true;
@@ -615,37 +626,50 @@ class StatusCardEditor extends BaseCard {
 
 
   updateConfig(property, domain, deviceClassName, value) {
+
+    console.log('State of config:', this.config);
+  
     this.config[property] = this.config[property] || {};
     this.config[property][domain] = this.config[property][domain] || {};
-    
-    deviceClassName ? 
-      (this.config[property][domain][deviceClassName] = value) : 
-      (this.config[property][domain] = value);
   
+    deviceClassName ?
+      (this.config[property][domain][deviceClassName] = value) :
+      (this.config[property][domain] = value);
+    
     this.configChanged(this.config);
     this.requestUpdate();
-}
-
+  }
   
-updateSortOrder(domain, deviceClassName, newSortOrder) {
-  this.updateConfig('newSortOrder', domain, deviceClassName, newSortOrder);
-}
+  updateSortOrder(domain, deviceClassName, newSortOrder) {
 
+    console.log('Update Sort Order - State:', this.config.newSortOrder);
+    this.updateConfig('newSortOrder', domain, deviceClassName, newSortOrder);
+  }
+  
   updateIcons(domain, deviceClassName, icon) {
+
+    console.log('Update Icons - State:', this.config.icons);
     this.updateConfig('icons', domain, deviceClassName, icon);
   }
   
   updateNames(domain, deviceClassName, name) {
+
+    console.log('Update Names - State:', this.config.names);
     this.updateConfig('names', domain, deviceClassName, name);
   }
   
   updateColors(domain, deviceClassName, color) {
+
+    console.log('Update Colors - State:', this.config.colors);
     this.updateConfig('colors', domain, deviceClassName, color);
   }
   
   updateVisibility(domain, deviceClassName, visible) {
+
+    console.log('Update Visibility - State:', this.config.hide);
     this.updateConfig('hide', domain, deviceClassName, visible);
   }
+  
 
   
   manageExtraEntity(action, index = null, field = null, value = null) {
@@ -663,22 +687,27 @@ updateSortOrder(domain, deviceClassName, newSortOrder) {
   }
 
 
-  manageHiddenEntity(entity, action) {
-    const hiddenEntities = this.config.hidden_entities || [];
+  managehiddenentity(entity, action) {
+    const hiddenentities = this.config.hidden_entities || [];
   
-    if (action === 'add' && !hiddenEntities.includes(entity)) {
-      hiddenEntities.push(entity);
+    console.log('State hidden_entities:', hiddenentities);
+  
+    if (action === 'add' && !hiddenentities.includes(entity)) {
+      hiddenentities.push(entity);
     } else if (action === 'remove') {
-      hiddenEntities.splice(hiddenEntities.indexOf(entity), 1);
+      hiddenentities.splice(hiddenentities.indexOf(entity), 1);
     }
+
+    console.log('Changed State hidden_entities:', hiddenentities);
   
     this.config = {
       ...this.config,
-      hidden_entities: hiddenEntities,
+      hidden_entities: hiddenentities,
     };
   
-    this.configChanged(this.config);
+    this.configchanged(this.config);
   }
+  
   
 
   updateAreaFloorSelection(type, value) {
