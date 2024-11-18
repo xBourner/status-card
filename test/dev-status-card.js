@@ -662,8 +662,13 @@ class StatusCardEditor extends BaseCard {
     console.log('State:', this.config);
   
     if (['showPerson', 'bulkMode', 'showPersonName', 'showBadgeName'].includes(type)) {
-      this.config[type] = checked; 
-        console.log('Changed State:', this.config);
+      const updatedConfig = { ...this.config };
+  
+      updatedConfig[type] = checked;
+  
+      console.log('Changed State:', updatedConfig);
+  
+      this.config = updatedConfig;  
       this.configChanged(this.config);
     }
   }
