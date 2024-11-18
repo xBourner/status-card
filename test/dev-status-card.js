@@ -155,11 +155,9 @@ shouldComponentUpdate(nextProps, nextState) {
   getProperty(group, propertyType) {
     const cacheKey = `${group.type}_${group.device_class || ''}_${propertyType}`;
     
-    // Überprüfen, ob der Wert bereits im Cache ist
     if (this.propertyCache.has(cacheKey)) {
       const cachedValue = this.propertyCache.get(cacheKey);
   
-      // Spezielle Logik für 'status' und 'person.' Entities
       if (propertyType === 'status' && group.entity_id && group.entity_id.startsWith('person.')) {
         const entityState = this.hass.states[group.entity_id];
         if (entityState.state !== cachedValue) {
@@ -171,34 +169,28 @@ shouldComponentUpdate(nextProps, nextState) {
       return cachedValue;
     }
   
-    // Initialisierung der wichtigen Variablen
     const { type, device_class: deviceClassName, originalName } = group;
     const entityConfig = this.entityConfig[type];
     const config = this.config[propertyType];
     const entityState = this.hass.states[group.entity_id];
     let result = null;
   
-    // Berechnung des Werts für 'sortOrder'
     if (propertyType === 'sortOrder') {
       result = this.getSortOrder(type, deviceClassName, entityConfig);
     }
   
-    // Behandlung von 'binary_sensor' und 'cover' Typen
     if (['binary_sensor', 'cover'].includes(type)) {
       result = this.getDeviceTypeProperty(propertyType, config, deviceClassName, entityConfig);
     }
   
-    // Allgemeine Logik für die meisten anderen Fälle
     if (result === null) {
       result = this.getDefaultValue(propertyType, config, entityConfig, entityState, group);
     }
   
-    // Cache das Ergebnis und Rückgabe
     this.propertyCache.set(cacheKey, result);
     return result;
   }
   
-  // Helferfunktionen für spezifische Berechnungen
   
   getSortOrder(type, deviceClassName, entityConfig) {
     if (type === 'extra') {
@@ -213,12 +205,11 @@ shouldComponentUpdate(nextProps, nextState) {
   
   getDeviceTypeProperty(propertyType, config, entityConfig, entityState, group) {
     if (!group) {
-      return null; // Oder eine andere Behandlung, je nach Bedarf
+      return null; 
     }
   
-    const { type } = group; // Extrahiere 'type' nur, wenn 'group' definiert ist
+    const { type } = group; 
     
-    // Deine Logik für die verschiedenen propertyTypes
     if (['hide', 'colors'].includes(propertyType)) {
       return config?.[type] || '';
     }
@@ -243,7 +234,7 @@ shouldComponentUpdate(nextProps, nextState) {
   
   
   getDefaultValue(propertyType, config, entityConfig, entityState, group) {
-    const { type } = group; // type aus dem group-Objekt extrahieren
+    const { type } = group;
     
     if (['hide', 'colors'].includes(propertyType)) {
       return config?.[type] || '';
