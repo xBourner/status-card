@@ -154,86 +154,145 @@ shouldComponentUpdate(nextProps, nextState) {
 
   getProperty(group, propertyType) {
     const cacheKey = `${group.type}_${group.device_class || ''}_${propertyType}`;
+    
+    // Überprüfen, ob der Wert bereits im Cache ist
     if (this.propertyCache.has(cacheKey)) {
       const cachedValue = this.propertyCache.get(cacheKey);
+  
+      // Spezielle Logik für 'status' und 'person.' Entities
       if (propertyType === 'status' && group.entity_id && group.entity_id.startsWith('person.')) {
         const entityState = this.hass.states[group.entity_id];
         if (entityState.state !== cachedValue) {
           this.propertyCache.delete(cacheKey);
-          return this.getProperty(group, propertyType); 
+          return this.getProperty(group, propertyType);
         }
       }
+  
       return cachedValue;
     }
   
+    // Initialisierung der wichtigen Variablen
     const { type, device_class: deviceClassName, originalName } = group;
     const entityConfig = this.entityConfig[type];
     const config = this.config[propertyType];
     const entityState = this.hass.states[group.entity_id];
     let result = null;
   
+    // Berechnung des Werts für 'sortOrder'
     if (propertyType === 'sortOrder') {
-      if (type === 'extra') {
-        result = this.config.newSortOrder?.['extra']?.[deviceClassName] ?? -1;
-      } else {
-        result = deviceClassName
-          ? this.config.newSortOrder?.[type]?.[deviceClassName] ?? 
-            (entityConfig?.deviceClasses?.find(dc => dc.name === deviceClassName)?.sortOrder || Infinity)
-          : this.config.newSortOrder?.[type] ?? (entityConfig?.sortOrder || Infinity);
-      }
+      result = this.getSortOrder(type, deviceClassName, entityConfig);
     }
   
+    // Behandlung von 'binary_sensor' und 'cover' Typen
     if (['binary_sensor', 'cover'].includes(type)) {
-      switch (propertyType) {
-        case 'hide':
-          result = config?.[type]?.[deviceClassName] || '';
-          break;
-        case 'names':
-          result = config?.[type]?.[deviceClassName] ||
-            this.hass.localize(`ui.dialogs.entity_registry.editor.device_classes.${type}.${deviceClassName}`);
-          break;
-        case 'icons':
-          result = config?.[type]?.[deviceClassName] || 
-            entityConfig?.deviceClasses?.find(dc => dc.name === deviceClassName)?.icon ||
-            entityConfig?.icon;
-          break;
-        case 'colors':
-          result = config?.[type]?.[deviceClassName] || '';
-          break;
-      }
+      result = this.getDeviceTypeProperty(propertyType, config, deviceClassName, entityConfig);
     }
   
+    // Allgemeine Logik für die meisten anderen Fälle
     if (result === null) {
-      if (['hide', 'colors'].includes(propertyType)) {
-        result = config?.[type] || '';
-      } else if (propertyType === 'names') {
-        result = config?.[type] || 
-          this.hass.localize(`component.${type}.entity_component._.name`) || 
-          translateState(type, this.hass.language);
-      } else if (propertyType === 'icons') {
-        result = config?.[type] || entityConfig?.icon;
-      } else if (propertyType === 'status') {
-        if (group.entity_id && group.entity_id.startsWith('person.')) {
-          result = entityState?.state === 'home'
-            ? this.hass.localize('component.person.entity_component._.state.home')
-            : entityState?.state === 'not_home'
-              ? this.hass.localize('component.person.entity_component._.state.not_home')
-              : entityState?.state;
-        } else if (type === 'device_tracker') {
-          result = this.hass.localize('component.person.entity_component._.state.home');
-        } else if (['lock', 'cover'].includes(type) || ['window', 'door', 'lock'].includes(originalName)) {
-          result = this.hass.localize('component.cover.entity_component._.state.open');
-        } else if (['awning', 'blind', 'curtain', 'damper', 'garage', 'gate', 'shade', 'shutter'].includes(originalName)) {
-          result = this.hass.localize('component.cover.entity_component._.state.open');
-        } else {
-          result = this.hass.localize('component.light.entity_component._.state.on');
-        }
-      }
+      result = this.getDefaultValue(propertyType, config, entityConfig, entityState, group);
     }
   
+    // Cache das Ergebnis und Rückgabe
     this.propertyCache.set(cacheKey, result);
     return result;
   }
+  
+  // Helferfunktionen für spezifische Berechnungen
+  
+  getSortOrder(type, deviceClassName, entityConfig) {
+    if (type === 'extra') {
+      return this.config.newSortOrder?.['extra']?.[deviceClassName] ?? -1;
+    } else {
+      return deviceClassName
+        ? this.config.newSortOrder?.[type]?.[deviceClassName] ?? 
+          (entityConfig?.deviceClasses?.find(dc => dc.name === deviceClassName)?.sortOrder || Infinity)
+        : this.config.newSortOrder?.[type] ?? (entityConfig?.sortOrder || Infinity);
+    }
+  }
+  
+  getDeviceTypeProperty(propertyType, config, entityConfig, entityState, group) {
+    if (!group) {
+      return null; // Oder eine andere Behandlung, je nach Bedarf
+    }
+  
+    const { type } = group; // Extrahiere 'type' nur, wenn 'group' definiert ist
+    
+    // Deine Logik für die verschiedenen propertyTypes
+    if (['hide', 'colors'].includes(propertyType)) {
+      return config?.[type] || '';
+    }
+  
+    if (propertyType === 'names') {
+      return config?.[type] || 
+        this.hass.localize(`component.${type}.entity_component._.name`) || 
+        translateState(type, this.hass.language);
+    }
+  
+    if (propertyType === 'icons') {
+      return config?.[type] || entityConfig?.icon;
+    }
+  
+    if (propertyType === 'status') {
+      return this.getStatusValue(group, entityState);
+    }
+  
+    return null;
+  }
+  
+  
+  
+  getDefaultValue(propertyType, config, entityConfig, entityState, group) {
+    const { type } = group; // type aus dem group-Objekt extrahieren
+    
+    if (['hide', 'colors'].includes(propertyType)) {
+      return config?.[type] || '';
+    }
+  
+    if (propertyType === 'names') {
+      return config?.[type] || 
+        this.hass.localize(`component.${type}.entity_component._.name`) || 
+        translateState(type, this.hass.language);
+    }
+  
+    if (propertyType === 'icons') {
+      return config?.[type] || entityConfig?.icon;
+    }
+  
+    if (propertyType === 'status') {
+      return this.getStatusValue(group, entityState);
+    }
+  
+    return null;
+  }
+  
+  
+  getStatusValue(group, entityState) {
+    if (group.entity_id && group.entity_id.startsWith('person.')) {
+      return entityState?.state === 'home'
+        ? this.hass.localize('component.person.entity_component._.state.home')
+        : entityState?.state === 'not_home'
+          ? this.hass.localize('component.person.entity_component._.state.not_home')
+          : entityState?.state;
+    } 
+  
+    const type = group.type;
+    if (type === 'device_tracker') {
+      return this.hass.localize('component.person.entity_component._.state.home');
+    } 
+  
+    if (['lock', 'cover'].includes(type) || ['window', 'door', 'lock'].includes(group.originalName)) {
+      return this.hass.localize('component.cover.entity_component._.state.open');
+    }
+  
+    const openStates = ['awning', 'blind', 'curtain', 'damper', 'garage', 'gate', 'shade', 'shutter'];
+    if (openStates.includes(group.originalName)) {
+      return this.hass.localize('component.cover.entity_component._.state.open');
+    }
+  
+    return this.hass.localize('component.light.entity_component._.state.on');
+  }
+  
 
 
 toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
@@ -687,27 +746,28 @@ class StatusCardEditor extends BaseCard {
   }
 
 
-  managehiddenentity(entity, action) {
-    const hiddenentities = this.config.hidden_entities || [];
+  manageHiddenEntity(entity, action) {
+    const hiddenEntities = this.config.hidden_entities || [];
   
-    console.log('State hidden_entities:', hiddenentities);
-  
-    if (action === 'add' && !hiddenentities.includes(entity)) {
-      hiddenentities.push(entity);
-    } else if (action === 'remove') {
-      hiddenentities.splice(hiddenentities.indexOf(entity), 1);
-    }
+    console.log('State hidden_entities:', hiddenEntities);
 
-    console.log('Changed State hidden_entities:', hiddenentities);
+    if (action === 'add' && !hiddenEntities.includes(entity)) {
+      hiddenEntities.push(entity);
+    } else if (action === 'remove') {
+      hiddenEntities.splice(hiddenEntities.indexOf(entity), 1);
+    }
   
+    console.log('Changed State hidden_entities:', hiddenEntities);
+
     this.config = {
       ...this.config,
-      hidden_entities: hiddenentities,
+      hidden_entities: hiddenEntities,
     };
   
-    this.configchanged(this.config);
+    this.configChanged(this.config);
   }
-  
+
+ 
   
 
   updateAreaFloorSelection(type, value) {
