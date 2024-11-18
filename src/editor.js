@@ -77,7 +77,7 @@ class StatusCardEditor extends LitElement {
     }
     
     toggleSetting(type, checked) {
-      if (['showPerson', 'bulkMode', 'showPersonName', , 'showBadgeName'].includes(type)) {
+      if (['showPerson', 'bulkMode', 'showPersonName', 'showBadgeName'].includes(type)) {
           this.config[type] = checked; 
           this.configChanged(this.config);
       }
@@ -381,7 +381,7 @@ class StatusCardEditor extends LitElement {
   }
    
   render() {
-    if (!this.config) return html`<div>Keine Konfiguration gefunden</div>`;
+    if (!this.config) return html`<div>Invalid Configuration</div>`;
   
     return html`
         ${this.renderSettings()}

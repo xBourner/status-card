@@ -508,8 +508,8 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
     return html`
       <ha-dialog id="more-info-dialog" style="display:none;">
         <div class="dialog-header">
-          <ha-icon-button slot="navigationIcon" dialogaction="cancel" @click=${() => this.toggleMoreInfo('close')} title="Schließen">
-            <ha-icon icon="mdi:close"></ha-icon>
+          <ha-icon-button slot="navigationIcon" dialogaction="cancel" @click=${() => this.toggleMoreInfo('close')} title="${this.hass.localize("ui.common.close")}">
+            <ha-icon class="center" icon="mdi:close"></ha-icon>
           </ha-icon-button>
           <h3>${this.hass.localize("ui.panel.lovelace.editor.card.entities.name")} in ${this.selectedEntityName}:</h3>
         </div>
@@ -549,6 +549,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
         return css`
             paper-tabs { height: 110px; padding: 4px 8px }
             paper-tab {padding: 0 5px; }
+            .center {display: flex; align-items: center; justify-content: center;}
             .entity, .extra-entity { display: flex; flex-direction: column; align-items: center;}
             .entity-icon { width: 50px; height: 50px; border-radius: 50%;
                 background-color: rgba(var(--rgb-primary-text-color), 0.15);
@@ -557,13 +558,12 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
             .entity-icon img {width: 100%; height: 100%; object-fit: cover; border-radius: 50%;}
             .entity-info { text-align: center; margin-top: 5px; }
             .entity-name { font-weight: bold; margin-bottom: 2px; }
-            .entity-state { color: var(--secondary-text-color); font-size: 0.9em; } 
-            .dialog-header ha-icon-button { margin-right: 10px; }
-            .dialog-header { display: flex; align-items: center; justify-content: flex-start;} 
-            .dialog-header h3 { margin-bottom: 10px; }
+            .entity-state { color: var(--secondary-text-color); font-size: 0.9em; }            
+            .dialog-header { display: flex;  justify-content: flex-start; align-items: center; gap: 8px; margin-bottom: 12px;} 
+            .dialog-header ha-icon-button { margin-right: 10px;  }
             ha-dialog#more-info-dialog { --mdc-dialog-max-width: 90vw; } 
-            .tile-container { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px; }
-            .entity-card { width: 21vw; box-sizing: border-box; }
+            .tile-container { display: flex; flex-wrap: wrap; gap: 4px; }
+            .entity-card { width: calc(22.5vw - 15px ); box-sizing: border-box; }
             .entity-list { list-style: none; }
             @media (max-width: 768px) {
                 .entity-card { flex-basis: 100%; max-width: 100%; }
@@ -673,11 +673,13 @@ class StatusCardEditor extends BaseCard {
     }
   }
   
+  
 
   showMoreHiddenEntities() {
     this.showMore = true;
     this.requestUpdate(); 
   }
+
 
 
   updateConfig(property, domain, deviceClassName, value) {
@@ -699,6 +701,7 @@ class StatusCardEditor extends BaseCard {
     this.requestUpdate();
   }
   
+
   updateSortOrder(domain, deviceClassName, newSortOrder) {
 
     console.log('Update Sort Order - State:', this.config.newSortOrder);
@@ -771,6 +774,7 @@ class StatusCardEditor extends BaseCard {
   
     this.configChanged(this.config);
   }
+  
 
  
   
