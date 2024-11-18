@@ -738,21 +738,26 @@ class StatusCardEditor extends BaseCard {
 
 
   manageHiddenEntity(entity, action) {
-    const hiddenEntities = this.config.hidden_entities || [];
+    const hiddenEntities = Array.isArray(this.config.hidden_entities) 
+      ? [...this.config.hidden_entities] 
+      : [];
   
     console.log('State hidden_entities:', hiddenEntities);
-
+  
     if (action === 'add' && !hiddenEntities.includes(entity)) {
       hiddenEntities.push(entity);
     } else if (action === 'remove') {
-      hiddenEntities.splice(hiddenEntities.indexOf(entity), 1);
+      const index = hiddenEntities.indexOf(entity);
+      if (index !== -1) {
+        hiddenEntities.splice(index, 1);
+      }
     }
   
     console.log('Changed State hidden_entities:', hiddenEntities);
-
+  
     this.config = {
       ...this.config,
-      hidden_entities: hiddenEntities,
+      hidden_entities: hiddenEntities,  
     };
   
     this.configChanged(this.config);
