@@ -676,16 +676,20 @@ class StatusCardEditor extends BaseCard {
 
 
   updateConfig(property, domain, deviceClassName, value) {
-
     console.log('State of config:', this.config);
+
+    const updatedConfig = { ...this.config };
   
-    this.config[property] = this.config[property] || {};
-    this.config[property][domain] = this.config[property][domain] || {};
+    updatedConfig[property] = updatedConfig[property] || {};
+    updatedConfig[property][domain] = updatedConfig[property][domain] || {};
   
-    deviceClassName ?
-      (this.config[property][domain][deviceClassName] = value) :
-      (this.config[property][domain] = value);
-    
+    if (deviceClassName) {
+      updatedConfig[property][domain][deviceClassName] = value;
+    } else {
+      updatedConfig[property][domain] = value;
+    }
+  
+    this.config = updatedConfig; 
     this.configChanged(this.config);
     this.requestUpdate();
   }
