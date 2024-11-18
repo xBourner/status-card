@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.0.0/index.js?module';
 //import { LitElement, html, css } from 'lit-element';
-import { translateState } from './translations.js';
+//import { translateState } from '../src/translations.js';
 //import packageJson from '../package.json' assert { type: 'json' };
 
 class BaseCard extends LitElement {
@@ -232,8 +232,7 @@ shouldComponentUpdate(nextProps, nextState) {
       return config?.[type] || '';
     } else if (propertyType === 'names') {
       return config?.[type] || 
-        this.hass.localize(`component.${type}.entity_component._.name`) || 
-        translateState(type, this.hass.language);
+        this.hass.localize(`component.${type}.entity_component._.name`) || type
     } else if (propertyType === 'icons') {
       return config?.[type] || this.entityConfig[type]?.icon;
     } else if (propertyType === 'status') {
@@ -448,7 +447,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
             </div>
             <div class="entity-info">
               <div class="entity-name">${this.showBadgeName ? friendlyName : ''}</div>
-              <div class="entity-state">${translateState(selectedEntity?.state, this.hass.language)}</div>
+              <div class="entity-state">${selectedEntity?.state}</div>
             </div>
           </div>
         </paper-tab>
@@ -471,7 +470,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
             <div class="entity-name">${this.showBadgeName ? (group.type === 'extra' ? group.originalName : this.getProperty(group, 'names')) : ''}</div>
             <div class="entity-state">
               ${group.type === 'extra' && group.entities?.[0]
-                ? translateState(group.entities[0].state, this.hass.language)
+                ? `${group.entities[0].state}`
                 : `${group.entities.length} ${this.getProperty(group, 'status')}`}
             </div>
           </div>
@@ -609,10 +608,10 @@ class StatusCardEditor extends BaseCard {
     status: (hass) => hass.localize("ui.components.selectors.selector.types.state"),
     color: (hass) => hass.localize("ui.panel.lovelace.editor.card.tile.color"),
     icon: (hass) => hass.localize("ui.components.selectors.selector.types.icon"),
-    showPerson: (hass) => translateState("show_person", hass.language),
+    showPerson: 'Show Person',
     showPersonName: (hass) => `${hass.localize("component.person.entity_component._.name")} ${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")}`,
     showBadgeName: (hass) => `${hass.localize("ui.panel.lovelace.editor.cardpicker.domain")} ${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")}`,
-    bulkMode: (hass) => translateState("bulk_mode", hass.language),
+    bulkMode: 'BulkMode',
     hideDomain: (hass, domain) =>
       `${hass.localize(`component.${domain}.entity_component._.name`)} ${hass.localize("ui.common.disable")}`,
     hide_cover_DeviceClass: (hass, domain, deviceClass) =>
@@ -836,7 +835,7 @@ renderSettings() {
 renderDomainConfig() {
   return html`
     <ha-expansion-panel outlined class="main">
-      <div slot="header" role="heading" aria-level="3">${translateState('edit_domains', this.hass.language)}</div>
+      <div slot="header" role="heading" aria-level="3">Edit Domains</div>
       <div class="content flexbox">
         ${Object.keys(this.entityConfig)
           .filter(domain => !['cover', 'binary_sensor'].includes(domain))
@@ -868,7 +867,7 @@ renderDeviceClassConfig() {
   return html`
     ${['cover', 'binary_sensor'].map(domain => html`
       <ha-expansion-panel outlined class="main">
-        <div slot="header" role="heading" aria-level="3">${translateState(`edit_${domain}_dc`, this.hass.language)}</div>
+        <div slot="header" role="heading" aria-level="3">Edit DeviceClass</div>
         <div class="content flexbox">
           ${this.entityConfig[domain].deviceClasses.map(deviceClass => html`
             <ha-expansion-panel outlined ?expanded="${this.openedDeviceClasses.includes(`${domain}-${deviceClass.name}`)}" class="child">
