@@ -71,16 +71,9 @@ shouldComponentUpdate(nextProps, nextState) {
   }
 
   getProperty(group, propertyType) {
-    const cacheKey = `${group.type}_${group.device_class || ''}_${propertyType}`;
-    if (this.propertyCache.has(cacheKey)) {
-      const cachedValue = this.propertyCache.get(cacheKey);
-      if (propertyType === 'status' && group.entity_id && group.entity_id.startsWith('person.')) {
-        const entityState = this.hass.states[group.entity_id];
-        if (entityState.state !== cachedValue) {
-          this.propertyCache.delete(cacheKey);
-          return this.getProperty(group, propertyType); 
-        }
-      }
+    const cacheKey = this._generateCacheKey(group, propertyType);
+    const cachedValue = this._getCachedValue(cacheKey, group, propertyType);
+    if (cachedValue !== undefined) {
       return cachedValue;
     }
   
@@ -88,70 +81,104 @@ shouldComponentUpdate(nextProps, nextState) {
     const entityConfig = this.entityConfig[type];
     const config = this.config[propertyType];
     const entityState = this.hass.states[group.entity_id];
+    
     let result = null;
   
     if (propertyType === 'sortOrder') {
-      if (type === 'extra') {
-        result = this.config.newSortOrder?.['extra']?.[deviceClassName] ?? -1;
-      } else {
-        result = deviceClassName
-          ? this.config.newSortOrder?.[type]?.[deviceClassName] ?? 
-            (entityConfig?.deviceClasses?.find(dc => dc.name === deviceClassName)?.sortOrder || Infinity)
-          : this.config.newSortOrder?.[type] ?? (entityConfig?.sortOrder || Infinity);
-      }
-    }
-  
-    if (['binary_sensor', 'cover'].includes(type)) {
-      switch (propertyType) {
-        case 'hide':
-          result = config?.[type]?.[deviceClassName] || '';
-          break;
-        case 'names':
-          result = config?.[type]?.[deviceClassName] ||
-            this.hass.localize(`ui.dialogs.entity_registry.editor.device_classes.${type}.${deviceClassName}`);
-          break;
-        case 'icons':
-          result = config?.[type]?.[deviceClassName] || 
-            entityConfig?.deviceClasses?.find(dc => dc.name === deviceClassName)?.icon ||
-            entityConfig?.icon;
-          break;
-        case 'colors':
-          result = config?.[type]?.[deviceClassName] || '';
-          break;
-      }
+      result = this._getSortOrder(type, deviceClassName, entityConfig);
+    } else if (['binary_sensor', 'cover'].includes(type)) {
+      result = this._getBinarySensorOrCoverProperty(type, deviceClassName, propertyType, config, entityConfig);
     }
   
     if (result === null) {
-      if (['hide', 'colors'].includes(propertyType)) {
-        result = config?.[type] || '';
-      } else if (propertyType === 'names') {
-        result = config?.[type] || 
-          this.hass.localize(`component.${type}.entity_component._.name`) || 
-          translateState(type, this.hass.language);
-      } else if (propertyType === 'icons') {
-        result = config?.[type] || entityConfig?.icon;
-      } else if (propertyType === 'status') {
-        if (group.entity_id && group.entity_id.startsWith('person.')) {
-          result = entityState?.state === 'home'
-            ? this.hass.localize('component.person.entity_component._.state.home')
-            : entityState?.state === 'not_home'
-              ? this.hass.localize('component.person.entity_component._.state.not_home')
-              : entityState?.state;
-        } else if (type === 'device_tracker') {
-          result = this.hass.localize('component.person.entity_component._.state.home');
-        } else if (['lock', 'cover'].includes(type) || ['window', 'door', 'lock'].includes(originalName)) {
-          result = this.hass.localize('component.cover.entity_component._.state.open');
-        } else if (['awning', 'blind', 'curtain', 'damper', 'garage', 'gate', 'shade', 'shutter'].includes(originalName)) {
-          result = this.hass.localize('component.cover.entity_component._.state.open');
-        } else {
-          result = this.hass.localize('component.light.entity_component._.state.on');
-        }
-      }
+      result = this._getDefaultProperty(type, originalName, propertyType, config, entityState, group);
     }
   
     this.propertyCache.set(cacheKey, result);
     return result;
   }
+  
+  _generateCacheKey(group, propertyType) {
+    return `${group.type}_${group.device_class || ''}_${propertyType}`;
+  }
+ 
+  
+  _getCachedValue(cacheKey, group, propertyType) {
+    if (this.propertyCache.has(cacheKey)) {
+        const cachedValue = this.propertyCache.get(cacheKey);
+        if (propertyType === 'status' && group.entity_id?.startsWith('person.')) {
+            const entityState = this.hass.states[group.entity_id];
+            if (entityState?.state !== cachedValue) {
+                this.propertyCache.delete(cacheKey);
+                return this.getProperty(group, propertyType);
+            }
+        }
+        return cachedValue;
+    }
+    return undefined;
+}
+
+  
+  _getSortOrder(type, deviceClassName, entityConfig) {
+    if (type === 'extra') {
+      return this.config.newSortOrder?.['extra']?.[deviceClassName] ?? -1;
+    }
+    return deviceClassName
+      ? this.config.newSortOrder?.[type]?.[deviceClassName] ?? 
+        (entityConfig?.deviceClasses?.find(dc => dc.name === deviceClassName)?.sortOrder || Infinity)
+      : this.config.newSortOrder?.[type] ?? (entityConfig?.sortOrder || Infinity);
+  }
+  
+  _getBinarySensorOrCoverProperty(type, deviceClassName, propertyType, config, entityConfig) {
+    switch (propertyType) {
+      case 'hide':
+        return config?.[type]?.[deviceClassName] || '';
+      case 'names':
+        return config?.[type]?.[deviceClassName] ||
+          this.hass.localize(`ui.dialogs.entity_registry.editor.device_classes.${type}.${deviceClassName}`);
+      case 'icons':
+        return config?.[type]?.[deviceClassName] || 
+          entityConfig?.deviceClasses?.find(dc => dc.name === deviceClassName)?.icon ||
+          entityConfig?.icon;
+      case 'colors':
+        return config?.[type]?.[deviceClassName] || '';
+      default:
+        return null;
+    }
+  }
+  
+  _getDefaultProperty(type, originalName, propertyType, config, entityState, group) {
+    if (['hide', 'colors'].includes(propertyType)) {
+      return config?.[type] || '';
+    } else if (propertyType === 'names') {
+      return config?.[type] || 
+        this.hass.localize(`component.${type}.entity_component._.name`) || type
+    } else if (propertyType === 'icons') {
+      return config?.[type] || this.entityConfig[type]?.icon;
+    } else if (propertyType === 'status') {
+      return this._getStatusProperty(type, originalName, entityState, group);
+    }
+    return null;
+  }
+  
+  _getStatusProperty(type, originalName, entityState, group) {
+    if (group.entity_id && group.entity_id.startsWith('person.')) {
+      return entityState?.state === 'home'
+        ? this.hass.localize('component.person.entity_component._.state.home')
+        : entityState?.state === 'not_home'
+          ? this.hass.localize('component.person.entity_component._.state.not_home')
+          : entityState?.state;
+    } else if (type === 'device_tracker') {
+      return this.hass.localize('component.person.entity_component._.state.home');
+    } else if (['lock', 'cover'].includes(type) || ['window', 'door', 'lock'].includes(originalName)) {
+      return this.hass.localize('component.cover.entity_component._.state.open');
+    } else if (['awning', 'blind', 'curtain', 'damper', 'garage', 'gate', 'shade', 'shutter'].includes(originalName)) {
+      return this.hass.localize('component.cover.entity_component._.state.open');
+    } else {
+      return this.hass.localize('component.light.entity_component._.state.on');
+    }
+  }
+  
 
 
 toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
@@ -223,9 +250,14 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
   
   loadPersonEntities() {
     return this.showPerson
-      ? this.entities.filter(entity => entity.entity_id.startsWith("person.") && !this.hiddenEntities.has(entity.entity_id))
-      : [];
-  }
+        ? this.entities.filter(entity => 
+            entity.entity_id.startsWith("person.") &&
+            !this.hiddenEntities.has(entity.entity_id) &&
+            !entity.disabled_by && 
+            !entity.hidden_by 
+          )
+        : [];
+}
   
   loadGroupedEntities() {
     const deviceClassEntities = { cover: {}, binary_sensor: {} };

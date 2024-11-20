@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.0.0/index.js?module';
 //import { LitElement, html, css } from 'lit-element';
-import { translateState } from './translations.js';
+//import { translateState } from '../src/translations.js';
 //import packageJson from '../package.json' assert { type: 'json' };
 
 class BaseCard extends LitElement {
@@ -88,7 +88,6 @@ const STATES_OFF = new Set(["closed", "locked", "off", "docked", "idle", "standb
 const UNAVAILABLE_STATES = new Set(["unavailable", "unknown"]);
 
 class StatusCard extends BaseCard {
-  
   static get properties() {
     return {
       config: { type: Object },
@@ -153,19 +152,9 @@ shouldComponentUpdate(nextProps, nextState) {
   }
 
   getProperty(group, propertyType) {
-    const cacheKey = `${group.type}_${group.device_class || ''}_${propertyType}`;
-    
-    if (this.propertyCache.has(cacheKey)) {
-      const cachedValue = this.propertyCache.get(cacheKey);
-  
-      if (propertyType === 'status' && group.entity_id && group.entity_id.startsWith('person.')) {
-        const entityState = this.hass.states[group.entity_id];
-        if (entityState.state !== cachedValue) {
-          this.propertyCache.delete(cacheKey);
-          return this.getProperty(group, propertyType);
-        }
-      }
-  
+    const cacheKey = this._generateCacheKey(group, propertyType);
+    const cachedValue = this._getCachedValue(cacheKey, group, propertyType);
+    if (cachedValue !== undefined) {
       return cachedValue;
     }
   
@@ -173,115 +162,102 @@ shouldComponentUpdate(nextProps, nextState) {
     const entityConfig = this.entityConfig[type];
     const config = this.config[propertyType];
     const entityState = this.hass.states[group.entity_id];
+    
     let result = null;
   
     if (propertyType === 'sortOrder') {
-      result = this.getSortOrder(type, deviceClassName, entityConfig);
-    }
-  
-    if (['binary_sensor', 'cover'].includes(type)) {
-      result = this.getDeviceTypeProperty(propertyType, config, deviceClassName, entityConfig);
+      result = this._getSortOrder(type, deviceClassName, entityConfig);
+    } else if (['binary_sensor', 'cover'].includes(type)) {
+      result = this._getBinarySensorOrCoverProperty(type, deviceClassName, propertyType, config, entityConfig);
     }
   
     if (result === null) {
-      result = this.getDefaultValue(propertyType, config, entityConfig, entityState, group);
+      result = this._getDefaultProperty(type, originalName, propertyType, config, entityState, group);
     }
   
     this.propertyCache.set(cacheKey, result);
     return result;
   }
   
+  _generateCacheKey(group, propertyType) {
+    return `${group.type}_${group.device_class || ''}_${propertyType}`;
+  }
+ 
   
-  getSortOrder(type, deviceClassName, entityConfig) {
+  _getCachedValue(cacheKey, group, propertyType) {
+    if (this.propertyCache.has(cacheKey)) {
+        const cachedValue = this.propertyCache.get(cacheKey);
+        if (propertyType === 'status' && group.entity_id?.startsWith('person.')) {
+            const entityState = this.hass.states[group.entity_id];
+            if (entityState?.state !== cachedValue) {
+                this.propertyCache.delete(cacheKey);
+                return this.getProperty(group, propertyType);
+            }
+        }
+        return cachedValue;
+    }
+    return undefined;
+}
+
+  
+  _getSortOrder(type, deviceClassName, entityConfig) {
     if (type === 'extra') {
       return this.config.newSortOrder?.['extra']?.[deviceClassName] ?? -1;
-    } else {
-      return deviceClassName
-        ? this.config.newSortOrder?.[type]?.[deviceClassName] ?? 
-          (entityConfig?.deviceClasses?.find(dc => dc.name === deviceClassName)?.sortOrder || Infinity)
-        : this.config.newSortOrder?.[type] ?? (entityConfig?.sortOrder || Infinity);
+    }
+    return deviceClassName
+      ? this.config.newSortOrder?.[type]?.[deviceClassName] ?? 
+        (entityConfig?.deviceClasses?.find(dc => dc.name === deviceClassName)?.sortOrder || Infinity)
+      : this.config.newSortOrder?.[type] ?? (entityConfig?.sortOrder || Infinity);
+  }
+  
+  _getBinarySensorOrCoverProperty(type, deviceClassName, propertyType, config, entityConfig) {
+    switch (propertyType) {
+      case 'hide':
+        return config?.[type]?.[deviceClassName] || '';
+      case 'names':
+        return config?.[type]?.[deviceClassName] ||
+          this.hass.localize(`ui.dialogs.entity_registry.editor.device_classes.${type}.${deviceClassName}`);
+      case 'icons':
+        return config?.[type]?.[deviceClassName] || 
+          entityConfig?.deviceClasses?.find(dc => dc.name === deviceClassName)?.icon ||
+          entityConfig?.icon;
+      case 'colors':
+        return config?.[type]?.[deviceClassName] || '';
+      default:
+        return null;
     }
   }
   
-  getDeviceTypeProperty(propertyType, config, entityConfig, entityState, group) {
-    if (!group) {
-      return null; 
-    }
-  
-    const { type } = group; 
-    
+  _getDefaultProperty(type, originalName, propertyType, config, entityState, group) {
     if (['hide', 'colors'].includes(propertyType)) {
       return config?.[type] || '';
-    }
-  
-    if (propertyType === 'names') {
+    } else if (propertyType === 'names') {
       return config?.[type] || 
-        this.hass.localize(`component.${type}.entity_component._.name`) || 
-        translateState(type, this.hass.language);
+        this.hass.localize(`component.${type}.entity_component._.name`) || type
+    } else if (propertyType === 'icons') {
+      return config?.[type] || this.entityConfig[type]?.icon;
+    } else if (propertyType === 'status') {
+      return this._getStatusProperty(type, originalName, entityState, group);
     }
-  
-    if (propertyType === 'icons') {
-      return config?.[type] || entityConfig?.icon;
-    }
-  
-    if (propertyType === 'status') {
-      return this.getStatusValue(group, entityState);
-    }
-  
     return null;
   }
   
-  
-  
-  getDefaultValue(propertyType, config, entityConfig, entityState, group) {
-    const { type } = group;
-    
-    if (['hide', 'colors'].includes(propertyType)) {
-      return config?.[type] || '';
-    }
-  
-    if (propertyType === 'names') {
-      return config?.[type] || 
-        this.hass.localize(`component.${type}.entity_component._.name`) || 
-        translateState(type, this.hass.language);
-    }
-  
-    if (propertyType === 'icons') {
-      return config?.[type] || entityConfig?.icon;
-    }
-  
-    if (propertyType === 'status') {
-      return this.getStatusValue(group, entityState);
-    }
-  
-    return null;
-  }
-  
-  
-  getStatusValue(group, entityState) {
+  _getStatusProperty(type, originalName, entityState, group) {
     if (group.entity_id && group.entity_id.startsWith('person.')) {
       return entityState?.state === 'home'
         ? this.hass.localize('component.person.entity_component._.state.home')
         : entityState?.state === 'not_home'
           ? this.hass.localize('component.person.entity_component._.state.not_home')
           : entityState?.state;
-    } 
-  
-    const type = group.type;
-    if (type === 'device_tracker') {
+    } else if (type === 'device_tracker') {
       return this.hass.localize('component.person.entity_component._.state.home');
-    } 
-  
-    if (['lock', 'cover'].includes(type) || ['window', 'door', 'lock'].includes(group.originalName)) {
+    } else if (['lock', 'cover'].includes(type) || ['window', 'door', 'lock'].includes(originalName)) {
       return this.hass.localize('component.cover.entity_component._.state.open');
-    }
-  
-    const openStates = ['awning', 'blind', 'curtain', 'damper', 'garage', 'gate', 'shade', 'shutter'];
-    if (openStates.includes(group.originalName)) {
+    } else if (['awning', 'blind', 'curtain', 'damper', 'garage', 'gate', 'shade', 'shutter'].includes(originalName)) {
       return this.hass.localize('component.cover.entity_component._.state.open');
+    } else {
+      return this.hass.localize('component.light.entity_component._.state.on');
     }
-  
-    return this.hass.localize('component.light.entity_component._.state.on');
   }
   
 
@@ -317,7 +293,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
       element.setConfig(cardConfig);
       return element;
     }
-    return html`<p>Kartenkonfiguration fehlgeschlagen</p>`;
+    return html`<p>Invalid Configuration</p>`;
   }
 
   isEntityHidden(entity) {
@@ -355,9 +331,14 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
   
   loadPersonEntities() {
     return this.showPerson
-      ? this.entities.filter(entity => entity.entity_id.startsWith("person.") && !this.hiddenEntities.has(entity.entity_id))
-      : [];
-  }
+        ? this.entities.filter(entity => 
+            entity.entity_id.startsWith("person.") &&
+            !this.hiddenEntities.has(entity.entity_id) &&
+            !entity.disabled_by && 
+            !entity.hidden_by 
+          )
+        : [];
+}
   
   loadGroupedEntities() {
     const deviceClassEntities = { cover: {}, binary_sensor: {} };
@@ -433,14 +414,10 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
     return allEntities;
   }
 
-  
-
   renderPersonEntities() {
     const personEntities = this.loadPersonEntities();
-    
     return personEntities.map(entity => {
       const cachedData = this.getEntityData(entity.entity_id);
-
       return html`
         <paper-tab @click=${() => this.showMoreInfo(entity)}>
           <div class="entity">
@@ -448,8 +425,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
               <img src="${cachedData.entityPicture}" alt="Person Picture" />
             </div>
             <div class="entity-info">
-                <div class="entity-name">${this.showPersonName ? `${this.getEntityData(entity.entity_id).friendlyName.split(' ')[0]} test` : ''}</div>
-
+              <div class="entity-name">${this.showPersonName ? cachedData.friendlyName.split(' ')[0] : ''}</div>
               <div class="entity-state">${this.getProperty(entity, 'status')}</div>
             </div>
           </div>
@@ -457,7 +433,6 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
       `;
     });
   }
-  
 
   renderExtraEntities() {
     const extraEntities = this.loadExtraEntities();
@@ -472,7 +447,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
             </div>
             <div class="entity-info">
               <div class="entity-name">${this.showBadgeName ? friendlyName : ''}</div>
-              <div class="entity-state">${translateState(selectedEntity?.state, this.hass.language)}</div>
+              <div class="entity-state">${selectedEntity?.state}</div>
             </div>
           </div>
         </paper-tab>
@@ -495,7 +470,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
             <div class="entity-name">${this.showBadgeName ? (group.type === 'extra' ? group.originalName : this.getProperty(group, 'names')) : ''}</div>
             <div class="entity-state">
               ${group.type === 'extra' && group.entities?.[0]
-                ? translateState(group.entities[0].state, this.hass.language)
+                ? group.entities[0].state
                 : `${group.entities.length} ${this.getProperty(group, 'status')}`}
             </div>
           </div>
@@ -545,32 +520,32 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
     `;
   }
 
-      static get styles() {
-        return css`
-            paper-tabs { height: 110px; padding: 4px 8px }
-            paper-tab {padding: 0 5px; }
-            .center {display: flex; align-items: center; justify-content: center;}
-            .entity, .extra-entity { display: flex; flex-direction: column; align-items: center;}
-            .entity-icon { width: 50px; height: 50px; border-radius: 50%;
-                background-color: rgba(var(--rgb-primary-text-color), 0.15);
-                display: flex; align-items: center; justify-content: center;
-                overflow: hidden;}
-            .entity-icon img {width: 100%; height: 100%; object-fit: cover; border-radius: 50%;}
-            .entity-info { text-align: center; margin-top: 5px; }
-            .entity-name { font-weight: bold; margin-bottom: 2px; }
-            .entity-state { color: var(--secondary-text-color); font-size: 0.9em; }            
-            .dialog-header { display: flex;  justify-content: flex-start; align-items: center; gap: 8px; margin-bottom: 12px;} 
-            .dialog-header ha-icon-button { margin-right: 10px;  }
-            ha-dialog#more-info-dialog { --mdc-dialog-max-width: 90vw; } 
-            .tile-container { display: flex; flex-wrap: wrap; gap: 4px; }
-            .entity-card { width: calc(22.5vw - 15px ); box-sizing: border-box; }
-            .entity-list { list-style: none; }
-            @media (max-width: 768px) {
-                .entity-card { flex-basis: 100%; max-width: 100%; }
-                .tile-container { width: 100%; }
-            }
-        `;
-    }
+  static get styles() {
+    return css`
+        paper-tabs { height: 110px; padding: 4px 8px }
+        paper-tab {padding: 0 5px; }
+        .center {display: flex; align-items: center; justify-content: center;}
+        .entity, .extra-entity { display: flex; flex-direction: column; align-items: center;}
+        .entity-icon { width: 50px; height: 50px; border-radius: 50%;
+            background-color: rgba(var(--rgb-primary-text-color), 0.15);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;}
+        .entity-icon img {width: 100%; height: 100%; object-fit: cover; border-radius: 50%;}
+        .entity-info { text-align: center; margin-top: 5px; }
+        .entity-name { font-weight: bold; margin-bottom: 2px; }
+        .entity-state { color: var(--secondary-text-color); font-size: 0.9em; }            
+        .dialog-header { display: flex;  justify-content: flex-start; align-items: center; gap: 8px; margin-bottom: 12px;} 
+        .dialog-header ha-icon-button { margin-right: 10px;  }
+        ha-dialog#more-info-dialog { --mdc-dialog-max-width: 90vw; } 
+        .tile-container { display: flex; flex-wrap: wrap; gap: 4px; }
+        .entity-card { width: calc(22.5vw  - 15px ); box-sizing: border-box; }
+        .entity-list { list-style: none; }
+        @media (max-width: 768px) {
+            .entity-card { flex-basis: 100%; max-width: 100%; }
+            .tile-container { width: 100%; }
+        }
+    `;
+}
           
     static getConfigElement() {
         return document.createElement("dev-status-card-editor");
@@ -584,7 +559,6 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
 customElements.define('dev-status-card', StatusCard);
 
 class StatusCardEditor extends BaseCard {
-
   static get properties() {
     return {
       hass: {},
@@ -633,10 +607,10 @@ class StatusCardEditor extends BaseCard {
     status: (hass) => hass.localize("ui.components.selectors.selector.types.state"),
     color: (hass) => hass.localize("ui.panel.lovelace.editor.card.tile.color"),
     icon: (hass) => hass.localize("ui.components.selectors.selector.types.icon"),
-    showPerson: (hass) => translateState("show_person", hass.language),
+    showPerson: 'show_person',
     showPersonName: (hass) => `${hass.localize("component.person.entity_component._.name")} ${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")}`,
     showBadgeName: (hass) => `${hass.localize("ui.panel.lovelace.editor.cardpicker.domain")} ${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")}`,
-    bulkMode: (hass) => translateState("bulk_mode", hass.language),
+    bulkMode: (hass) => "bulk_mode",
     hideDomain: (hass, domain) =>
       `${hass.localize(`component.${domain}.entity_component._.name`)} ${hass.localize("ui.common.disable")}`,
     hide_cover_DeviceClass: (hass, domain, deviceClass) =>
@@ -659,21 +633,11 @@ class StatusCardEditor extends BaseCard {
   }
   
   toggleSetting(type, checked) {
-    console.log('State:', this.config);
-  
     if (['showPerson', 'bulkMode', 'showPersonName', 'showBadgeName'].includes(type)) {
-      const updatedConfig = { ...this.config };
-  
-      updatedConfig[type] = checked;
-  
-      console.log('Changed State:', updatedConfig);
-  
-      this.config = updatedConfig;  
-      this.configChanged(this.config);
+        this.config[type] = checked; 
+        this.configChanged(this.config);
     }
   }
-  
-  
 
   showMoreHiddenEntities() {
     this.showMore = true;
@@ -681,57 +645,38 @@ class StatusCardEditor extends BaseCard {
   }
 
 
-
   updateConfig(property, domain, deviceClassName, value) {
-    console.log('State of config:', this.config);
-
-    const updatedConfig = { ...this.config };
+    this.config[property] = this.config[property] || {};
+    this.config[property][domain] = this.config[property][domain] || {};
+    
+    deviceClassName ? 
+      (this.config[property][domain][deviceClassName] = value) : 
+      (this.config[property][domain] = value);
   
-    updatedConfig[property] = updatedConfig[property] || {};
-    updatedConfig[property][domain] = updatedConfig[property][domain] || {};
-  
-    if (deviceClassName) {
-      updatedConfig[property][domain][deviceClassName] = value;
-    } else {
-      updatedConfig[property][domain] = value;
-    }
-  
-    this.config = updatedConfig; 
     this.configChanged(this.config);
     this.requestUpdate();
-  }
-  
+}
 
-  updateSortOrder(domain, deviceClassName, newSortOrder) {
-
-    console.log('Update Sort Order - State:', this.config.newSortOrder);
-    this.updateConfig('newSortOrder', domain, deviceClassName, newSortOrder);
-  }
   
+updateSortOrder(domain, deviceClassName, newSortOrder) {
+  this.updateConfig('newSortOrder', domain, deviceClassName, newSortOrder);
+}
+
   updateIcons(domain, deviceClassName, icon) {
-
-    console.log('Update Icons - State:', this.config.icons);
     this.updateConfig('icons', domain, deviceClassName, icon);
   }
   
   updateNames(domain, deviceClassName, name) {
-
-    console.log('Update Names - State:', this.config.names);
     this.updateConfig('names', domain, deviceClassName, name);
   }
   
   updateColors(domain, deviceClassName, color) {
-
-    console.log('Update Colors - State:', this.config.colors);
     this.updateConfig('colors', domain, deviceClassName, color);
   }
   
   updateVisibility(domain, deviceClassName, visible) {
-
-    console.log('Update Visibility - State:', this.config.hide);
     this.updateConfig('hide', domain, deviceClassName, visible);
   }
-  
 
   
   manageExtraEntity(action, index = null, field = null, value = null) {
@@ -750,33 +695,21 @@ class StatusCardEditor extends BaseCard {
 
 
   manageHiddenEntity(entity, action) {
-    const hiddenEntities = Array.isArray(this.config.hidden_entities) 
-      ? [...this.config.hidden_entities] 
-      : [];
-  
-    console.log('State hidden_entities:', hiddenEntities);
+    const hiddenEntities = this.config.hidden_entities || [];
   
     if (action === 'add' && !hiddenEntities.includes(entity)) {
       hiddenEntities.push(entity);
     } else if (action === 'remove') {
-      const index = hiddenEntities.indexOf(entity);
-      if (index !== -1) {
-        hiddenEntities.splice(index, 1);
-      }
+      hiddenEntities.splice(hiddenEntities.indexOf(entity), 1);
     }
-  
-    console.log('Changed State hidden_entities:', hiddenEntities);
   
     this.config = {
       ...this.config,
-      hidden_entities: hiddenEntities,  
+      hidden_entities: hiddenEntities,
     };
   
     this.configChanged(this.config);
   }
-  
-
- 
   
 
   updateAreaFloorSelection(type, value) {
@@ -860,7 +793,7 @@ renderSettings() {
 renderDomainConfig() {
   return html`
     <ha-expansion-panel outlined class="main">
-      <div slot="header" role="heading" aria-level="3">${translateState('edit_domains', this.hass.language)}</div>
+      <div slot="header" role="heading" aria-level="3">edit_domains</div>
       <div class="content flexbox">
         ${Object.keys(this.entityConfig)
           .filter(domain => !['cover', 'binary_sensor'].includes(domain))
@@ -892,7 +825,7 @@ renderDeviceClassConfig() {
   return html`
     ${['cover', 'binary_sensor'].map(domain => html`
       <ha-expansion-panel outlined class="main">
-        <div slot="header" role="heading" aria-level="3">${translateState(`edit_${domain}_dc`, this.hass.language)}</div>
+        <div slot="header" role="heading" aria-level="3">'edit_dc'</div>
         <div class="content flexbox">
           ${this.entityConfig[domain].deviceClasses.map(deviceClass => html`
             <ha-expansion-panel outlined ?expanded="${this.openedDeviceClasses.includes(`${domain}-${deviceClass.name}`)}" class="child">
@@ -1004,7 +937,7 @@ renderHiddenEntities() {
 }
  
 render() {
-  if (!this.config) return html`<div>Keine Konfiguration gefunden</div>`;
+  if (!this.config) return html`<div>Invalid Configuration</div>`;
 
   return html`
       ${this.renderSettings()}
