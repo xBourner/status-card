@@ -479,7 +479,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
     `);
   }
 
-  renderMoreInfoDialog() {
+/*  renderMoreInfoDialog() {
     return html`
       <ha-dialog id="more-info-dialog" style="display:none;">
         <div class="dialog-header">
@@ -496,8 +496,8 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
                 ${this.createCard({
                   type: 'tile',
                   entity: entity.entity_id,
-                  ...(this.selectedDomain === 'light' && { features: [{ type: "light-brightness" }] }),
-                  ...(this.selectedDomain === 'cover' && { features: [{ type: "cover-open-close" }, { type: "cover-position" }] })
+                  ...(this.selectedDomain === 'light' && ({ features: [{ type: "light-brightness" }] })),
+                  ...(this.selectedDomain === 'cover' && ({ features: [{ type: "cover-open-close" }, { type: "cover-position" }] }))
                 })}
               </div>
             `)}
@@ -505,7 +505,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
       </ha-dialog>
     `;
   }
-
+*/
 
   render() { 
     return html`
@@ -516,7 +516,6 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
         ${this.renderAllEntities()}
         </paper-tabs>
       </ha-card>
-      ${this.renderMoreInfoDialog()}
     `;
   }
 
