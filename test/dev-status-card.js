@@ -418,11 +418,13 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
     const personEntities = this.loadPersonEntities();
     return personEntities.map(entity => {
       const cachedData = this.getEntityData(entity.entity_id);
+      const entityState = this.hass.states[entity.entity_id];
+      const isNotHome = entityState?.state === 'not_home';
       return html`
         <paper-tab @click=${() => this.showMoreInfo(entity)}>
           <div class="entity">
             <div class="entity-icon">
-              <img src="${cachedData.entityPicture}" alt="Person Picture" />
+              <img src="${cachedData.entityPicture}" alt="Person Picture" style="${isNotHome ? 'filter: grayscale(100%)' : ''}" />
             </div>
             <div class="entity-info">
               <div class="entity-name">${this.showPersonName ? cachedData.friendlyName.split(' ')[0] : ''}</div>
@@ -479,6 +481,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
     `);
   }
 
+  /*
   renderMoreInfoDialog() {
     return html`
       <ha-dialog id="more-info-dialog" style="display:none;">
@@ -496,8 +499,8 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
                 ${this.createCard({
                   type: 'tile',
                   entity: entity.entity_id,
-                  ...(this.selectedDomain === 'light' && { features: [{ type: "light-brightness" }] }),
-                  ...(this.selectedDomain === 'cover' && { features: [{ type: "cover-open-close" }, { type: "cover-position" }] })
+                  ...(this.selectedDomain === 'light' && ({ features: [{ type: "light-brightness" }] })),
+                  ...(this.selectedDomain === 'cover' && ({ features: [{ type: "cover-open-close" }, { type: "cover-position" }] }))
                 })}
               </div>
             `)}
@@ -505,7 +508,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
       </ha-dialog>
     `;
   }
-
+*/
 
   render() { 
     return html`
@@ -516,7 +519,6 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
         ${this.renderAllEntities()}
         </paper-tabs>
       </ha-card>
-      ${this.renderMoreInfoDialog()}
     `;
   }
 
@@ -607,10 +609,10 @@ class StatusCardEditor extends BaseCard {
     status: (hass) => hass.localize("ui.components.selectors.selector.types.state"),
     color: (hass) => hass.localize("ui.panel.lovelace.editor.card.tile.color"),
     icon: (hass) => hass.localize("ui.components.selectors.selector.types.icon"),
-    showPerson: 'show_person',
+    showPerson: (hass) =>  `${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")} show_person`,
     showPersonName: (hass) => `${hass.localize("component.person.entity_component._.name")} ${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")}`,
     showBadgeName: (hass) => `${hass.localize("ui.panel.lovelace.editor.cardpicker.domain")} ${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")}`,
-    bulkMode: (hass) => "bulk_mode",
+    bulkMode: (hass) => `${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")} bulkmode`,
     hideDomain: (hass, domain) =>
       `${hass.localize(`component.${domain}.entity_component._.name`)} ${hass.localize("ui.common.disable")}`,
     hide_cover_DeviceClass: (hass, domain, deviceClass) =>
@@ -618,8 +620,8 @@ class StatusCardEditor extends BaseCard {
     hide_binary_sensor_DeviceClass: (hass, domain, deviceClass) =>
       `${hass.localize(`ui.dialogs.entity_registry.editor.device_classes.binary_sensor.${deviceClass}`)} ${hass.localize("ui.common.disable")}`,
     domainName: (hass) => hass.localize("ui.panel.lovelace.editor.cardpicker.domain"),
-    deviceClassName: () => "Device Class",
-    sortOrder: () => "Sort Order",
+    deviceClassName: (hass) => `${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")} device_class`,
+    sortOrder: (hass) => `${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")} sortOrder`,
     area: (hass) => hass.localize("ui.components.selectors.selector.types.area"),
     floor: (hass) => hass.localize("ui.components.selectors.selector.types.floor"),
     areaFloorFilter: (hass) =>
