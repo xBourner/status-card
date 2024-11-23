@@ -697,8 +697,10 @@ updateSortOrder(domain, deviceClassName, newSortOrder) {
 
 
   manageHiddenEntity(entity, action) {
-    const hiddenEntities = this.config.hidden_entities || [];
-  
+    if (!this.config.hidden_entities) {
+      this.config.hidden_entities = [];
+    }
+    const hiddenEntities = this.config.hidden_entities;
     if (action === 'add' && !hiddenEntities.includes(entity)) {
       hiddenEntities.push(entity);
     } else if (action === 'remove') {
