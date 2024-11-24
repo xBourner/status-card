@@ -1,6 +1,6 @@
 {
   "name": "status-card",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "A card that will show certain entities when active grouped by domain/device class",
   "main": "status-card.js",
   "author": "xBourner",
