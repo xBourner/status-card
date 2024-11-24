@@ -337,11 +337,13 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
     const personEntities = this.loadPersonEntities();
     return personEntities.map(entity => {
       const cachedData = this.getEntityData(entity.entity_id);
+      const entityState = this.hass.states[entity.entity_id];
+      const isNotHome = entityState?.state === 'not_home';
       return html`
         <paper-tab @click=${() => this.showMoreInfo(entity)}>
           <div class="entity">
             <div class="entity-icon">
-              <img src="${cachedData.entityPicture}" alt="Person Picture" />
+              <img src="${cachedData.entityPicture}" alt="Person Picture" style="${isNotHome ? 'filter: grayscale(100%)' : ''}" />
             </div>
             <div class="entity-info">
               <div class="entity-name">${this.showPersonName ? cachedData.friendlyName.split(' ')[0] : ''}</div>
