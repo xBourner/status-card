@@ -33,28 +33,35 @@ Please keep attention that it will only show entities which are linked to any ar
 
 # Screenshots
 ### Graphical Editor
-![image](https://github.com/user-attachments/assets/bab6c931-9a37-41ba-80b2-3ef868257c46)
+![image](https://github.com/user-attachments/assets/34ab32ea-7e3a-4d60-b904-f8e400e7ae4c)
 
 
-### Area/ Floor Filter
-![image](https://github.com/user-attachments/assets/7066112b-e883-40d2-85ef-464cff43f725)
+### Area/Floor & Label Filter
+Use this to only show entities linked to an area/floor. You can combine this with the Label Filter. Only entities with this label will be shown. Area/Floor can be combined with the Label Filter.  
+![image](https://github.com/user-attachments/assets/2872ecea-baeb-4276-b594-a71b7632a2e9)
 
 
 ### Adding Extra Entities
-![image](https://github.com/user-attachments/assets/4c48eed1-b348-4151-9a41-fc4705b1bcd5) ![image](https://github.com/user-attachments/assets/794319c1-1204-4369-9137-b8e7993eb005)
+Choose an extra Entity which you want to see in your status card. Choose the entity, after that you can pick the state and choose an icon and color to show it. You can also change the sort order to display it somewhere else in the card.
+![image](https://github.com/user-attachments/assets/147cce6f-0da2-4d35-aa60-9a194dabd9b9)
 
 
 ## Customization of Domains or Device Classes
-![image](https://github.com/user-attachments/assets/87291197-6e72-494e-8707-1503021f9b80) ![image](https://github.com/user-attachments/assets/d59d0feb-54db-473e-86c3-d3c23ce904a8)
+You can specify the look of the domains and device classes. You can change the icon, icon color and sort order. You can also completly hide them.
+
+![image](https://github.com/user-attachments/assets/932d00f2-07cf-4d90-b4e7-0e6924395ab5)
+
 
 ## Hiding Names for Person, Domains, Device Classes & Extra Entities
+![image](https://github.com/user-attachments/assets/05fa0be6-6d43-4f7b-9366-6f1894f9e38f)
 
-![image](https://github.com/user-attachments/assets/b2b42de3-1d26-47f9-ba84-801dd088ead9)
 
 
 ## Bulk Mode
+Bulk Mode will list all entities instead of showing entity cards. You can use this to have a quick access to copy all unwanted entities and paste them into hidden_entities via yaml.
 
-![image](https://github.com/user-attachments/assets/11f1ac3b-7463-4302-a90f-47a4b8d76649)
+![image](https://github.com/user-attachments/assets/3ae9712e-2430-4b8f-b358-4303f5379a15)
+
 
 
 ## Installation
@@ -81,6 +88,7 @@ showPersonName: false # show names for person entities
 area_filter:  # option to filter for an area/floor (only entities from that area/floor will be shown)
   area: living_room #  !only one filter per card!
   floor: first_floor #  !only one filter per card!
+label_filter: window # set this to only show entities which have this label assigned
 hide:  # domains/device classes which are hidden from card
   light: false
 names:  # domain/device classes that will show another name
@@ -100,6 +108,8 @@ extra_entities: # settings for extra entity that will be shown in card when the 
     color: lime
 hidden_entities: # enttites which will be hidden from card
   - update.0x5c0272fffeae0368
+hidden_labels: # labels which will be hidden from card
+  - Window
 ```
 
 
