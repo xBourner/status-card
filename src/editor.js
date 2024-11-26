@@ -469,9 +469,6 @@ class StatusCardEditor extends LitElement {
   }
   
   
-  
-  
-   
   render() {
     if (!this.config) return html`<div>Invalid Configuration</div>`;
   

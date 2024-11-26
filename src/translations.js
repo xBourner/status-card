@@ -506,7 +506,6 @@ export const translations = {
   bulk_mode: '啟用批量編輯模式'
 }
   };
-  
   export function translateState(state, language = 'en') {
     if (translations[language] && translations[language][state]) {
       return translations[language][state];

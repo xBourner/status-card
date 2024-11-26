@@ -456,7 +456,6 @@ loadGroupedEntities() {
     `;
   }
 
-
   render() { 
     return html`
       <ha-card>
