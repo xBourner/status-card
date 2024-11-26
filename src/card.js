@@ -41,6 +41,7 @@ shouldComponentUpdate(nextProps, nextState) {
       this.filteredAreas = [];
       this.areaDevicesMap = new Map();
       this.hiddenEntities = new Set(config.hidden_entities || []);
+      this.hiddenLabels = new Set(config.hidden_labels || []);
       this.showPerson = config.showPerson !== undefined ? config.showPerson : true;
       this.showPersonName = config.showPersonName !== undefined ? config.showPersonName : true;
       this.showBadgeName = config.showBadgeName !== undefined ? config.showBadgeName : true;
@@ -216,22 +217,35 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
   }
 
   isEntityHidden(entity) {
-    return this.hiddenEntities.has(entity.entity_id) || entity.hidden_by;
+    const hiddenLabels = this.config.hidden_labels || [];
+  
+    return (
+      this.hiddenEntities.has(entity.entity_id) || 
+      hiddenLabels.some(label => entity.labels && entity.labels.includes(label)) || 
+      entity.hidden_by
+    );
   }
 
   updateFilteredAreasAndDevices() {
     const { area, floor } = this.config.area_filter || {};
+    const label = this.config.label_filter || '';
+  
     this.filteredAreas = this.areas.filter(areaItem => 
-      (floor && areaItem.floor_id === floor) || 
-      (area && areaItem.area_id === area) || 
-      (!floor && !area)
+      (!floor || areaItem.floor_id === floor) &&
+      (!area || areaItem.area_id === area)
     );
-
+  
     this.areaDevicesMap.clear();
     this.filteredAreas.forEach(area => {
-      this.areaDevicesMap.set(area.area_id, new Set(
-        this.devices.filter(device => device.area_id === area.area_id).map(device => device.id)
-      ));
+      const devicesInArea = this.devices.filter(device => device.area_id === area.area_id);
+      const filteredDevices = devicesInArea.filter(device => 
+        !label || this.entities.some(entity => 
+          entity.device_id === device.id &&
+          entity.labels && entity.labels.includes(label)
+        )
+      );
+  
+      this.areaDevicesMap.set(area.area_id, new Set(filteredDevices.map(device => device.id)));
     });
   }
 
@@ -259,33 +273,48 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
         : [];
 }
   
-  loadGroupedEntities() {
-    const deviceClassEntities = { cover: {}, binary_sensor: {} };
-    const groupedEntities = this.entities.reduce((acc, entity) => {
-      const { entity_id, area_id, device_id } = entity;
-      const domain = entity_id.split(".")[0];
-      const cachedData = this.getEntityData(entity_id);
-      const { state, deviceClass } = cachedData;
-  
-      if (!this.entityConfig[domain] || !state || UNAVAILABLE_STATES.has(state) || this.isEntityHidden(entity)) return acc;
-  
-      const isAreaMatched = area_id
-        ? this.areaDevicesMap.has(area_id)
-        : Array.from(this.areaDevicesMap.values()).some(devices => devices.has(device_id));
-  
-      if (isAreaMatched) {
-        if (["cover", "binary_sensor"].includes(domain) && (state === "on" || state === "open") && deviceClass && deviceClass !== "none") {
-          deviceClassEntities[domain][deviceClass] ||= [];
-          deviceClassEntities[domain][deviceClass].push(entity);
-        } else if (!STATES_OFF.has(state) && !["cover", "binary_sensor"].includes(domain)) {
-          acc[domain] ||= [];
-          acc[domain].push(entity);
-        }
-      }
+loadGroupedEntities() {
+  const deviceClassEntities = { cover: {}, binary_sensor: {} };
+  const label = this.config.label_filter || '';
+
+  const groupedEntities = this.entities.reduce((acc, entity) => {
+    const { entity_id, area_id, device_id } = entity;
+    const domain = entity_id.split(".")[0];
+    const cachedData = this.getEntityData(entity_id);
+    const { state, deviceClass } = cachedData;
+
+    if (!this.entityConfig[domain] || !state || UNAVAILABLE_STATES.has(state) || this.isEntityHidden(entity)) {
       return acc;
-    }, {});
-    return { deviceClassEntities, groupedEntities };
-  }
+    }
+
+    const isUpdateDomain = domain === 'update';
+    const isAreaMatched = isUpdateDomain || (area_id
+      ? this.areaDevicesMap.has(area_id)
+      : Array.from(this.areaDevicesMap.values()).some(devices => devices.has(device_id)));
+
+    const isLabelMatched = !label || 
+      (entity.labels && entity.labels.includes(label)) || 
+      (device_id && this.devices.some(device => 
+        device.id === device_id && 
+        device.labels && device.labels.includes(label)
+      ));
+
+    if (isAreaMatched && isLabelMatched) {
+      if (["cover", "binary_sensor"].includes(domain) && (state === "on" || state === "open") && deviceClass && deviceClass !== "none") {
+        deviceClassEntities[domain][deviceClass] ||= [];
+        deviceClassEntities[domain][deviceClass].push(entity);
+      } else if (!STATES_OFF.has(state) && !["cover", "binary_sensor"].includes(domain)) {
+        acc[domain] ||= [];
+        acc[domain].push(entity);
+      }
+    }
+
+    return acc;
+  }, {});
+
+  return { deviceClassEntities, groupedEntities };
+}
+
   
   loadExtraEntities() {
     return (this.config?.extra_entities || []).reduce((acc, { entity, status, icon, color }) => {
@@ -443,6 +472,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
 
   static get styles() {
     return css`
+        ul { margin: 0; padding: 5px;  }
         paper-tabs { height: 110px; padding: 4px 8px }
         paper-tab {padding: 0 5px; }
         .center {display: flex; align-items: center; justify-content: center;}

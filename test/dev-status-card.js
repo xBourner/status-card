@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.0.0/index.js?module';
 //import { LitElement, html, css } from 'lit-element';
-//import { translateState } from '../src/translations.js';
+import { translateState } from '../src/translations.js';
 //import packageJson from '../package.json' assert { type: 'json' };
 
 class BaseCard extends LitElement {
@@ -122,6 +122,7 @@ shouldComponentUpdate(nextProps, nextState) {
       this.filteredAreas = [];
       this.areaDevicesMap = new Map();
       this.hiddenEntities = new Set(config.hidden_entities || []);
+      this.hiddenLabels = new Set(config.hidden_labels || []);
       this.showPerson = config.showPerson !== undefined ? config.showPerson : true;
       this.showPersonName = config.showPersonName !== undefined ? config.showPersonName : true;
       this.showBadgeName = config.showBadgeName !== undefined ? config.showBadgeName : true;
@@ -297,25 +298,40 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
   }
 
   isEntityHidden(entity) {
-    return this.hiddenEntities.has(entity.entity_id) || entity.hidden_by;
+    const hiddenLabels = this.config.hidden_labels || [];
+  
+    return (
+      this.hiddenEntities.has(entity.entity_id) || 
+      hiddenLabels.some(label => entity.labels && entity.labels.includes(label)) || 
+      entity.hidden_by
+    );
   }
+  
 
   updateFilteredAreasAndDevices() {
     const { area, floor } = this.config.area_filter || {};
+    const label = this.config.label_filter || '';
+  
     this.filteredAreas = this.areas.filter(areaItem => 
-      (floor && areaItem.floor_id === floor) || 
-      (area && areaItem.area_id === area) || 
-      (!floor && !area)
+      (!floor || areaItem.floor_id === floor) &&
+      (!area || areaItem.area_id === area)
     );
-
+  
     this.areaDevicesMap.clear();
     this.filteredAreas.forEach(area => {
-      this.areaDevicesMap.set(area.area_id, new Set(
-        this.devices.filter(device => device.area_id === area.area_id).map(device => device.id)
-      ));
+      const devicesInArea = this.devices.filter(device => device.area_id === area.area_id);
+      const filteredDevices = devicesInArea.filter(device => 
+        !label || this.entities.some(entity => 
+          entity.device_id === device.id &&
+          entity.labels && entity.labels.includes(label)
+        )
+      );
+  
+      this.areaDevicesMap.set(area.area_id, new Set(filteredDevices.map(device => device.id)));
     });
   }
-
+  
+  
   
   getEntityData(entity_id) {
     const entityDataCache = new Map();
@@ -340,34 +356,50 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
         : [];
 }
   
-  loadGroupedEntities() {
-    const deviceClassEntities = { cover: {}, binary_sensor: {} };
-    const groupedEntities = this.entities.reduce((acc, entity) => {
-      const { entity_id, area_id, device_id } = entity;
-      const domain = entity_id.split(".")[0];
-      const cachedData = this.getEntityData(entity_id);
-      const { state, deviceClass } = cachedData;
-  
-      if (!this.entityConfig[domain] || !state || UNAVAILABLE_STATES.has(state) || this.isEntityHidden(entity)) return acc;
-  
-      const isAreaMatched = area_id
-        ? this.areaDevicesMap.has(area_id)
-        : Array.from(this.areaDevicesMap.values()).some(devices => devices.has(device_id));
-  
-      if (isAreaMatched) {
-        if (["cover", "binary_sensor"].includes(domain) && (state === "on" || state === "open") && deviceClass && deviceClass !== "none") {
-          deviceClassEntities[domain][deviceClass] ||= [];
-          deviceClassEntities[domain][deviceClass].push(entity);
-        } else if (!STATES_OFF.has(state) && !["cover", "binary_sensor"].includes(domain)) {
-          acc[domain] ||= [];
-          acc[domain].push(entity);
-        }
-      }
+loadGroupedEntities() {
+  const deviceClassEntities = { cover: {}, binary_sensor: {} };
+  const label = this.config.label_filter || '';
+
+  const groupedEntities = this.entities.reduce((acc, entity) => {
+    const { entity_id, area_id, device_id } = entity;
+    const domain = entity_id.split(".")[0];
+    const cachedData = this.getEntityData(entity_id);
+    const { state, deviceClass } = cachedData;
+
+    if (!this.entityConfig[domain] || !state || UNAVAILABLE_STATES.has(state) || this.isEntityHidden(entity)) {
       return acc;
-    }, {});
-    return { deviceClassEntities, groupedEntities };
-  }
-  
+    }
+
+    const isUpdateDomain = domain === 'update';
+    const isAreaMatched = isUpdateDomain || (area_id
+      ? this.areaDevicesMap.has(area_id)
+      : Array.from(this.areaDevicesMap.values()).some(devices => devices.has(device_id)));
+
+    const isLabelMatched = !label || 
+      (entity.labels && entity.labels.includes(label)) || 
+      (device_id && this.devices.some(device => 
+        device.id === device_id && 
+        device.labels && device.labels.includes(label)
+      ));
+
+    if (isAreaMatched && isLabelMatched) {
+      if (["cover", "binary_sensor"].includes(domain) && (state === "on" || state === "open") && deviceClass && deviceClass !== "none") {
+        deviceClassEntities[domain][deviceClass] ||= [];
+        deviceClassEntities[domain][deviceClass].push(entity);
+      } else if (!STATES_OFF.has(state) && !["cover", "binary_sensor"].includes(domain)) {
+        acc[domain] ||= [];
+        acc[domain].push(entity);
+      }
+    }
+
+    return acc;
+  }, {});
+
+  return { deviceClassEntities, groupedEntities };
+}
+
+
+
   loadExtraEntities() {
     return (this.config?.extra_entities || []).reduce((acc, { entity, status, icon, color }) => {
       const selectedEntity = entity ? this.hass.states[entity] : null;
@@ -481,7 +513,8 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
     `);
   }
 
-  /*
+
+
   renderMoreInfoDialog() {
     return html`
       <ha-dialog id="more-info-dialog" style="display:none;">
@@ -499,8 +532,8 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
                 ${this.createCard({
                   type: 'tile',
                   entity: entity.entity_id,
-                  ...(this.selectedDomain === 'light' && ({ features: [{ type: "light-brightness" }] })),
-                  ...(this.selectedDomain === 'cover' && ({ features: [{ type: "cover-open-close" }, { type: "cover-position" }] }))
+                  ...(this.selectedDomain === 'light' && { features: [{ type: "light-brightness" }] }),
+                  ...(this.selectedDomain === 'cover' && { features: [{ type: "cover-open-close" }, { type: "cover-position" }] })
                 })}
               </div>
             `)}
@@ -508,7 +541,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
       </ha-dialog>
     `;
   }
-*/
+
 
   render() { 
     return html`
@@ -518,12 +551,15 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
         ${this.renderExtraEntities()}
         ${this.renderAllEntities()}
         </paper-tabs>
+        ${this.renderMoreInfoDialog()}
       </ha-card>
     `;
   }
 
+
   static get styles() {
     return css`
+        ul { margin: 0; padding: 5px;  } 
         paper-tabs { height: 110px; padding: 4px 8px }
         paper-tab {padding: 0 5px; }
         .center {display: flex; align-items: center; justify-content: center;}
@@ -548,6 +584,7 @@ toggleMoreInfo(action, domain = null, entities = null, entityName = null) {
         }
     `;
 }
+
           
     static getConfigElement() {
         return document.createElement("dev-status-card-editor");
@@ -567,6 +604,7 @@ class StatusCardEditor extends BaseCard {
       config: {},
     };
   }
+
 
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -609,10 +647,10 @@ class StatusCardEditor extends BaseCard {
     status: (hass) => hass.localize("ui.components.selectors.selector.types.state"),
     color: (hass) => hass.localize("ui.panel.lovelace.editor.card.tile.color"),
     icon: (hass) => hass.localize("ui.components.selectors.selector.types.icon"),
-    showPerson: (hass) =>  `${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")} show_person`,
-    showPersonName: (hass) => `${hass.localize("component.person.entity_component._.name")} ${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")}`,
-    showBadgeName: (hass) => `${hass.localize("ui.panel.lovelace.editor.cardpicker.domain")} ${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")}`,
-    bulkMode: (hass) => `${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")} bulkmode`,
+    showPerson:  () => "Show Person",
+    showPersonName:  () => "Show Person Name",
+    showBadgeName: () =>  "Show Badge Name",
+    bulkMode:  () => "Bulk Mode",
     hideDomain: (hass, domain) =>
       `${hass.localize(`component.${domain}.entity_component._.name`)} ${hass.localize("ui.common.disable")}`,
     hide_cover_DeviceClass: (hass, domain, deviceClass) =>
@@ -621,11 +659,12 @@ class StatusCardEditor extends BaseCard {
       `${hass.localize(`ui.dialogs.entity_registry.editor.device_classes.binary_sensor.${deviceClass}`)} ${hass.localize("ui.common.disable")}`,
     domainName: (hass) => hass.localize("ui.panel.lovelace.editor.cardpicker.domain"),
     deviceClassName: (hass) => `${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")} device_class`,
-    sortOrder: (hass) => `${hass.localize("ui.panel.lovelace.editor.card.generic.show_name")} sortOrder`,
+    sortOrder: () => "Order",
     area: (hass) => hass.localize("ui.components.selectors.selector.types.area"),
     floor: (hass) => hass.localize("ui.components.selectors.selector.types.floor"),
-    areaFloorFilter: (hass) =>
-      `${hass.localize("ui.components.selectors.selector.types.area")} / ${hass.localize("ui.components.selectors.selector.types.floor")} Filter`,
+    label: (hass) => hass.localize("ui.components.label-picker.label"),
+    labelFilter: (hass) => `${hass.localize("ui.components.label-picker.label")} Filter`,
+    areaFloorFilter: () => "",
   };
 
 
@@ -641,11 +680,10 @@ class StatusCardEditor extends BaseCard {
     }
   }
 
-  showMoreHiddenEntities() {
+  showMoreHiddenItems() {
     this.showMore = true;
-    this.requestUpdate(); 
+    this.requestUpdate();
   }
-
 
   updateConfig(property, domain, deviceClassName, value) {
     this.config[property] = this.config[property] || {};
@@ -680,6 +718,7 @@ updateSortOrder(domain, deviceClassName, newSortOrder) {
     this.updateConfig('hide', domain, deviceClassName, visible);
   }
 
+
   
   manageExtraEntity(action, index = null, field = null, value = null) {
     this.config.extra_entities = this.config.extra_entities || [];
@@ -696,24 +735,36 @@ updateSortOrder(domain, deviceClassName, newSortOrder) {
   }
 
 
-  manageHiddenEntity(entity, action) {
-    if (!this.config.hidden_entities) {
-      this.config.hidden_entities = [];
+  manageHiddenItem(type, item, action) {
+    const validTypes = ["hidden_entities", "hidden_labels"];
+    if (!validTypes.includes(type)) {
+      throw new Error(`Invalid type: ${type}. Expected one of ${validTypes.join(", ")}`);
     }
-    const hiddenEntities = this.config.hidden_entities;
-    if (action === 'add' && !hiddenEntities.includes(entity)) {
-      hiddenEntities.push(entity);
-    } else if (action === 'remove') {
-      hiddenEntities.splice(hiddenEntities.indexOf(entity), 1);
+
+    if (!this.config[type]) {
+      this.config[type] = [];
     }
-  
-    this.config = {
-      ...this.config,
-      hidden_entities: hiddenEntities,
-    };
-  
+
+    const list = this.config[type];
+    const cleanedItem = typeof item === "string" ? item.trim() : item;
+    if (!cleanedItem || (typeof cleanedItem === "string" && cleanedItem === "")) {
+      return; 
+    }
+
+    if (action === "add" && !list.includes(cleanedItem)) {
+      list.push(cleanedItem);
+    } else if (action === "remove") {
+      const index = list.indexOf(cleanedItem);
+      if (index !== -1) {
+        list.splice(index, 1);
+      }
+    }
+
+    this.config = { ...this.config, [type]: list };
     this.configChanged(this.config);
   }
+  
+  
   
 
   updateAreaFloorSelection(type, value) {
@@ -727,6 +778,13 @@ updateSortOrder(domain, deviceClassName, newSortOrder) {
     this.configChanged(this.config);
 }
 
+
+updateLabelSelection(value) {
+  this.config = {
+      ...this.config,
+      label_filter:  value || ''};
+  this.configChanged(this.config);
+}
 
 
 renderHaForm(name, selector, data, computeLabel, onChange) {
@@ -749,6 +807,34 @@ renderHaForm(name, selector, data, computeLabel, onChange) {
 }
 
 renderSettings() {
+  return html`
+  <div class="settings">
+      <div class="sub">
+        ${this.renderHaForm("showPerson", { boolean: {} }, { showPerson: this.config.showPerson ?? true }, this._computeLabel, 
+          (e) => this.toggleSetting('showPerson', e.detail.value.showPerson))}
+          </div>
+            <div class="sub">
+        ${this.renderHaForm("showPersonName", { boolean: {} }, { showPersonName: this.config.showPersonName ?? true }, this._computeLabel, 
+          (e) => this.toggleSetting('showPersonName', e.detail.value.showPersonName))}
+          </div>           
+
+        </div>          
+  <div class="settings">    
+             <div class="sub">
+        ${this.renderHaForm("bulkMode", { boolean: {} }, { bulkMode: this.config.bulkMode ?? false }, this._computeLabel, 
+          (e) => this.toggleSetting('bulkMode', e.detail.value.bulkMode))}
+          </div>  
+          <div class="sub">
+        ${this.renderHaForm("showBadgeName", { boolean: {} }, { showBadgeName: this.config.showBadgeName ?? true }, this._computeLabel, 
+          (e) => this.toggleSetting('showBadgeName', e.detail.value.showBadgeName))}
+          </div>            
+
+  </div>
+`;
+}
+
+
+renderFilters() {
   const areaFloorOptions = [
     { label: this.hass.localize("ui.components.selectors.selector.types.area"), value: 'area' },
     { label: this.hass.localize("ui.components.selectors.selector.types.floor"), value: 'floor' }
@@ -757,48 +843,40 @@ renderSettings() {
   const selectedAreaFloor = this.config.area_filter ? Object.keys(this.config.area_filter)[0] : '';
 
   return html`
-  <div class="settings">
-    <div class="top-row">
-      <div class="area-floor-picker">
-        ${this.renderHaForm("areaFloorFilter", { select: { options: areaFloorOptions } }, 
-          { areaFloorFilter: selectedAreaFloor },
-          this._computeLabel, (e) => this.updateAreaFloorSelection(e.detail.value.areaFloorFilter, ''))}
+    <ha-expansion-panel outlined class="main">
+      <div slot="header" role="heading" aria-level="3"> ${this.hass.localize(`ui.components.subpage-data-table.filters`)} ${this.hass.localize(`ui.components.subpage-data-table.filters`)} </div>
+      <div class="settings">
+        <div class="flex">
+          ${this.renderHaForm(
+            "areaFloorFilter",{ select: { options: areaFloorOptions } },{ areaFloorFilter: selectedAreaFloor },
+            this._computeLabel,(e) => this.updateAreaFloorSelection(e.detail.value.areaFloorFilter, ''))}
+        </div>
+        <div class="flex">
+          ${this.renderHaForm("labelFilter",{ boolean: {} },{ labelFilter: (this.labelFilter || this.config.label_filter) ?? false },
+            this._computeLabel,(e) => {this.labelFilter = e.detail.value.labelFilter; this.requestUpdate(); })}
+        </div>
       </div>
-      <div class="toggle">
-        ${this.renderHaForm("showPerson", { boolean: {} }, { showPerson: this.config.showPerson ?? true }, this._computeLabel, 
-          (e) => this.toggleSetting('showPerson', e.detail.value.showPerson))}
-          <div class="sub">
-        ${this.renderHaForm("showPersonName", { boolean: {} }, { showPersonName: this.config.showPersonName ?? true }, this._computeLabel, 
-          (e) => this.toggleSetting('showPersonName', e.detail.value.showPersonName))}
-          </div>
-          <div class="sub">
-        ${this.renderHaForm("showBadgeName", { boolean: {} }, { showBadgeName: this.config.showBadgeName ?? true }, this._computeLabel, 
-          (e) => this.toggleSetting('showBadgeName', e.detail.value.showBadgeName))}
-          </div>            
-          <div class="sub">
-        ${this.renderHaForm("bulkMode", { boolean: {} }, { bulkMode: this.config.bulkMode ?? false }, this._computeLabel, 
-          (e) => this.toggleSetting('bulkMode', e.detail.value.bulkMode))}
-          </div>
+      <div class="filter">
+        ${selectedAreaFloor === 'area' ? this.renderHaForm("area",{ area: {} },{ area: this.config.area_filter.area || '' },
+          this._computeLabel,(e) => this.updateAreaFloorSelection('area', e.detail.value.area)): ''}
+        ${selectedAreaFloor === 'floor'? this.renderHaForm("floor",{ floor: {} },{ floor: this.config.area_filter.floor || '' },
+          this._computeLabel,(e) => this.updateAreaFloorSelection('floor', e.detail.value.floor)): ''}
       </div>
-    </div>
-    <div class="area-floor-form">
-      ${selectedAreaFloor === 'area' ? this.renderHaForm("area", { area: {} }, 
-        { area: this.config.area_filter.area || '' }, this._computeLabel, 
-        (e) => this.updateAreaFloorSelection('area', e.detail.value.area)) : ''}
-      ${selectedAreaFloor === 'floor' ? this.renderHaForm("floor", { floor: {} }, 
-        { floor: this.config.area_filter.floor || '' }, this._computeLabel, 
-        (e) => this.updateAreaFloorSelection('floor', e.detail.value.floor)) : ''}
-    </div>
-  </div>
-`;
+      <div class="filter">
+        ${this.labelFilter || this.config.label_filter ? this.renderHaForm("label",{ label: {} },{ label: this.config.label_filter || '' },
+          this._computeLabel,(e) => this.updateLabelSelection(e.detail.value.label)): ''}
+      </div>
+    </ha-expansion-panel>
+  `;
 }
+
 
 
 renderDomainConfig() {
   return html`
     <ha-expansion-panel outlined class="main">
       <div slot="header" role="heading" aria-level="3">edit_domains</div>
-      <div class="content flexbox">
+      <div class="content">
         ${Object.keys(this.entityConfig)
           .filter(domain => !['cover', 'binary_sensor'].includes(domain))
           .map(domain => html`
@@ -806,7 +884,7 @@ renderDomainConfig() {
               <div slot="header" role="heading" aria-level="3">
                 ${this.hass.localize(`component.${domain}.entity_component._.name`) || domain}
               </div>
-              <div class="content" style="padding: 10px 5px;">
+              <div class="sub-content">
                 ${this.renderHaForm("hideDomain", { boolean: {} }, { hideDomain: this.config.hide?.[domain] || false }, 
                   (schema) => this._computeLabel(schema, domain), 
                   (e) => this.updateVisibility(domain, null, e.detail.value.hideDomain))}
@@ -816,7 +894,8 @@ renderDomainConfig() {
                   (e) => this.updateIcons(domain, null, e.detail.value.icon))}
                 ${this.renderHaForm("color", { ui_color: {} }, { color: this.config.colors?.[domain] || '' }, this._computeLabel, 
                   (e) => this.updateColors(domain, null, e.detail.value.color))}
-                ${this.renderHaForm("sortOrder", { number: {} }, { sortOrder: this.config.newSortOrder?.[domain] !== undefined ? this.config.newSortOrder?.[domain] : this.entityConfig[domain]?.sortOrder || 0 }, this._computeLabel, (e) => { const newValue = Number(e.detail.value.sortOrder); this.newSortOrder = newValue; this.updateSortOrder(domain, null, newValue); })}
+                ${this.renderHaForm("sortOrder", { number: {} }, { sortOrder: this.config.newSortOrder?.[domain] !== undefined ? this.config.newSortOrder?.[domain] : this.entityConfig[domain]?.sortOrder || 0 }, 
+                this._computeLabel, (e) => { const newValue = Number(e.detail.value.sortOrder); this.newSortOrder = newValue; this.updateSortOrder(domain, null, newValue); })}
               </div>
             </ha-expansion-panel>
           `)}
@@ -830,13 +909,13 @@ renderDeviceClassConfig() {
     ${['cover', 'binary_sensor'].map(domain => html`
       <ha-expansion-panel outlined class="main">
         <div slot="header" role="heading" aria-level="3">'edit_dc'</div>
-        <div class="content flexbox">
+        <div class="content">
           ${this.entityConfig[domain].deviceClasses.map(deviceClass => html`
             <ha-expansion-panel outlined ?expanded="${this.openedDeviceClasses.includes(`${domain}-${deviceClass.name}`)}" class="child">
               <div slot="header" role="heading" aria-level="3">
                 ${this.hass.localize(`ui.dialogs.entity_registry.editor.device_classes.${domain}.${deviceClass.name}`)}
               </div>
-              <div class="content" style="padding: 10px 5px;">
+              <div class="sub-content">
                 ${this.renderHaForm(`hide_${domain}_DeviceClass`, { boolean: {} }, 
                   { [`hide_${domain}_DeviceClass`]: this.config.hide?.[domain]?.[deviceClass.name] || false }, 
                   (schema) => this._computeLabel(schema, domain, deviceClass.name), 
@@ -860,119 +939,189 @@ renderDeviceClassConfig() {
   `;
 }
 
+
+
 renderExtraEntities() {
   const extraEntities = this.config.extra_entities || [];
   return html`
-    <div class="extra-entities">
-      <h3>Extra ${this.hass.localize("ui.panel.lovelace.editor.card.entities.name")}</h3>
-      <ha-icon-button @click=${() => this.manageExtraEntity('add')}>
-        <ha-icon class="extra-entitities-icon" icon="mdi:plus"></ha-icon>
-      </ha-icon-button>
-    </div>
-    ${extraEntities.map((entity, index) => html`
-      <div class="extra-entity-top">
-        <div class="extra-entity-entity">
-          ${this.renderHaForm("entity", { entity: {} }, { entity: entity.entity }, this._computeLabel, 
-            (e) => this.manageExtraEntity('update', index, 'entity', e.detail.value.entity))}
-        </div>
-        <div class="extra-entity-status">
-          ${this.renderHaForm("status", { text: {} }, { status: entity.status }, this._computeLabel, 
-            (e) => this.manageExtraEntity('update', index, 'status', e.detail.value.status))}
-        </div>
+    <ha-expansion-panel outlined class="main">
+      <div slot="header" role="heading" aria-level="3">
+        Extra ${this.hass.localize("ui.panel.lovelace.editor.card.entities.name")}
       </div>
-      <div class="extra-entity-bottom">
-        <div class="extra-entity-icon">
-          ${this.renderHaForm("icon", { icon: {} }, { icon: entity.icon || '' }, this._computeLabel, 
-            (e) => this.manageExtraEntity('update', index, 'icon', e.detail.value.icon))}
-        </div>
-        <div class="extra-entity-color">
-          ${this.renderHaForm("color", { ui_color: {} }, { color: entity.color || '' }, this._computeLabel, 
-            (e) => this.manageExtraEntity('update', index, 'color', e.detail.value.color))}
-        </div>
-        <div class="extra-entity-sort">
-          ${this.renderHaForm("sortOrder", { number: {} }, 
-            { sortOrder: this.config.newSortOrder?.['extra']?.[entity.entity] ?? '' }, this._computeLabel, 
-            (e) => this.updateSortOrder('extra', entity.entity, Number(e.detail.value.sortOrder)))}
-        </div>
-        <ha-icon-button class="remove-button" icon="mdi:minus" 
-          @click=${() => { this.manageExtraEntity('remove', index); this.updateSortOrder('extra', entity.entity, '');}}>
-          <ha-icon icon="mdi:minus"></ha-icon>
-        </ha-icon-button>
+      <div class="content">
+        ${extraEntities.map((entity, index) => html`
+          <div class="extra-entity">
+            <div class="extra-entity-top">
+              <div class="extra-entity-entity">
+                ${this.renderHaForm("entity", { entity: {} }, { entity: entity.entity }, this._computeLabel, 
+                  (e) => this.manageExtraEntity('update', index, 'entity', e.detail.value.entity))}
+              </div>
+              <div class="extra-entity-remove">
+              <ha-icon-button class="remove-icon" @click=${() => { 
+                this.manageExtraEntity('remove', index); 
+                this.updateSortOrder('extra', entity.entity, '');
+              }}>
+                <ha-icon class="center" icon="mdi:delete"></ha-icon>
+              </ha-icon-button>
+              </div>
+            </div>
+            <div class="extra-entity-bottom">
+              <div class="extra-entity-status">
+                ${this.renderHaForm("status", { state: { entity_id: entity.entity } }, { status: entity.status }, this._computeLabel, 
+                  (e) => this.manageExtraEntity('update', index, 'status', e.detail.value.status))}
+              </div>
+              <div class="extra-entity-sort">
+                ${this.renderHaForm("sortOrder", { number: {} }, 
+                  { sortOrder: this.config.newSortOrder?.['extra']?.[entity.entity] ?? '' }, this._computeLabel, 
+                  (e) => this.updateSortOrder('extra', entity.entity, Number(e.detail.value.sortOrder)))}
+              </div>
+            </div>
+            <div class="extra-entity-bottom">
+              <div class="extra-entity-icon">
+                ${this.renderHaForm("icon", { icon: {} }, { icon: entity.icon || '' }, this._computeLabel, 
+                  (e) => this.manageExtraEntity('update', index, 'icon', e.detail.value.icon))}
+              </div>            
+              <div class="extra-entity-color">
+                ${this.renderHaForm("color", { ui_color: {} }, { color: entity.color || '' }, this._computeLabel, 
+                  (e) => this.manageExtraEntity('update', index, 'color', e.detail.value.color))}
+              </div>
+            </div>
+          </div>
+        `)}
+        <ha-button slot="trigger" outlined="" @click=${() => this.manageExtraEntity('add')}> 
+          <ha-icon class="button-icon" icon="mdi:plus"></ha-icon>
+          <span class="button-text">${this.hass.localize("ui.common.add")}</span>
+        </ha-button>
       </div>
-    `)}
+    </ha-expansion-panel>
   `;
 }
 
 
 renderHiddenEntities() {
   const hiddenEntities = (this.config.hidden_entities || []).slice().sort();
-  const showAll = this.showMore || hiddenEntities.length <= 5;
-  const entitiesToShow = showAll ? hiddenEntities : hiddenEntities.slice(0, 5);
+  const hiddenLabels = (this.config.hidden_labels || []).slice().sort();
+  const combinedItems = [
+    ...hiddenEntities.map(entity => ({ type: "entity", value: entity })),
+    ...hiddenLabels.map(label => ({ type: "label", value: label }))
+  ];
+  const showAll = this.showMore || combinedItems.length <= 5;
+  const itemsToShow = showAll ? combinedItems : combinedItems.slice(0, 5);
+  const entityLabelOptions = [
+    { label: this.hass.localize("ui.components.selectors.selector.types.entity"), value: 'entity' },
+    { label: this.hass.localize("ui.components.label-picker.label"), value: 'label' }
+  ];
+  const selectedEntityLabel = this.hide_type;
 
   return html`
-    <div>
-      <h3>${this.hass.localize("ui.panel.lovelace.editor.entities.remove")}</h3>
-      <div class="entity-picker-container">
-        ${this.renderHaForm("entity", { entity: {} }, { entity: null }, this._computeLabel, 
-          (e) => this.manageHiddenEntity(e.detail.value.entity, 'add'))}
+    <ha-expansion-panel outlined class="main">
+      <div slot="header" role="heading" aria-level="3">
+        ${this.hass.localize("ui.panel.lovelace.editor.entities.remove")}
       </div>
-      ${hiddenEntities.length ? html`
-        <h3>${this.hass.localize("ui.dialogs.entity_registry.editor.disabled_label")}:</h3>
-        <ul>
-          ${entitiesToShow.map(entity => html`
-            <li class="hidden-entity">
-              <span>${entity}</span>
-              <mwc-button @click=${() => this.manageHiddenEntity(entity, 'remove')}>
-                ${this.hass.localize("ui.common.remove")}
-              </mwc-button>
-            </li>
-          `)}
-          ${!showAll ? html`
-            <li class="hidden-entity">
-              <mwc-button @click=${() => this.showMoreHiddenEntities()}>
-                ${this.hass.localize("ui.dialogs.more_info_control.show_more")}
-              </mwc-button>
-            </li>
-          ` : ''}
-        </ul>
-      ` : ''}
-    </div>
+        <div class="entity-label-picker">
+          ${this.renderHaForm("entityLabelFilter", { select: { options: entityLabelOptions } }, 
+            { entityLabelFilter: selectedEntityLabel },
+            this._computeLabel, 
+            (e) => {
+              this.hide_type = e.detail.value.entityLabelFilter; 
+              this.requestUpdate();
+            })}
+        </div>
+        <div class="entity-label-form">
+          ${selectedEntityLabel === 'entity' ? this.renderHaForm("entity", { entity: {} }, { entity: null }, this._computeLabel, 
+            (e) => this.manageHiddenItem("hidden_entities", e.detail.value.entity, "add")) : ''}
+          ${selectedEntityLabel === 'label' ? this.renderHaForm("label", { label: {} }, { label: null }, this._computeLabel, 
+            (e) => this.manageHiddenItem("hidden_labels", e.detail.value.label, "add")) : ''}
+        </div>
+     
+
+        ${(combinedItems.length > 0) ? html`
+          <h3>${this.hass.localize("ui.dialogs.entity_registry.editor.disabled_label")}:</h3>
+          <ul>
+            ${itemsToShow.map(item => html`
+              <li class="hidden-entity">
+                <span>
+                  ${item.type === "entity"
+                    ? `${this.hass.localize("ui.components.selectors.selector.types.entity")}: ${item.value}` 
+                    : `${this.hass.localize("ui.components.label-picker.label")}: ${item.value.charAt(0).toUpperCase() + item.value.slice(1)}`}
+                </span>
+                <ha-icon-button class="remove-icon"
+                  @click=${() => this.manageHiddenItem(
+                    item.type === "entity" ? "hidden_entities" : "hidden_labels",
+                    item.value,
+                    "remove"
+                  )}>
+                  <ha-icon class="center" icon="mdi:delete"></ha-icon>
+                </ha-icon-button>
+              </li>
+            `)}
+            ${!showAll ? html`
+              <li class="hidden-entity">
+                <mwc-button @click=${() => this.showMoreHiddenItems()}>
+                  ${this.hass.localize("ui.dialogs.more_info_control.show_more")}
+                </mwc-button>
+              </li>
+            ` : ''}
+          </ul>
+        ` : ''}
+        </div>        
+    </ha-expansion-panel>
   `;
 }
+
+
+
+
  
 render() {
   if (!this.config) return html`<div>Invalid Configuration</div>`;
 
   return html`
       ${this.renderSettings()}
+      ${this.renderFilters() }
+      <ha-expansion-panel outlined class="main">
+        <div slot="header" role="heading" aria-level="3">Edit Domains/ Device Classes</div>
       ${this.renderDomainConfig()}
       ${this.renderDeviceClassConfig()}
+      </ha-expansion-panel>
       ${this.renderExtraEntities()}
       ${this.renderHiddenEntities()}
   `;
 }
 
   
+
+
+
   static get styles() {
     return css`  
+      ul { margin: 0; padding: 5px;  }
+      .button-icon { --mdc-icon-size: 1.125rem; margin-right: 8px; }
+      .button-text { font-size:  var(--mdc-typography-button-font-size, .875rem);}
+      .remove-icon { --mdc-icon-button-size: 36px; color: var(--secondary-text-color); align-self: center; }
       h3 { margin: 0; padding: 8px 0; display: flex; align-items: center; }
-      ha-icon { margin-right: 8px; }
+      .center {display: flex; align-items: center; justify-content: center;}
       .main {margin-top: 5px;}
-      .sub {margin-top: -15px;}
+      .sub {margin-top: -10px; flex: 1}
       .child {width:calc(50% - 2px); margin-top: 3px;}
       .person-entity, .hidden-entity { display: flex; align-items: center; } 
       .hidden-entity { justify-content: space-between; }
-      .hidden-entity span { max-width: calc(100% - 120px); word-wrap: break-word; }
-      .flexbox { display: flex; flex-wrap: wrap; margin-bottom: 16px; }    
+      .hidden-entity span { max-width: calc(100% - 35px); word-wrap: break-word; }
+      .content { display: flex; flex-wrap: wrap; margin: 10px 0px; }  
+      .settings { display: flex; flex-wrap: wrap; gap: 20px; padding: 0 6px; align-items: center;}
+      .flex { flex: 1; }
+      .sub-content { padding: 10px 5px; }  
       .entity-picker { flex: 7; }
+      .filter { margin-bottom: 10px; } 
       .status-text { flex: 3; }
-      .extra-entities { display: flex; justify-content: space-between; align-items: center; }
-      .extra-entity-top, .extra-entity-bottom { display: flex; gap: 10px; margin-bottom: 5px; }
-      .extra-entity-entity, .extra-entity-status { flex: 4; }
-      .extra-entity-color, .extra-entity-icon { flex: 4; min-width: 0; }
-      .extra-entity-sort { flex: 2; }
+      .extra-entity {width: 100%; }
+      .extra-entity-color, .extra-entity-icon, .extra-entity-sort { flex: 1; min-width: 0; }
+      .extra-entity-remove {text-align: center; flex: 1; align-content: center;}
+      .remove-icon{ text-align: end;  }
+      .extra-entity-entity, .extra-entity-status { flex: 5; }
+      .extra-entity-bottom, .extra-entity-top{ display: flex;flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
       .area-floor-picker { margin-right: auto; flex: 4;}
-      .toggle {flex: 4;}
+      .entity-label-form {margin-bottom: 10px }
       .top-row {display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 2px 5px;}
     `;
   }
