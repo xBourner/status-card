@@ -1127,8 +1127,6 @@ render() {
   }
 }
 
-
-
 customElements.define('dev-status-card-editor', StatusCardEditor);
 
 console.info(
