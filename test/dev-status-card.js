@@ -1101,7 +1101,7 @@ render() {
       .remove-icon { --mdc-icon-button-size: 36px; color: var(--secondary-text-color); align-self: center; }
       h3 { margin: 0; padding: 8px 0; display: flex; align-items: center; }
       .center {display: flex; align-items: center; justify-content: center;}
-      .main {margin-top: 5px;}
+      .main {margin: 5px 0;}
       .sub {margin-top: -10px; flex: 1}
       .child {width:calc(50% - 2px); margin-top: 3px;}
       .person-entity, .hidden-entity { display: flex; align-items: center; } 
