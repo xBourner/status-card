@@ -685,16 +685,20 @@ class StatusCardEditor extends BaseCard {
   }
 
   updateConfig(property, domain, deviceClassName, value) {
-    this.config[property] = this.config[property] || {};
-    this.config[property][domain] = this.config[property][domain] || {};
+    const updatedConfig = { ...this.config }; 
+    updatedConfig[property] = { ...this.config[property] }; 
+    updatedConfig[property][domain] = { ...this.config[property]?.[domain] }; 
     
-    deviceClassName ? 
-      (this.config[property][domain][deviceClassName] = value) : 
-      (this.config[property][domain] = value);
+    if (deviceClassName) {
+      updatedConfig[property][domain][deviceClassName] = value; 
+    } else {
+      updatedConfig[property][domain] = value; 
+    }
+    
+    this.configChanged(updatedConfig); 
+    this.requestUpdate(); 
+  }
   
-    this.configChanged(this.config);
-    this.requestUpdate();
-}
 
   
 updateSortOrder(domain, deviceClassName, newSortOrder) {
@@ -710,8 +714,13 @@ updateSortOrder(domain, deviceClassName, newSortOrder) {
   }
   
   updateColors(domain, deviceClassName, color) {
-    this.updateConfig('colors', domain, deviceClassName, color);
+    const updatedConfig = { ...this.config };
+    updatedConfig.colors = { ...this.config.colors };
+    updatedConfig.colors[domain] = color;
+    this.configChanged(updatedConfig);
   }
+  
+  
   
   updateVisibility(domain, deviceClassName, visible) {
     this.updateConfig('hide', domain, deviceClassName, visible);
@@ -872,6 +881,7 @@ renderFilters() {
 
 
 renderDomainConfig() {
+
   return html`
     <ha-expansion-panel outlined class="main">
       <div slot="header" role="heading" aria-level="3">edit_domains</div>
