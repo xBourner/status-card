@@ -729,36 +729,39 @@ updateSortOrder(domain, deviceClassName, newSortOrder) {
 
   
   manageExtraEntity(action, index = null, field = null, value = null) {
-    this.config.extra_entities = this.config.extra_entities || [];
-
+    const updatedConfig = { ...this.config };
+    updatedConfig.extra_entities = updatedConfig.extra_entities ? updatedConfig.extra_entities.map(entity => ({ ...entity })) : [];
+  
     if (action === 'add') {
-        this.config.extra_entities.push({ entity: '', status: '', icon: '', color: '' });
+      updatedConfig.extra_entities.push({ entity: '', status: '', icon: '', color: '' });
     } else if (action === 'update' && index !== null && field !== null) {
-        this.config.extra_entities[index][field] = value;
+      const updatedEntity = { ...updatedConfig.extra_entities[index] };
+      updatedEntity[field] = value;
+      updatedConfig.extra_entities[index] = updatedEntity;
     } else if (action === 'remove' && index !== null) {
-        this.config.extra_entities.splice(index, 1);
+      updatedConfig.extra_entities.splice(index, 1);
     }
-
-    this.configChanged(this.config);
+    this.configChanged(updatedConfig); 
+    setTimeout(() => {this.requestUpdate();}, 100); 
   }
-
+  
 
   manageHiddenItem(type, item, action) {
     const validTypes = ["hidden_entities", "hidden_labels"];
     if (!validTypes.includes(type)) {
       throw new Error(`Invalid type: ${type}. Expected one of ${validTypes.join(", ")}`);
     }
-
-    if (!this.config[type]) {
-      this.config[type] = [];
-    }
-
-    const list = this.config[type];
+  
+    const updatedConfig = { ...this.config };
+    updatedConfig[type] = updatedConfig[type] ? [...updatedConfig[type]] : [];
+  
+    const list = updatedConfig[type];
+  
     const cleanedItem = typeof item === "string" ? item.trim() : item;
     if (!cleanedItem || (typeof cleanedItem === "string" && cleanedItem === "")) {
-      return; 
+      return;
     }
-
+  
     if (action === "add" && !list.includes(cleanedItem)) {
       list.push(cleanedItem);
     } else if (action === "remove") {
@@ -768,9 +771,10 @@ updateSortOrder(domain, deviceClassName, newSortOrder) {
       }
     }
 
-    this.config = { ...this.config, [type]: list };
-    this.configChanged(this.config);
+    this.configChanged(updatedConfig);
+    this.requestUpdate();
   }
+  
   
   
   
