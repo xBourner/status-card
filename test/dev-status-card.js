@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.0.0/index.js?module';
 //import { LitElement, html, css } from 'lit-element';
-import { translateState } from '../src/translations.js';
+//import { translateState } from '../src/translations.js';
 //import packageJson from '../package.json' assert { type: 'json' };
 
 class BaseCard extends LitElement {
@@ -674,6 +674,8 @@ class StatusCardEditor extends BaseCard {
   }
   
   toggleSetting(type, checked) {
+    this.config.showPerson = !this.config.showPerson;
+    this.config.showPersonName = !this.config.showPersonName;
     if (['showPerson', 'bulkMode', 'showPersonName', 'showBadgeName'].includes(type)) {
         this.config[type] = checked; 
         this.configChanged(this.config);
