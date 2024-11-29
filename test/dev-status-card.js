@@ -674,13 +674,10 @@ class StatusCardEditor extends BaseCard {
   }
   
   toggleSetting(type, checked) {
-    this.config.showPerson = !this.config.showPerson;
-    this.config.showPersonName = !this.config.showPersonName;
-    if (['showPerson', 'bulkMode', 'showPersonName', 'showBadgeName'].includes(type)) {
-        this.config[type] = checked; 
-        this.configChanged(this.config);
-    }
+    const updatedConfig = { ...this.config, [type]: checked };
+    this.configChanged(updatedConfig);
   }
+  
 
   showMoreHiddenItems() {
     this.showMore = true;
