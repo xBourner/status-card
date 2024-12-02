@@ -73,9 +73,12 @@ Bulk Mode will list all entities instead of showing entity cards. You can use th
 
 ### Hacs
 
-Add this repository via HACS Custom repositories
+Add this repository via HACS Custom repositories as a Dashboard.
 
 https://github.com/xBourner/status-card
+
+![image](https://github.com/user-attachments/assets/210c5e7e-5bd0-44f5-bf1d-de013a09eed8)
+
 
 ([How to add Custom Repositories](https://hacs.xyz/docs/faq/custom_repositories/))
 
