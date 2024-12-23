@@ -1,22 +1,20 @@
 {
   "name": "status-card",
-  "version": "2.3.1",
-  "description": "A card that will show certain entities when active grouped by domain/device class",
-  "main": "status-card.js",
-  "author": "xBourner",
-  "license": "MIT",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "watch": "webpack --watch",
-    "build": "webpack"
-  },
+  "version": "2.4.0",
   "devDependencies": {
-    "ts-loader": "^9.5.1",
-    "typescript": "^5.6.3",
-    "webpack": "^5.96.1",
-    "webpack-cli": "^5.1.4"
+    "@types/sortablejs": "^1.15.8",
+    "html-webpack-plugin": "^5.6.3",
+    "sortablejs": "^1.15.6",
+    "ts-loader": "^9.0.0",
+    "typescript": "^4.0.0",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^5.0.0",
+    "webpack-dev-server": "^4.0.0"
   },
   "dependencies": {
-    "lit": "^3.2.1"
+    "custom-card-helpers": "^1.9.0",
+    "home-assistant-js-websocket": "^9.4.0",
+    "lit": "^3.2.1",
+    "memoize-one": "^6.0.0"
   }
 }

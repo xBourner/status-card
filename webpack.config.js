@@ -1,23 +1,23 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/index.js', 
-  mode: 'production',
+  mode: 'production', 
+  entry: './src/index.ts',
   output: {
-    filename: './status-card.js',  
-    path: path.resolve(__dirname, 'dist'),  
+    filename: 'status-card.js',
+    path: path.resolve(__dirname, 'dist'),
+  },
+  resolve: {
+    extensions: ['.ts', '.js'],
   },
   module: {
     rules: [
       {
-        test: /\.js$/, 
-        exclude: /node_modules/, 
+        test: /\.ts$/,
+        use: 'ts-loader',
+        exclude: /node_modules/,
       },
     ],
   },
-  resolve: {
-    fallback: {
-      "fs": false,  
-    }
-  }
+  devtool: 'source-map',
 };
