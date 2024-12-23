@@ -38,7 +38,7 @@ Please keep attention that it will only show entities which are linked to any ar
 
 # Screenshots
 ### Graphical Editor
-![image](https://github.com/user-attachments/assets/34ab32ea-7e3a-4d60-b904-f8e400e7ae4c)
+![image](https://github.com/user-attachments/assets/9e8d27e3-3b1f-4b36-80f1-7fde78b72d2a)
 
 
 ### Area/Floor & Label Filter
@@ -52,14 +52,27 @@ Choose an extra Entity which you want to see in your status card. Choose the ent
 
 
 ## Customization of Domains or Device Classes
-You can specify the look of the domains and device classes. You can change the icon, icon color and sort order. You can also completly hide them.
+You can specify the look of the domains and device classes. You can change the icon, icon color and sort order. You can also completly hide them and now you can invert them. If you only want to show closed garage, doors or locks for example.
 
 ![image](https://github.com/user-attachments/assets/932d00f2-07cf-4d90-b4e7-0e6924395ab5)
+
+![image](https://github.com/user-attachments/assets/ac2d4b65-7080-43e4-a0e5-1eca345ee67b)
 
 
 ## Hiding Names for Person, Domains, Device Classes & Extra Entities
 ![image](https://github.com/user-attachments/assets/05fa0be6-6d43-4f7b-9366-6f1894f9e38f)
 
+## More Info View
+For Extra Entities you have the default More Info View for your entity. If you click on a group (domain/deviceclass) you will get a list of all entities in the desired state.
+![image](https://github.com/user-attachments/assets/74b87943-5ffd-499a-b2f5-7aee07f63887)
+
+You can set the columns of entities next together from 1 to 4 with this:
+
+![image](https://github.com/user-attachments/assets/2a138f2c-f147-44ba-9bfe-cbafe047af6d)
+
+so it will look like this:
+
+![image](https://github.com/user-attachments/assets/92e49add-446a-4468-9816-a6712b663f7f)
 
 
 ## Bulk Mode
@@ -102,6 +115,9 @@ icons:  # domain/device classes that will show another icon
   light: mdi:account-plus
 colors:  # domain/device classes that will show another icon color
   light: dark-grey
+invert:  # will show closed garages instaed of opened
+  cover:
+    garage: true
 newSortOrder: # change the sort order of a domain/device class/extra entity
   light: 10
   extra:
@@ -115,6 +131,7 @@ hidden_entities: # enttites which will be hidden from card
   - update.0x5c0272fffeae0368
 hidden_labels: # labels which will be hidden from card
   - Window
+moreInfoColumns: 4 # defines how much columns are used for more info view (min:1; max:4; default is 4)
 ```
 
 
