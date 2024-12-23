@@ -616,7 +616,7 @@ export class StatusCard extends LitElement {
       .entity-state { color: var(--secondary-text-color); font-size: 0.9em; }            
       .dialog-header { display: flex;  justify-content: flex-start; align-items: center; gap: 8px; margin-bottom: 12px;} 
       .dialog-header ha-icon-button { margin-right: 10px;  }
-      ha-dialog#more-info-dialog { --mdc-dialog-max-width: calc(22.5vw * var(--columns) + 60px); }
+      ha-dialog#more-info-dialog { --mdc-dialog-max-width: calc(22.5vw * var(--columns) + 3vw); }
       .tile-container { display: flex; flex-wrap: wrap; gap: 4px; --columns: 4;  }
       .entity-card { width: 22.5vw ;  box-sizing: border-box; }
       .entity-list { list-style: none;  display: flex; flex-direction: column; }
