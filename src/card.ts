@@ -370,6 +370,8 @@ export class StatusCard extends LitElement {
     return this.showPerson
       ? this.entities.filter((entity) =>
         entity.entity_id.startsWith("person.") &&
+        !this.hiddenEntities.includes(entity.entity_id) &&
+        !entity.labels?.some((l) => this.hiddenLabels.includes(l)) &&
         !entity.hidden_by &&
         !entity.disabled_by 
       )
