@@ -268,11 +268,11 @@ export class StatusCard extends LitElement {
   
         const isActive = !["closed", "locked", "off", "docked", "idle", "standby", "paused", "auto", "not_home", "disarmed", "0"].includes(entity.state);
         const isInactive = !isActive;
-
+  
         if (domain === "climate") {
           const hvacAction = entity.attributes.hvac_action;
           if (hvacAction !== undefined) {
-            return hvacAction !== "idle" && hvacAction !== "off";
+            return isInverted ? ["idle", "off"].includes(hvacAction) : !["idle", "off"].includes(hvacAction);
           }
         }
   
@@ -283,6 +283,7 @@ export class StatusCard extends LitElement {
         return isInverted ? isInactive : isActive;
       });
   }
+  
   
   
   private getStatusProperty(domain: string, deviceClass?: string, state?: string): string {
