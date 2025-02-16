@@ -38,29 +38,35 @@ Please keep attention that it will only show entities which are linked to any ar
 
 # Screenshots
 ### Graphical Editor
-![image](https://github.com/user-attachments/assets/9e8d27e3-3b1f-4b36-80f1-7fde78b72d2a)
+![image](https://github.com/user-attachments/assets/fba1e0c8-9025-4b2d-9de7-ad2e178b5bbf)
 
 
 ### Area/Floor & Label Filter
 Use this to only show entities linked to an area/floor. You can combine this with the Label Filter. Only entities with this label will be shown. Area/Floor can be combined with the Label Filter.  
-![image](https://github.com/user-attachments/assets/2872ecea-baeb-4276-b594-a71b7632a2e9)
+![image](https://github.com/user-attachments/assets/e9b002c2-80bf-4b44-8c14-ccb78ac3ab03)
 
 
-### Adding Extra Entities
-Choose an extra Entity which you want to see in your status card. Choose the entity, after that you can pick the state and choose an icon and color to show it. You can also change the sort order to display it somewhere else in the card.
-![image](https://github.com/user-attachments/assets/147cce6f-0da2-4d35-aa60-9a194dabd9b9)
+### Adding Extra Entities/Hiding Entities from card
+Choose an extra Entity which you want to see in your status card.
+Add an extra entity to the card, or remove unwanted entities by the entity itself or labels.
+
+![image](https://github.com/user-attachments/assets/71856bae-a8a4-49b7-bbeb-326968a1636d)
 
 
 ## Customization of Domains or Device Classes
 You can specify the look of the domains and device classes. You can change the icon, icon color and sort order. You can also completly hide them and now you can invert them. If you only want to show closed garage, doors or locks for example.
 
-![image](https://github.com/user-attachments/assets/932d00f2-07cf-4d90-b4e7-0e6924395ab5)
+![image](https://github.com/user-attachments/assets/24737f78-f48b-4239-8023-314b20f0ea7b)
 
-![image](https://github.com/user-attachments/assets/ac2d4b65-7080-43e4-a0e5-1eca345ee67b)
+
+![image](https://github.com/user-attachments/assets/cdfb8dff-373f-4fc6-82ab-d9c4ecc9a4dd)
 
 
 ## Hiding Names for Person, Domains, Device Classes & Extra Entities
-![image](https://github.com/user-attachments/assets/05fa0be6-6d43-4f7b-9366-6f1894f9e38f)
+![image](https://github.com/user-attachments/assets/01acf476-c8f0-427a-a556-8eecde03a7c9)
+
+
+![image](https://github.com/user-attachments/assets/66c191af-31c6-4c33-a603-f576d524916b)
 
 ## More Info View
 For Extra Entities you have the default More Info View for your entity. If you click on a group (domain/deviceclass) you will get a list of all entities in the desired state.
@@ -75,8 +81,8 @@ so it will look like this:
 ![image](https://github.com/user-attachments/assets/92e49add-446a-4468-9816-a6712b663f7f)
 
 
-## Bulk Mode
-Bulk Mode will list all entities instead of showing entity cards. You can use this to have a quick access to copy all unwanted entities and paste them into hidden_entities via yaml.
+## List Mode (former known as Bulk Mode)
+List Mode will list all entities instead of showing entity cards. You can use this to have a quick access to copy all unwanted entities and paste them into hidden_entities via yaml.
 
 ![image](https://github.com/user-attachments/assets/3ae9712e-2430-4b8f-b358-4303f5379a15)
 
@@ -99,29 +105,15 @@ All settings are optional. The card should work without setting any parameters i
 
 ```yaml
 type: custom:dev-status-card
-bulkMode: false  # enable buk mode for accessing entities as text you can copy (easy to add hidden_entities)
-showPerson: true  # show person entities in card
-showBadgeName: false  # show names for domains/device classes/exta entities
-showPersonName: false # show names for person entities
-area_filter:  # option to filter for an area/floor (only entities from that area/floor will be shown)
-  area: living_room #  !only one filter per card!
-  floor: first_floor #  !only one filter per card!
-label_filter: window # set this to only show entities which have this label assigned
-hide:  # domains/device classes which are hidden from card
-  light: false
-names:  # domain/device classes that will show another name
-  light: asd
-icons:  # domain/device classes that will show another icon
-  light: mdi:account-plus
-colors:  # domain/device classes that will show another icon color
-  light: dark-grey
-invert:  # will show closed garages instaed of opened
-  cover:
-    garage: true
-newSortOrder: # change the sort order of a domain/device class/extra entity
-  light: 10
-  extra:
-    light.living-room: 4
+list_mode: false  # enable buk mode for accessing entities as text you can copy (easy to add hidden_entities)
+hide_person: false  # hide person entities in card
+hide_content_name: false  # hide names for domains/device classes/exta entities
+hide_person_name: false # hide names for person entities
+filter:  # option to filter for an area/floor (only entities from that area/floor will be shown)
+area: living_room #  !only one filter per card!
+floor: first_floor #  !only one filter per card!
+label_filter: fase # activate to choose a label 
+label: motion # set this to only show entities which have this label assigned
 extra_entities: # settings for extra entity that will be shown in card when the state is the same like you configured
   - entity: light.living-room
     status: "off"
@@ -131,7 +123,20 @@ hidden_entities: # enttites which will be hidden from card
   - update.0x5c0272fffeae0368
 hidden_labels: # labels which will be hidden from card
   - Window
-moreInfoColumns: 4 # defines how much columns are used for more info view (min:1; max:4; default is 4)
+columns: 4 # defines how much columns are used for more info view (min:1; max:4; default is 4)
+theme: optional # choose a theme to sytle your card
+content: # lists all domains/device_classes to show
+  - light
+  - switch
+  - Binary Sensor - window
+color: red # set to color all domains/device_classes and extra_entities
+customization:  # customize almost everything
+  - type: light   # the domain/device_class/extra_entitiy to customize
+    invert: true  # if true only off entities will be shown
+    name: test_name    # change the name of domain/device_class/extra_entitiy
+    icon: mdi:account  # change the icon of domain/device_class/extra_entitiy****
+    icon_color: red  # change the icon_color of domain/device_class/extra_entitiy**
+
 ```
 
 
