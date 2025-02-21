@@ -143,7 +143,10 @@ customization:  # customize almost everything
 
 ```
 
+# Feedback
 
+Thank you for using my custom cards. Please leave some feedback or a star.
+If you have any problems, suggestions for improvements or want to connect with me you can joing my discord: https://discord.gg/RfVx7hmZD3
 
 
 
