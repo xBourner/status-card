@@ -23,12 +23,17 @@ export interface CardConfig {
   hide_content_name?: boolean;
   customization?: any[];
   filter?: string;
-  floor?: string;
-  area?: string;
-  label_filter: boolean;
+  floor?: string[];
+  area?: string[];
+  label_filter?: boolean;
   label?: string[];
   content?: string[];
-  hide_filter: string;
+  hide_filter?: string;
+  state?: string | string[];
+  multiple_areas?: boolean;
+  multiple_floors?: boolean;
+  invert_state? : "true" | "false";
+  icon_color?: string;
 }
 
 interface Schema {
@@ -95,9 +100,9 @@ export class StatusCardEditor extends LitElement {
   }
 
   private _filterInitialized = false;
-  private _lastFilter: { area: string; floor: string; label: string[] } = {
-    area: "",
-    floor: "",
+  private _lastFilter: { area: string[]; floor: string[]; label: string[] } = {
+    area: [],
+    floor: [],
     label: [],
   };
 
@@ -128,8 +133,12 @@ export class StatusCardEditor extends LitElement {
       const oldContent = oldConfig?.content ?? [];
       const newContent = this._config.content ?? [];
 
-      const currentArea = this._config.area || "";
-      const currentFloor = this._config.floor || "";
+      const currentArea = Array.isArray(this._config.area)
+      ? [...this._config.area]
+      : [];
+      const currentFloor = Array.isArray(this._config.floor)
+      ? [...this._config.floor]
+      : [];
       const currentLabel = Array.isArray(this._config.label)
         ? [...this._config.label]
         : [];
@@ -146,14 +155,15 @@ export class StatusCardEditor extends LitElement {
       const previousArea = this._lastFilter.area;
       const previousFloor = this._lastFilter.floor;
       const previousLabel = this._lastFilter.label;
-      const labelsChanged =
-        JSON.stringify(previousLabel) !== JSON.stringify(currentLabel);
+      const labelsChanged = JSON.stringify(previousLabel) !== JSON.stringify(currentLabel);
+      const floorsChanged = JSON.stringify(previousFloor) !== JSON.stringify(currentFloor);
+      const areasChanged =  JSON.stringify(previousArea) !== JSON.stringify(currentArea);
 
       let updated = false;
 
       if (
-        previousArea !== currentArea ||
-        previousFloor !== currentFloor ||
+        areasChanged ||
+        floorsChanged ||
         labelsChanged
       ) {
         const possibleToggleDomains = this._toggleDomainsForArea(
@@ -171,8 +181,8 @@ export class StatusCardEditor extends LitElement {
         };
 
         this._lastFilter = {
-          area: currentArea,
-          floor: currentFloor,
+          area: [...currentArea],
+          floor: [...currentFloor],
           label: [...currentLabel],
         };
 
@@ -228,12 +238,12 @@ export class StatusCardEditor extends LitElement {
   }
 
   private _schema = memoizeOne(
-    (Filter: string, LabelFilter: boolean, HideFilter: string) => {
+    (Filter: string, LabelFilter: boolean, HideFilter: string, MultipleAreas: boolean, MultipleFloors: boolean) => {
       const area = this.computeLabel({ name: "area" });
       const floor = this.computeLabel({ name: "floor" });
       const label = this.computeLabel({ name: "label" });
       const entity = this.computeLabel({ name: "entity" });
-
+      
       return [
         {
           name: "",
@@ -272,14 +282,33 @@ export class StatusCardEditor extends LitElement {
                   selector: { select: { options: [area, floor] } },
                 },
                 { name: "label_filter", selector: { boolean: {} } },
+                
               ],
             },
-            ...(Filter === area
-              ? ([{ name: "area", selector: { area: {} } }] as const)
+            ...(Filter === area && MultipleAreas === false
+              ? ([
+                  { name: "multiple_areas", selector: { boolean: {} } },
+                  { name: "area",selector: { area:  { }  }},] as const)
               : []),
-            ...(Filter === floor
-              ? ([{ name: "floor", selector: { floor: {} } }] as const)
+
+              ...(Filter === area && MultipleAreas === true
+                ? ([
+                    { name: "multiple_areas", selector: { boolean: {} } },
+                    { name: "area",selector: { area:  { multiple: true }  }},] as const)
+                : []),
+
+            ...(Filter === floor && MultipleFloors === false
+              ? ([
+                  { name: "multiple_floors", selector: { boolean: {} } },
+                  { name: "floor", selector: { floor: { }  }}] as const)
               : []),
+
+              ...(Filter === floor && MultipleFloors === true
+                ? ([
+                    { name: "multiple_floors", selector: { boolean: {} } },
+                    { name: "floor", selector: { floor: { multiple: true }  }}] as const)
+                : []),
+
             ...(LabelFilter
               ? ([
                   { name: "label", selector: { label: { multiple: true } } },
@@ -359,14 +388,14 @@ export class StatusCardEditor extends LitElement {
   public get toggleSelectOptions(): SelectOption[] {
     return this._buildToggleOptions(
       this._toggleDomainsForArea(
-        this._config!.area || "",
-        this._config!.floor || "",
+        this._config!.area || [],
+        this._config!.floor || [],
         this._config!.label || []
       ),
       this._config?.content ||
         this._toggleDomainsForArea(
-          this._config!.area || "",
-          this._config!.floor || "",
+          this._config!.area || [],
+          this._config!.floor || [],
           this._config!.label || []
         )
     );
@@ -378,7 +407,7 @@ export class StatusCardEditor extends LitElement {
   );
 
   private _toggleDomainsForArea = memoizeOne(
-    (area: string, floor: string, label: string[]): string[] => {
+    (area: string[], floor: string[], label: string[]): string[] => {
       const domains = this._classesForArea(area, floor, label);
       return domains.sort((a, b) => {
         const indexA = sortOrder.findIndex((item) => a.startsWith(item));
@@ -392,8 +421,8 @@ export class StatusCardEditor extends LitElement {
   );
 
   private _classesForArea(
-    area: string | undefined,
-    floor: string | undefined,
+    area: string[] | undefined,
+    floor: string[] | undefined,
     label: string[] | undefined,
   ): string[] {
     const extraEntities = this._config?.extra_entities || [];
@@ -402,26 +431,26 @@ export class StatusCardEditor extends LitElement {
       (e) => !e.hidden && ALLOWED_DOMAINS.includes(computeDomain(e.entity_id))
     );
 
-    if (area) {
+    if (area && area.length > 0) {
       entities = entities.filter(
         (e) =>
-          e.area_id === area ||
-          (e.device_id && this.hass!.devices[e.device_id]?.area_id === area)
-      );
-    } else if (floor) {
-      const areasInFloor = Object.values(this.hass!.areas)
-        .filter((a) => a.floor_id === floor)
-        .map((a) => a.area_id);
-      entities = entities.filter(
-        (e) =>
-          areasInFloor.includes(e.area_id as string) ||
+          area.includes(e.area_id as string) ||
           (e.device_id &&
-            this.hass!.devices[e.device_id]?.area_id &&
-            areasInFloor.includes(
-              this.hass!.devices[e.device_id]?.area_id as string
-            ))
+            area.includes(this.hass!.devices[e.device_id]?.area_id as string))
+      );
+    } else if (floor && floor.length > 0) {
+      // Ermittele alle areas, deren floor_id in dem Array floor enthalten ist
+      const areasInFloor = Object.values(this.hass!.areas)
+        .filter((a) => a.floor_id !== undefined && floor.includes(a.floor_id as string))
+        .map((a) => a.area_id);
+      entities = entities.filter((e) =>
+        (e.area_id !== undefined && areasInFloor.includes(e.area_id)) ||
+        (e.device_id &&
+          this.hass!.devices[e.device_id]?.area_id !== undefined &&
+          areasInFloor.includes(this.hass!.devices[e.device_id]!.area_id as string))
       );
     }
+    
     if (label && label.length > 0) {
       entities = entities.filter(
         (e) =>
@@ -695,12 +724,14 @@ export class StatusCardEditor extends LitElement {
     const schema = this._schema(
       this._config!.filter ?? "",
       this._config!.label_filter ?? false,
-      this._config!.hide_filter ?? ""
+      this._config!.hide_filter ?? "",
+      this._config!.multiple_areas ?? false,
+      this._config!.multiple_floors ?? false,
     );
 
     const possibleToggleDomains = this._toggleDomainsForArea(
-      this._config.area || "",
-      this._config.floor || "",
+      this._config.area || [],
+      this._config.floor || [],
       this._config.label || []
     );
 
@@ -769,9 +800,13 @@ export class StatusCardEditor extends LitElement {
         display: flex;
         align-items: center;
         font-size: 18px;
+        gap: 0.5em;
       }
       ha-icon {
         display: flex;
+      }
+      .header {
+        margin-bottom: 0.5em;
       }
     `;
   }

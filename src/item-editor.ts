@@ -9,10 +9,10 @@ interface Schema {
   name: string;
   selector?: any;
   required?: boolean;
-
   default?: any;
   type?: string;
 }
+
 
 @customElement("status-item-editor")
 export class ItemEditor extends LitElement {
@@ -36,9 +36,38 @@ export class ItemEditor extends LitElement {
     const entityId = this.config?.type || '';
     return [
       {
-        name: "state",
-        selector: { state: { entity_id: entityId } }
-      },
+        name: "",
+        type: "grid",
+        schema: [
+          {
+            name: "invert_state",
+            required: true,
+            selector: {
+              select: {
+                mode: "dropdown",
+                options: [
+                  {
+                    label: this.hass!.localize(
+                      "ui.panel.lovelace.editor.condition-editor.condition.state.state_equal"
+                    ),
+                    value: "false",
+                  },
+                  {
+                    label: this.hass!.localize(
+                      "ui.panel.lovelace.editor.condition-editor.condition.state.state_not_equal"
+                    ),
+                    value: "true",
+                  },
+                ],
+              },
+            },
+          },   
+          {
+            name: "state",
+            selector: { state: { entity_id: entityId } }
+          },
+    ]},
+
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
       {
@@ -55,6 +84,15 @@ export class ItemEditor extends LitElement {
       return html``;
     }
 
+    if (!this._config?.invert_state) {
+      this._config = {
+        ...this._config,
+        invert_state: "false", // Setze den Standardwert hier auf false
+        icon_color: this.config.icon_color || undefined,
+        
+      };
+    }
+
   
     let schema;
     switch (this.getSchema) {
@@ -65,10 +103,13 @@ export class ItemEditor extends LitElement {
         schema = this._schemaEntity();
         break;
     }
-  
+
+
+
     const data = {
       ...this._config,
     };
+  
   
     return html`
       <ha-form
@@ -86,7 +127,10 @@ export class ItemEditor extends LitElement {
     switch (schema.name) {
       case "hide":
         return this.hass!.localize("ui.common.hide");
+      case "state":
+        return this.hass!.localize("ui.components.entity.entity-state-picker.state");       
       case "invert":
+      case "invert_state":
         return this.hass!.localize("ui.dialogs.entity_registry.editor.invert.label");
       case "name":
         return this.hass!.localize("ui.panel.lovelace.editor.card.generic.name"); 
@@ -103,22 +147,23 @@ export class ItemEditor extends LitElement {
     if (!this.config) {
       return;
     }
+    event.stopPropagation();
 
-    const updatedConfig = {
+    const updatedConfig: CardConfig = {
       ...this.config,
       ...event.detail.value,
     };
-
+    
+  
     this._config = updatedConfig;
-
+  
     this.dispatchEvent(
       new CustomEvent("config-changed", {
         detail: updatedConfig,
       })
     );
   }
-
-
+    
 
   static get styles(): CSSResult {
     return css`

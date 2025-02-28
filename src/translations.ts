@@ -64,6 +64,10 @@ export function computeLabelCallback(
       return hass!.localize("ui.components.selectors.selector.types.icon");  
     case "color":
       return hass!.localize("ui.panel.lovelace.editor.card.tile.color");    
+    case "multiple_areas":
+      return "Multi" + " " + hass!.localize("ui.panel.lovelace.editor.card.area.name");
+    case "multiple_floors":
+      return "Multi" + " " + hass!.localize("ui.components.selectors.selector.types.floor");
     default:
       if (ALLOWED_DOMAINS.includes(schema.name)) {
         return hass!.localize(

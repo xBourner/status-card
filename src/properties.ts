@@ -9,7 +9,7 @@ export function domainIcon(domain: string, state?: string, deviceClass?: string)
     case "siren":
       return state === "off" ? "mdi:bell-off" : "mdi:bell-ring";
     case "lock":
-      return state === "off" ? "mdi:lock-open" : "mdi:lock";
+      return state === "off" ? "mdi:lock" : "mdi:lock-open";
     case "light":
       return state === "off" ? "mdi:lightbulb-off" : "mdi:lightbulb";
     case "media_player":

@@ -35,27 +35,21 @@ interface CustomizationConfig {
   icon?: string;
   icon_color?: string;
   state?: string;
+  state_not?: string;
+  invert_state?: "true" | "false";
 }
 
 interface Config {
-  area?: string;
+  area?: string[];
   extra_entities?: string[];
   hide_person?: boolean;
   hide_person_name?: boolean;
   list_mode?: boolean;
   hide_content_name?: boolean;
-  floor?: string
+  floor?: string[];
   label?: string[];
-  icons?: Record<string, Record<string, string>>;
-  names?: Record<string, Record<string, string>>;
-  colors?: {
-    [domain: string]: {
-      [deviceClass: string]: string;
-    };
-  };
-  hide?: Record<string, Record<string, boolean>>;
-  hidden_entities: string[];
-  hidden_labels: string[];
+  hidden_entities?: string[];
+  hidden_labels?: string[];
   columns?: number;
   invert?: Record<string, Record<string, boolean>>;
   content: string[]; 
@@ -257,16 +251,32 @@ export class StatusCard extends LitElement {
             return false;
           }
   
-          const matchesArea = area
-            ? entry.area_id === area || device?.area_id === area
+          const areas = area ? (Array.isArray(area) ? area : [area]) : null;
+          const floors = floor ? (Array.isArray(floor) ? floor : [floor]) : null;
+
+          const matchesArea = areas
+            ? ((entry.area_id !== undefined && areas.includes(entry.area_id)) ||
+               (device && device.area_id !== undefined && areas.includes(device.area_id)))
             : true;
+          
   
-          const matchesFloor = floor
-            ? this.areas?.some(
-                (a) => a.floor_id === floor && a.area_id === entry.area_id
-              ) || (device?.area_id && this.areas?.some(
-                (a) => a.floor_id === floor && a.area_id === device.area_id
-              ))
+            const matchesFloor = floors
+            ? (
+                (entry.area_id !== undefined &&
+                  this.areas?.some(
+                    (a) =>
+                      a.area_id === entry.area_id &&
+                      a.floor_id !== undefined &&
+                      floors.includes(a.floor_id)
+                  )) ||
+                (device?.area_id &&
+                  this.areas?.some(
+                    (a) =>
+                      a.area_id === device.area_id &&
+                      a.floor_id !== undefined &&
+                      floors.includes(a.floor_id)
+                  ))
+              )
             : true;
   
           return (
@@ -439,34 +449,22 @@ export class StatusCard extends LitElement {
   }
   
   
-  
+
+
   private getCustomColor(domain: string, deviceClass?: string, entity?: HassEntity): string | undefined {
     let key: string;
     if (deviceClass) {
-      // Beispiel: "Binary Sensor - door"
       key = `${this._formatDomain(domain)} - ${deviceClass}`;
     } else {
       key = domain;
     }
-    
-    // 1. Zuerst: Customization-Eintrag prüfen – dieser überschreibt alles
     const customization = this.getCustomizationForType(key);
     if (customization && customization.icon_color) {
       return customization.icon_color;
     }
-    
-    // 2. Dann: Falls ein globaler Farbwert in der Config gesetzt ist, soll dieser für alle gelten.
-    //    Wir gehen hier davon aus, dass this.config.colors ein string ist (globaler Farbwert),
-    //    der alle Domänen überschreibt.
-    if (this._config && this._config.color && typeof this._config.color === "string" && this._config.color.trim() !== "") {
+    if (this._config && this._config.color ) {
       return this._config.color;
     }
-    
-    // 3. Fallback: Falls eine Entität übergeben wurde und diese ein icon_color-Attribut besitzt, verwende diesen.
-    if (entity && entity.attributes && entity.attributes.icon_color) {
-      return entity.attributes.icon_color;
-    }
-    
     return undefined;
   }
   
@@ -548,32 +546,43 @@ export class StatusCard extends LitElement {
     }
   
     return this._config.extra_entities
-    .filter((entity_id) => this._config.content.includes(entity_id)) // Stelle sicher, dass die Entität auch in config.config ist
-    .map((entity_id) => {
-      const entity = this.hass!.states[entity_id];
-      const domain = computeDomain(entity_id);
-      if (!entity) {
-        return null;
-      }
+      .filter((entity_id) => this._config.content.includes(entity_id)) // Stelle sicher, dass die Entität auch in config.content ist
+      .map((entity_id) => {
+        const entity = this.hass!.states[entity_id];
+        const domain = computeDomain(entity_id);
+        if (!entity) {
+          return null;
+        }
+  
         // Suche in der Customization nach einem Eintrag, der genau diese Entity (über entity_id) definiert.
         const customizationEntry = this._config.customization?.find(
           (entry: any) => entry.type === entity_id
         );
-        // Falls ein Customization-Eintrag existiert und darin ein Zustand definiert ist,
-        // wird die Entität nur übernommen, wenn ihr aktueller Zustand genau übereinstimmt.
-        if (customizationEntry && customizationEntry.state) {
-          if (entity.state !== customizationEntry.state) {
-            return null;
+  
+        // Falls ein Customization-Eintrag existiert, prüfen wir, ob state oder state_not definiert ist
+        if (customizationEntry &&  customizationEntry.state !== undefined && customizationEntry.invert_state !== undefined) {
+          if ( customizationEntry.invert_state === "false") {
+            // Entität nur anzeigen, wenn sie genau den gewünschten Zustand hat
+            if (entity.state !== customizationEntry.state) {
+              return null;
+            }
+          } else if (customizationEntry.invert_state === "true") {
+            // Entität nur anzeigen, wenn sie NICHT den unerwünschten Zustand hat
+            if (entity.state === customizationEntry.state) {
+              return null;
+            }
           }
-        }
+        }        
+
         return {
           type: "extra",
           entities: [entity],
-          icon: entity.attributes.icon || domainIcon(domain)
+          icon: entity.attributes.icon || domainIcon(domain),
         };
       })
       .filter((item): item is { type: string; entities: HassEntity[]; icon: string } => item !== null);
   }
+  
   
   
   
@@ -596,6 +605,7 @@ export class StatusCard extends LitElement {
       .entity-card { width: 22.5vw ;  box-sizing: border-box; }
       .entity-list { list-style: none;  display: flex; flex-direction: column; }
       ul { margin: 0; padding: 5px;  }
+      ha-icon { display: flex; }
 `;
 
 // Mobile CSS als String
@@ -607,6 +617,7 @@ private mobileStyles = `
       ul { margin: 0; padding: 5px;  }rflow: hidden;
       .entity-card { flex-basis: 100%; max-width: 100%; }
       .tile-container { width: 100%; flex-direction: column; display: flex; gap:4px; }
+      ha-icon { display: flex; }
   }
 `;
 
@@ -724,7 +735,7 @@ private mobileStyles = `
               return html`
                 <paper-tab @click="${() => this.showMoreInfo(entity)}">
                   <div class="extra-entity">
-                    <div class="entity-icon" style="color: var(--${color || ''}-color);">
+                    <div class="entity-icon" style="${color ? `color: var(--${color}-color);` : ''}">
                       <ha-icon icon="${icon}"></ha-icon>
                     </div>
                     <div class="entity-info">
@@ -806,7 +817,6 @@ private mobileStyles = `
         height: 100%;
         align-content: center;
       }    
-      
       paper-tabs { height: 110px; padding: 4px 8px;  }
       paper-tab {padding: 0 5px; }
       .center {display: flex; align-items: center; justify-content: center;}

@@ -18,6 +18,8 @@ export interface EditorTarget extends EventTarget {
 
 export interface Settings {
   type: string;
+  state?: string;
+  icon_color?: string;
 }
 
 export interface HTMLElementValue extends HTMLElement {
