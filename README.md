@@ -137,6 +137,8 @@ color: red # set to color all domains/device_classes and extra_entities
 customization:  # customize almost everything
   - type: light   # the domain/device_class/extra_entitiy to customize
     invert: true  # if true only off entities will be shown
+    invert_state: false # you can invert the extra_entity state filter
+    state: "on" | "off" # specify the value that an extra_entity needs to show
     name: test_name    # change the name of domain/device_class/extra_entitiy
     icon: mdi:account  # change the icon of domain/device_class/extra_entitiy****
     icon_color: red  # change the icon_color of domain/device_class/extra_entitiy**
