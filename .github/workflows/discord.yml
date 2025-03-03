@@ -1,0 +1,3 @@
+- name: Github Releases To Discord
+
+  uses: SethCohen/github-releases-to-discord@v1.16.2
