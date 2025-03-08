@@ -654,10 +654,81 @@ private mobileStyles = `
                     ${this.createCard({
                       type: "tile",
                       entity: entity.entity_id,
-                      ...(this.selectedDomain === "light" && { features: [{ type: "light-brightness" }] }),
-                      ...(this.selectedDomain === "cover" && {
-                        features: [{ type: "cover-open-close" }, { type: "cover-position" }],
-                      }),
+                            ...(this.selectedDomain === "alarm_control_panel" && {
+                              features: [
+                                {
+                                  type: "alarm-modes",
+                                  modes: [
+                                    "armed_home",
+                                    "armed_away",
+                                    "armed_night",
+                                    "armed_vacation",
+                                    "armed_custom_bypass",
+                                    "disarmed",
+                                  ],
+                                },
+                              ],
+                            }),
+                            ...(this.selectedDomain === "light" && {
+                              features: [{ type: "light-brightness" }],
+                            }),
+                            ...(this.selectedDomain === "cover" && {
+                              features: [
+                                { type: "cover-open-close" },
+                                { type: "cover-position" },
+                              ],
+                            }),
+                            ...(this.selectedDomain === "vacuum" && {
+                              features: [
+                                {
+                                  type: "vacuum-commands",
+                                  commands: [
+                                    "start_pause",
+                                    "stop",
+                                    "clean_spot",
+                                    "locate",
+                                    "return_home",
+                                  ],
+                                },
+                              ],
+                            }),
+                            ...(this.selectedDomain === "climate" && {
+                              features: [
+                                {
+                                  type: "climate-hvac-modes",
+                                  hvac_modes: [
+                                    "auto",
+                                    "heat_cool",
+                                    "heat",
+                                    "cool",
+                                    "dry",
+                                    "fan_only",
+                                    "off",
+                                  ],
+                                },
+                              ],
+                            }),
+                            ...(this.selectedDomain === "media_player" && {
+                              features: [{ type: "media-player-volume-slider" }],
+                            }),
+                            ...(this.selectedDomain === "lock" && {
+                              features: [{ type: "lock-commands" }],
+                            }),
+                            ...(this.selectedDomain === "fan" && {
+                              features: [{ type: "fan-speed" }],
+                            }),
+                            ...(this.selectedDomain === "switch" && {
+                              features: [{ type: "toggle" }],
+                            }),
+                            ...(this.selectedDomain === "counter" && {
+                              features: [{ type: "counter-actions", actions: ["increment", "decrement", "reset"] }],
+                            }),                            
+                            ...(this.selectedDomain === "update" && {
+                              features: [
+                                { type: "update-actions", backup: "ask" },
+                              ],
+                            }),
+                          
                     })}
                   </div>
                 `
