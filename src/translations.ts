@@ -68,6 +68,8 @@ export function computeLabelCallback(
       return "Multi" + " " + hass!.localize("ui.panel.lovelace.editor.card.area.name");
     case "multiple_floors":
       return "Multi" + " " + hass!.localize("ui.components.selectors.selector.types.floor");
+    case "show_total_number":
+      return hass!.localize("ui.common.enable") + " " +  hass!.localize("component.sensor.entity_component._.state_attributes.state_class.state.total") + " " + hass!.localize("component.number.entity_component._.name");  
     default:
       if (ALLOWED_DOMAINS.includes(schema.name)) {
         return hass!.localize(

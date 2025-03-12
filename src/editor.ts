@@ -371,6 +371,10 @@ export class StatusCardEditor extends LitElement {
       },
     },
     {
+      name: "show_total_number",
+      selector: { boolean: { } },
+    },    
+    {
       name: "color",
       selector: { ui_color: { default_color: "state", include_state: true } },
     },

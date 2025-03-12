@@ -56,6 +56,7 @@ interface Config {
   customization?: CustomizationConfig[];
   theme?: string;
   color?: string;
+  show_total_number: boolean;
 }
 
 
@@ -352,6 +353,25 @@ export class StatusCard extends LitElement {
   
         return isInverted ? isInactive : isActive;
       });
+  }
+  
+
+  private _totalEntities(domain: string, deviceClass?: string): HassEntity[] {
+    const entities = this._entitiesByDomain(
+      this.entities,
+      this.devices,
+      (this.hass as HomeAssistant).states
+    )[domain];
+  
+    if (!entities) {
+      return [];
+    }
+    return entities.filter((entity) => {
+      // Falls eine deviceClass angegeben ist, prüfen wir auf Übereinstimmung:
+      const matchesDeviceClass = !deviceClass || entity.attributes.device_class === deviceClass;
+      // Basisfilter: Entitäten, die nicht "unavailable" oder "unknown" sind.
+      return matchesDeviceClass && !["unavailable", "unknown"].includes(entity.state);
+    });
   }
   
   
@@ -822,6 +842,7 @@ private mobileStyles = `
             else if (item.type === 'domain') {
               // Für Domains: Hier holen wir die aktiven Entitäten zur Domain
               const activeEntities = this._isOn(item.domain);
+              const totalEntities = this._totalEntities(item.domain);
               if (activeEntities.length === 0) return null;
               const color = this.getCustomColor(item.domain);
               return html`
@@ -837,7 +858,7 @@ private mobileStyles = `
                           : ""}
                       </div>
                       <div class="entity-state">
-                        <span>${activeEntities.length} ${this.getStatusProperty(item.domain)}</span>
+                        <span>${!this._config.show_total_number ? activeEntities.length + " " + this.getStatusProperty(item.domain): activeEntities.length + "/" + totalEntities.length + " " + this.getStatusProperty(item.domain)}</span>
                       </div>
                     </div>
                   </div>
@@ -848,6 +869,7 @@ private mobileStyles = `
               // Für Device Classes: Wir nutzen _isOn(domain, deviceClass)
               const { domain, deviceClass } = item;
               const activeEntities = this._isOn(domain, deviceClass);
+              const totalEntities = this._totalEntities(domain, deviceClass);
               if (activeEntities.length === 0) return null;
               const color = this.getCustomColor(domain, deviceClass);
               return html`
@@ -863,7 +885,7 @@ private mobileStyles = `
                           : ""}
                       </div>
                       <div class="entity-state">
-                        <span>${activeEntities.length} ${this.getStatusProperty(domain, deviceClass)}</span>
+                        <span>${!this._config.show_total_number ? activeEntities.length + " " + this.getStatusProperty(item.domain): activeEntities.length + "/" + totalEntities.length + " " + this.getStatusProperty(item.domain)}</span>
                       </div>
                     </div>
                   </div>
