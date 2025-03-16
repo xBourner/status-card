@@ -84,7 +84,7 @@
                         ${this.hide_content_name?"":this.getCustomName(t,i)||this.computeLabel({name:i})}
                       </div>
                       <div class="entity-state">
-                        <span>${this._config.show_total_number?o.length+"/"+s.length+" "+this.getStatusProperty(e.domain):o.length+" "+this.getStatusProperty(e.domain)}</span>
+                        <span>${this._config.show_total_number?o.length+"/"+s.length+" "+this.getStatusProperty(t,i):o.length+" "+this.getStatusProperty(t,i)}</span>
                       </div>
                     </div>
                   </div>

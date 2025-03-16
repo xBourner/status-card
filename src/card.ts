@@ -885,7 +885,7 @@ private mobileStyles = `
                           : ""}
                       </div>
                       <div class="entity-state">
-                        <span>${!this._config.show_total_number ? activeEntities.length + " " + this.getStatusProperty(item.domain): activeEntities.length + "/" + totalEntities.length + " " + this.getStatusProperty(item.domain)}</span>
+                        <span>${!this._config.show_total_number ? activeEntities.length + " " + this.getStatusProperty(domain, deviceClass): activeEntities.length + "/" + totalEntities.length + " " + this.getStatusProperty(domain, deviceClass)}</span>
                       </div>
                     </div>
                   </div>
