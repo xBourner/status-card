@@ -1,11 +1,11 @@
 import { LitElement, html, css, PropertyValues, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import memoizeOne from "memoize-one";
-import { HomeAssistant, computeDomain, LovelaceCard, applyThemesOnElement } from "custom-card-helpers";
+import { HomeAssistant, computeDomain, LovelaceCard, applyThemesOnElement, hasAction, handleAction, ActionHandlerEvent, ActionConfig, STATES_OFF } from "custom-card-helpers";
 import type { HassEntity } from "home-assistant-js-websocket";
 import { domainIcon, ALLOWED_DOMAINS } from './properties';
 import { computeLabelCallback, translateEntityState } from "./translations";
-
+import { actionHandler } from "./helpers"
 
 interface EntityRegistryEntry {
   entity_id: string;
@@ -14,12 +14,12 @@ interface EntityRegistryEntry {
   hidden_by?: string;
   disabled_by?: string;
   labels?: string[];
-
 }
 
 interface AreaRegistryEntry {
   area_id: string;
   floor_id?: string;
+  name: string;
 }
 
 interface DeviceRegistryEntry {
@@ -37,6 +37,9 @@ interface CustomizationConfig {
   state?: string;
   state_not?: string;
   invert_state?: "true" | "false";
+  tap_action?: ActionConfig;
+  hold_action?: ActionConfig;
+  double_tap_action?: ActionConfig;
 }
 
 interface Config {
@@ -52,14 +55,15 @@ interface Config {
   hidden_labels?: string[];
   columns?: number;
   invert?: Record<string, Record<string, boolean>>;
-  content: string[]; 
+  content: string[];
   customization?: CustomizationConfig[];
   theme?: string;
   color?: string;
   show_total_number: boolean;
+  tap_action?: ActionConfig;
+  hold_action?: ActionConfig;
+  double_tap_action?: ActionConfig;
 }
-
-
 
 interface Schema {
   name: string;
@@ -103,14 +107,13 @@ export class StatusCard extends LitElement {
     this.selectedDeviceClass = null;
 
     const container = document.querySelector("home-assistant")?.shadowRoot;
-    const dialog = container?.querySelector("ha-dialog"); // Dialog direkt im neuen Container finden
-    
+    const dialog = container?.querySelector("ha-dialog");
+
     if (dialog && container?.contains(dialog)) {
       container.removeChild(dialog);
     }
 
   }
-
 
   static getConfigElement() {
     return document.createElement("status-card-editor");
@@ -131,7 +134,6 @@ export class StatusCard extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    // Initiale Prüfung
     this._updateIsMobile();
     window.addEventListener("resize", this._updateIsMobile.bind(this));
   }
@@ -145,7 +147,6 @@ export class StatusCard extends LitElement {
     this._isMobile = window.innerWidth <= 768;
   }
 
-
   protected updated(changedProps: PropertyValues): void {
     super.updated(changedProps);
 
@@ -153,9 +154,9 @@ export class StatusCard extends LitElement {
       return;
     }
 
-    const dialog = this.renderRoot?.querySelector("ha-dialog"); // Holt das ha-dialog direkt aus dem gerenderten Output
+    const dialog = this.renderRoot?.querySelector("ha-dialog");
     const container = document.querySelector("home-assistant")?.shadowRoot;
-    
+
     if (dialog && dialog.parentElement !== container) {
       container?.appendChild(dialog);
     }
@@ -217,69 +218,69 @@ export class StatusCard extends LitElement {
   private _entitiesByDomain = memoizeOne(
     (
       registryEntities: EntityRegistryEntry[],
-      deviceRegistry: DeviceRegistryEntry[], 
+      deviceRegistry: DeviceRegistryEntry[],
       states: HomeAssistant["states"]
     ): { [domain: string]: HassEntity[] } => {
       const area = this._config.area || null;
       const floor = this._config.floor || null;
       const label = this._config.label || null;
-  
+
       const deviceMap = new Map(
         deviceRegistry.map((device) => [device.id, device])
       );
-  
+
       const entitiesInArea = registryEntities
         .filter((entry) => {
           const domain = computeDomain(entry.entity_id);
-  
+
           if (domain === "update") {
             return !entry.hidden_by && !entry.disabled_by;
           }
-  
+
           const device = entry.device_id ? deviceMap.get(entry.device_id) : null;
           const isInAnyArea =
             entry.area_id !== null || (device && device.area_id !== null);
           if (!isInAnyArea) {
             return false;
           }
-  
+
           const matchesLabel =
             label
               ? entry.labels?.some((l) => label.includes(l)) ||
-                (device?.labels?.some((l) => label.includes(l)) ?? false)
+              (device?.labels?.some((l) => label.includes(l)) ?? false)
               : true;
           if (!matchesLabel) {
             return false;
           }
-  
+
           const areas = area ? (Array.isArray(area) ? area : [area]) : null;
           const floors = floor ? (Array.isArray(floor) ? floor : [floor]) : null;
 
           const matchesArea = areas
             ? ((entry.area_id !== undefined && areas.includes(entry.area_id)) ||
-               (device && device.area_id !== undefined && areas.includes(device.area_id)))
+              (device && device.area_id !== undefined && areas.includes(device.area_id)))
             : true;
-          
-  
-            const matchesFloor = floors
+
+
+          const matchesFloor = floors
             ? (
-                (entry.area_id !== undefined &&
-                  this.areas?.some(
-                    (a) =>
-                      a.area_id === entry.area_id &&
-                      a.floor_id !== undefined &&
-                      floors.includes(a.floor_id)
-                  )) ||
-                (device?.area_id &&
-                  this.areas?.some(
-                    (a) =>
-                      a.area_id === device.area_id &&
-                      a.floor_id !== undefined &&
-                      floors.includes(a.floor_id)
-                  ))
-              )
+              (entry.area_id !== undefined &&
+                this.areas?.some(
+                  (a) =>
+                    a.area_id === entry.area_id &&
+                    a.floor_id !== undefined &&
+                    floors.includes(a.floor_id)
+                )) ||
+              (device?.area_id &&
+                this.areas?.some(
+                  (a) =>
+                    a.area_id === device.area_id &&
+                    a.floor_id !== undefined &&
+                    floors.includes(a.floor_id)
+                ))
+            )
             : true;
-  
+
           return (
             !entry.hidden_by &&
             !entry.disabled_by &&
@@ -290,9 +291,9 @@ export class StatusCard extends LitElement {
           );
         })
         .map((entry) => entry.entity_id);
-  
+
       const entitiesByDomain: { [domain: string]: HassEntity[] } = {};
-  
+
       for (const entity of entitiesInArea) {
         const domain = computeDomain(entity);
         if (!ALLOWED_DOMAINS.includes(domain)) {
@@ -300,34 +301,33 @@ export class StatusCard extends LitElement {
         }
         const stateObj = states[entity];
         if (!stateObj) continue;
-  
+
         if (!(domain in entitiesByDomain)) {
           entitiesByDomain[domain] = [];
         }
         entitiesByDomain[domain].push(stateObj);
       }
-  
+
       return entitiesByDomain;
     }
   );
-  
+
   private _isOn(domain: string, deviceClass?: string): HassEntity[] {
     const entities = this._entitiesByDomain(
       this.entities,
       this.devices,
       (this.hass as HomeAssistant).states
     )[domain];
-  
+
     if (!entities) {
       return [];
     }
-  
+
     return entities
       .filter((entity) => !["unavailable", "unknown"].includes(entity.state))
       .filter((entity) => {
         const matchesDeviceClass = !deviceClass || entity.attributes.device_class === deviceClass;
-  
-        // Schlüsselaufbau: Falls deviceClass existiert, nutzen wir "FormattedDomain - deviceClass", sonst einfach domain.
+
         let key: string;
         if (deviceClass) {
           key = `${this._formatDomain(domain)} - ${deviceClass}`;
@@ -336,25 +336,24 @@ export class StatusCard extends LitElement {
         }
         const customization = this.getCustomizationForType(key);
         const isInverted = customization?.invert === true;
-  
+
         const isActive = !["closed", "locked", "off", "docked", "idle", "standby", "paused", "auto", "not_home", "disarmed", "0"].includes(entity.state);
         const isInactive = !isActive;
-  
+
         if (domain === "climate") {
           const hvacAction = entity.attributes.hvac_action;
           if (hvacAction !== undefined) {
             return isInverted ? ["idle", "off"].includes(hvacAction) : !["idle", "off"].includes(hvacAction);
           }
         }
-  
+
         if (["cover", "binary_sensor"].includes(domain)) {
           return matchesDeviceClass && (isInverted ? isInactive : isActive);
         }
-  
+
         return isInverted ? isInactive : isActive;
       });
   }
-  
 
   private _totalEntities(domain: string, deviceClass?: string): HassEntity[] {
     const entities = this._entitiesByDomain(
@@ -362,114 +361,96 @@ export class StatusCard extends LitElement {
       this.devices,
       (this.hass as HomeAssistant).states
     )[domain];
-  
+
     if (!entities) {
       return [];
     }
     return entities.filter((entity) => {
-      // Falls eine deviceClass angegeben ist, prüfen wir auf Übereinstimmung:
       const matchesDeviceClass = !deviceClass || entity.attributes.device_class === deviceClass;
-      // Basisfilter: Entitäten, die nicht "unavailable" oder "unknown" sind.
       return matchesDeviceClass && !["unavailable", "unknown"].includes(entity.state);
     });
   }
-  
-  
- private getStatusProperty(domain: string, deviceClass?: string, state?: string): string {
-  const openDeviceClasses = ['window', 'door', 'lock', 'awning', 'blind', 'curtain', 'damper', 'garage', 'gate', 'shade', 'shutter'];
 
-  // Schlüsselaufbau analog: mit Device Class "FormattedDomain - deviceClass" oder einfach domain
-  let key: string;
-  if (deviceClass) {
-    key = `${this._formatDomain(domain)} - ${deviceClass}`;
-  } else {
-    key = domain;
-  }
-  const customization = this.getCustomizationForType(key);
-  const isInverted = customization?.invert === true;
+  private getStatusProperty(domain: string, deviceClass?: string, state?: string): string {
+    const openDeviceClasses = ['window', 'door', 'lock', 'awning', 'blind', 'curtain', 'damper', 'garage', 'gate', 'shade', 'shutter'];
 
-  switch (domain) {
-    case 'device_tracker': {
-      const normalState = translateEntityState(this.hass!, "home", "device_tracker");
-      const invertedState = translateEntityState(this.hass!, "not_home", "device_tracker");
-      return isInverted ? invertedState : normalState;
+    let key: string;
+    if (deviceClass) {
+      key = `${this._formatDomain(domain)} - ${deviceClass}`;
+    } else {
+      key = domain;
     }
-    case 'lock':
-    case 'cover': {
-      const normalState = translateEntityState(this.hass!, "open", "cover");
-      const invertedState = translateEntityState(this.hass!, "closed", "cover");
-      return isInverted ? invertedState : normalState;
-    }
-    case 'person': {
-      if (state === 'home') {
-        return translateEntityState(this.hass!, "home", "person");
-      } else if (state === 'not_home') {
-        return translateEntityState(this.hass!, "not_home", "person");
-      } else {
-        return state ?? "unknown";
+    const customization = this.getCustomizationForType(key);
+    const isInverted = customization?.invert === true;
+
+    switch (domain) {
+      case 'device_tracker': {
+        const normalState = translateEntityState(this.hass!, "home", "device_tracker");
+        const invertedState = translateEntityState(this.hass!, "not_home", "device_tracker");
+        return isInverted ? invertedState : normalState;
       }
-    }
-    default: {
-      if (deviceClass && openDeviceClasses.includes(deviceClass)) {
+      case 'lock':
+      case 'cover': {
         const normalState = translateEntityState(this.hass!, "open", "cover");
         const invertedState = translateEntityState(this.hass!, "closed", "cover");
         return isInverted ? invertedState : normalState;
       }
-      const normalState = translateEntityState(this.hass!, state ?? "on", "light");
-      const invertedState = translateEntityState(this.hass!, state ?? "off", "light");
-      return isInverted ? invertedState : normalState;
+      case 'person': {
+        if (state === 'home') {
+          return translateEntityState(this.hass!, "home", "person");
+        } else if (state === 'not_home') {
+          return translateEntityState(this.hass!, "not_home", "person");
+        } else {
+          return state ?? "unknown";
+        }
+      }
+      default: {
+        if (deviceClass && openDeviceClasses.includes(deviceClass)) {
+          const normalState = translateEntityState(this.hass!, "open", "cover");
+          const invertedState = translateEntityState(this.hass!, "closed", "cover");
+          return isInverted ? invertedState : normalState;
+        }
+        const normalState = translateEntityState(this.hass!, state ?? "on", "light");
+        const invertedState = translateEntityState(this.hass!, state ?? "off", "light");
+        return isInverted ? invertedState : normalState;
+      }
     }
   }
-}
-
 
   private getCustomizationForType(
     type: string
-  ): { name?: string; icon?: string; icon_color?: string; invert?: boolean } | undefined {
-    // Wir vergleichen in lowercase, damit "counter" und "Counter" gleich behandelt werden.
+  ): { name?: string; icon?: string; icon_color?: string; invert?: boolean; tap_action?: ActionConfig; double_tap_action?: ActionConfig; hold_action?: ActionConfig } | undefined {
     return this._config.customization?.find((entry: any) =>
       entry.type?.toLowerCase() === type.toLowerCase()
     );
   }
-  
-  
 
   private getCustomIcon(domain: string, deviceClass?: string, entity?: HassEntity): string {
     let key: string;
     if (deviceClass) {
-      // Für Device-Class-Einträge: Schlüssel im Format "Binary Sensor - door"
       key = `${this._formatDomain(domain)} - ${deviceClass}`;
     } else {
-      // Für Domains und extra-Entities (die den gesamten entity_id-String enthalten)
       key = domain;
     }
-    
-    // Suche in der Customization nach einem passenden Eintrag
+
     const customization = this.getCustomizationForType(key);
     if (customization && customization.icon) {
       return customization.icon;
     }
-    
-    // Wenn kein Customization-Eintrag vorhanden ist, aber ein Entity übergeben wurde und
-    // dieses ein Icon in den Attributen hat, verwende dieses.
+
     if (entity && entity.attributes && entity.attributes.icon) {
       return entity.attributes.icon;
     }
-    
-    // Andernfalls: Fallback – falls der Key einen Punkt enthält (z. B. "remote.tv_samsung_led55"),
-    // extrahieren wir den Domain-Teil als Fallback (z. B. "remote").
+
     const isInverted = customization?.invert === true;
     const state = isInverted ? "off" : "on";
     let fallbackDomain = domain;
     if (!deviceClass && domain.includes(".")) {
       fallbackDomain = domain.split(".")[0];
     }
-    
+
     return domainIcon(fallbackDomain, state, deviceClass);
   }
-  
-  
-
 
   private getCustomColor(domain: string, deviceClass?: string, entity?: HassEntity): string | undefined {
     let key: string;
@@ -482,14 +463,12 @@ export class StatusCard extends LitElement {
     if (customization && customization.icon_color) {
       return customization.icon_color;
     }
-    if (this._config && this._config.color ) {
+    if (this._config && this._config.color) {
       return this._config.color;
     }
     return undefined;
   }
-  
-  
-  
+
   private getCustomName(domain: string, deviceClass?: string, entity?: HassEntity): string | undefined {
     let key: string;
     if (deviceClass) {
@@ -501,23 +480,19 @@ export class StatusCard extends LitElement {
     if (customization && customization.name) {
       return customization.name;
     }
-    // Fallback: Falls eine Entität übergeben wurde und ein friendly_name vorhanden ist, diesen nutzen
     if (entity && entity.attributes && entity.attributes.friendly_name) {
       return entity.attributes.friendly_name;
     }
     return undefined;
   }
-  
-  
+
   private _formatDomain(domain: string): string {
     return domain
       .split("_")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
   }
-  
 
- 
   private loadPersonEntities(): HassEntity[] {
     return !this.hide_person
       ? this.entities.filter((entity) =>
@@ -525,22 +500,22 @@ export class StatusCard extends LitElement {
         !this.hiddenEntities.includes(entity.entity_id) &&
         !entity.labels?.some((l) => this.hiddenLabels.includes(l)) &&
         !entity.hidden_by &&
-        !entity.disabled_by 
+        !entity.disabled_by
       )
-      .map((entry) => (this.hass as HomeAssistant).states[entry.entity_id])
-      .filter((stateObj): stateObj is HassEntity => !!stateObj)
+        .map((entry) => (this.hass as HomeAssistant).states[entry.entity_id])
+        .filter((stateObj): stateObj is HassEntity => !!stateObj)
       : [];
   }
-  
+
   private renderPersonEntities(): TemplateResult[] {
     const personEntities = this.loadPersonEntities();
-  
+
     return personEntities
-    .map((entity) => {
-      const entityState = this.hass!.states[entity.entity_id];
-      const isNotHome = entityState?.state === "not_home";
-  
-      return html`
+      .map((entity) => {
+        const entityState = this.hass!.states[entity.entity_id];
+        const isNotHome = entityState?.state === "not_home";
+
+        return html`
         <paper-tab @click="${() => this.showMoreInfo(entity)}">
           <div class="entity">
             <div class="entity-icon">
@@ -557,42 +532,40 @@ export class StatusCard extends LitElement {
           </div>
         </paper-tab>
       `;
-    });
+      });
   }
-  
+
   private loadExtraEntities(): { type: string; entities: HassEntity[]; icon: string }[] {
     if (!this._config?.extra_entities || !this.hass) {
       return [];
     }
-  
+
     return this._config.extra_entities
-      .filter((entity_id) => this._config.content.includes(entity_id)) // Stelle sicher, dass die Entität auch in config.content ist
+      .filter((entity_id) => this._config.content.includes(entity_id))
       .map((entity_id) => {
         const entity = this.hass!.states[entity_id];
         const domain = computeDomain(entity_id);
         if (!entity) {
           return null;
         }
-  
-        // Suche in der Customization nach einem Eintrag, der genau diese Entity (über entity_id) definiert.
+
         const customizationEntry = this._config.customization?.find(
           (entry: any) => entry.type === entity_id
         );
-  
-        // Falls ein Customization-Eintrag existiert, prüfen wir, ob state oder state_not definiert ist
-        if (customizationEntry &&  customizationEntry.state !== undefined && customizationEntry.invert_state !== undefined) {
-          if ( customizationEntry.invert_state === "false") {
-            // Entität nur anzeigen, wenn sie genau den gewünschten Zustand hat
+
+        if (customizationEntry && customizationEntry.state !== undefined && customizationEntry.invert_state !== undefined) {
+          if (customizationEntry.invert_state === "false") {
+
             if (entity.state !== customizationEntry.state) {
               return null;
             }
           } else if (customizationEntry.invert_state === "true") {
-            // Entität nur anzeigen, wenn sie NICHT den unerwünschten Zustand hat
+
             if (entity.state === customizationEntry.state) {
               return null;
             }
           }
-        }        
+        }
 
         return {
           type: "extra",
@@ -602,10 +575,6 @@ export class StatusCard extends LitElement {
       })
       .filter((item): item is { type: string; entities: HassEntity[]; icon: string } => item !== null);
   }
-  
-  
-  
-  
 
   createCard(cardConfig: { type: string, entity: string, [key: string]: any }) {
     const cardElement = document.createElement(`hui-${cardConfig.type}-card`) as LovelaceCard;
@@ -621,164 +590,315 @@ export class StatusCard extends LitElement {
       .dialog-header { display: flex;  justify-content: flex-start; align-items: center; gap: 8px; margin-bottom: 12px;} 
       .dialog-header ha-icon-button { margin-right: 10px;  }
       ha-dialog#more-info-dialog { --mdc-dialog-max-width: calc(22.5vw * var(--columns) + 3vw); }
-      .tile-container { display: flex; flex-wrap: wrap; gap: 4px; --columns: 4;  }
       .entity-card { width: 22.5vw ;  box-sizing: border-box; }
-      .entity-list { list-style: none;  display: flex; flex-direction: column; }
+      .entity-cards { display: flex; flex-wrap: wrap; gap: 4px; }
+      .entity-list .entity-item { list-style: none;  display: flex; flex-direction: column; }
       ul { margin: 0; padding: 5px;  }
       ha-icon { display: flex; }
+      h4 { font-size: 1.2em; margin: 0.8em 0em;} 
 `;
 
-// Mobile CSS als String
-private mobileStyles = `
+  private mobileStyles = `
       .dialog-header { display: flex;  justify-content: flex-start; align-items: center; gap: 8px; margin-bottom: 12px;} 
       .dialog-header ha-icon-button { margin-right: 10px;  }
       ha-dialog#more-info-dialog { --mdc-dialog-max-width: 96vw; --mdc-dialog-min-width: 96vw; }
       .entity-list { list-style: none;  display: flex; flex-direction: column; }
-      ul { margin: 0; padding: 5px;  }rflow: hidden;
+      ul { margin: 0; padding: 5px;  };
       .entity-card { flex-basis: 100%; max-width: 100%; }
-      .tile-container { width: 100%; flex-direction: column; display: flex; gap:4px; }
+      .entity-cards { display: flex; flex-direction: column; gap: 4px; }
       ha-icon { display: flex; }
+      h4 { font-size: 1.2em; margin: 0.6em 0em;} 
   }
 `;
 
+  private getAreaForEntity(entity: HassEntity): string {
+    const entry = this.entities.find(e => e.entity_id === entity.entity_id);
+    if (entry) {
+      if (entry.area_id) {
+        return entry.area_id;
+      }
+
+      if (entry.device_id) {
+        const device = this.devices.find(d => d.id === entry.device_id);
+        if (device && device.area_id) {
+          return device.area_id;
+        }
+      }
+    }
+    return "unassigned";
+  }
+
+
   private renderPopup(): TemplateResult {
-    const columns = this.list_mode ? 1 : this._config.columns || 4; 
+    const columns = this.list_mode ? 1 : this._config.columns || 4;
     const styleBlock = this._isMobile ? this.mobileStyles : this.desktopStyles;
+    const entities = this._isOn(this.selectedDomain!, this.selectedDeviceClass!);
+
+    const groups = new Map<string, HassEntity[]>();
+    for (const entity of entities) {
+      const areaId = this.getAreaForEntity(entity);
+      if (!groups.has(areaId)) {
+        groups.set(areaId, []);
+      }
+      groups.get(areaId)!.push(entity);
+    }
+
+    const sortEntities = (ents: HassEntity[]) => {
+      return ents.slice().sort((a, b) => {
+        const nameA = (a.attributes?.friendly_name || a.entity_id).toLowerCase();
+        const nameB = (b.attributes?.friendly_name || b.entity_id).toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+    };
+
+    const sortedGroups = Array.from(groups.entries()).sort(([areaIdA], [areaIdB]) => {
+      const areaObjA = this.areas?.find(a => a.area_id === areaIdA);
+      const areaObjB = this.areas?.find(a => a.area_id === areaIdB);
+
+      const nameA = areaObjA ? areaObjA.name.toLowerCase() : (areaIdA === "unassigned" ? "Unassigned" : areaIdA);
+      const nameB = areaObjB ? areaObjB.name.toLowerCase() : (areaIdB === "unassigned" ? "Unassigned" : areaIdB);
+
+      return nameA.localeCompare(nameB);
+    });
+
     return html`
-      <ha-dialog id="more-info-dialog" style="--columns: ${columns};" open @closed="${this._closeDialog}">
-        <style>
-          ${styleBlock}
-        </style>
-        <div class="dialog-header">
-          <ha-icon-button slot="navigationIcon" dialogaction="cancel" @click=${() => this._closeDialog} title="${this.computeLabel.bind(this)({ name: "close" })}">
-            <ha-icon class="center" icon="mdi:close"></ha-icon>
-          </ha-icon-button>
-          <h3>
-            ${this.selectedDomain && this.selectedDeviceClass
-              ? this.computeLabel({ name: "header" }, this.selectedDomain, this.selectedDeviceClass)
-              : this.computeLabel({ name: "header" }, this.selectedDomain || undefined)}
-          </h3>
-        </div>
-        <div class="tile-container">
-          ${this.list_mode
-            ? html`
-                <ul class="entity-list">
-                  ${this._isOn(this.selectedDomain!, this.selectedDeviceClass!).map(
-                    (entity) => html`<li class="entity-item">- ${entity.entity_id}</li>`
-                  )}
-                </ul>
-              `
-            : this._isOn(this.selectedDomain!, this.selectedDeviceClass!).map(
-                (entity) => html`
-                  <div class="entity-card">
-                    ${this.createCard({
-                      type: "tile",
-                      entity: entity.entity_id,
-                            ...(this.selectedDomain === "alarm_control_panel" && {
-                              features: [
-                                {
-                                  type: "alarm-modes",
-                                  modes: [
-                                    "armed_home",
-                                    "armed_away",
-                                    "armed_night",
-                                    "armed_vacation",
-                                    "armed_custom_bypass",
-                                    "disarmed",
-                                  ],
-                                },
-                              ],
-                            }),
-                            ...(this.selectedDomain === "light" && {
-                              features: [{ type: "light-brightness" }],
-                            }),
-                            ...(this.selectedDomain === "cover" && {
-                              features: [
-                                { type: "cover-open-close" },
-                                { type: "cover-position" },
-                              ],
-                            }),
-                            ...(this.selectedDomain === "vacuum" && {
-                              features: [
-                                {
-                                  type: "vacuum-commands",
-                                  commands: [
-                                    "start_pause",
-                                    "stop",
-                                    "clean_spot",
-                                    "locate",
-                                    "return_home",
-                                  ],
-                                },
-                              ],
-                            }),
-                            ...(this.selectedDomain === "climate" && {
-                              features: [
-                                {
-                                  type: "climate-hvac-modes",
-                                  hvac_modes: [
-                                    "auto",
-                                    "heat_cool",
-                                    "heat",
-                                    "cool",
-                                    "dry",
-                                    "fan_only",
-                                    "off",
-                                  ],
-                                },
-                              ],
-                            }),
-                            ...(this.selectedDomain === "media_player" && {
-                              features: [{ type: "media-player-volume-slider" }],
-                            }),
-                            ...(this.selectedDomain === "lock" && {
-                              features: [{ type: "lock-commands" }],
-                            }),
-                            ...(this.selectedDomain === "fan" && {
-                              features: [{ type: "fan-speed" }],
-                            }),
-                            ...(this.selectedDomain === "switch" && {
-                              features: [{ type: "toggle" }],
-                            }),
-                            ...(this.selectedDomain === "counter" && {
-                              features: [{ type: "counter-actions", actions: ["increment", "decrement", "reset"] }],
-                            }),                            
-                            ...(this.selectedDomain === "update" && {
-                              features: [
-                                { type: "update-actions", backup: "ask" },
-                              ],
-                            }),
-                          
-                    })}
-                  </div>
-                `
-              )}
-        </div>
-      </ha-dialog>
-    `;
+    <ha-dialog id="more-info-dialog" style="--columns: ${columns};" open @closed="${this._closeDialog}">
+      <style>
+        ${styleBlock}
+      </style>
+      <div class="dialog-header">
+        <ha-icon-button slot="navigationIcon" dialogaction="cancel" @click=${() => this._closeDialog()} title="${this.computeLabel({ name: "close" })}">
+          <ha-icon class="center" icon="mdi:close"></ha-icon>
+        </ha-icon-button>
+        <h3>
+          ${this.selectedDomain && this.selectedDeviceClass
+        ? this.computeLabel({ name: "header" }, this.selectedDomain, this.selectedDeviceClass)
+        : this.computeLabel({ name: "header" }, this.selectedDomain || undefined)}
+        </h3>
+      </div>
+        ${this.list_mode
+        ? html`
+              <ul class="entity-list">
+                ${sortedGroups.map(([areaId, groupEntities]) => {
+          const areaObj = this.areas?.find(a => a.area_id === areaId);
+          const areaName = areaObj ? areaObj.name : (areaId === "unassigned" ? "Unassigned" : areaId);
+          const sortedEntities = sortEntities(groupEntities);
+          return html`
+                    <li class="entity-item">
+                      <h4>${areaName}:</h4>
+                      <ul>
+                        ${sortedEntities.map(entity => html`
+                          <li class="entity-item"> - ${entity.entity_id}</li>
+                        `)}
+                      </ul>
+                    </li>
+                  `;
+        })}
+              </ul>
+            `
+        : html`
+              ${sortedGroups.map(([areaId, groupEntities]) => {
+          const areaObj = this.areas?.find(a => a.area_id === areaId);
+          const areaName = areaObj ? areaObj.name : (areaId === "unassigned" ? "Unassigned" : areaId);
+          const sortedEntities = sortEntities(groupEntities);
+          return html`
+                    <div class="area-group">
+                      <h4>${areaName}</h4>
+                      <div class="entity-cards">
+                        ${sortedEntities.map(entity => html`
+                          <div class="entity-card">
+                            ${this.createCard({
+            type: "tile",
+            entity: entity.entity_id,
+            ...(this.selectedDomain === "alarm_control_panel" && {
+              features: [
+                {
+                  type: "alarm-modes",
+                  modes: [
+                    "armed_home",
+                    "armed_away",
+                    "armed_night",
+                    "armed_vacation",
+                    "armed_custom_bypass",
+                    "disarmed",
+                  ],
+                },
+              ],
+            }),
+            ...(this.selectedDomain === "light" && {
+              features: [{ type: "light-brightness" }],
+            }),
+            ...(this.selectedDomain === "cover" && {
+              features: [
+                { type: "cover-open-close" },
+                { type: "cover-position" },
+              ],
+            }),
+            ...(this.selectedDomain === "vacuum" && {
+              features: [
+                {
+                  type: "vacuum-commands",
+                  commands: [
+                    "start_pause",
+                    "stop",
+                    "clean_spot",
+                    "locate",
+                    "return_home",
+                  ],
+                },
+              ],
+            }),
+            ...(this.selectedDomain === "climate" && {
+              features: [
+                {
+                  type: "climate-hvac-modes",
+                  hvac_modes: [
+                    "auto",
+                    "heat_cool",
+                    "heat",
+                    "cool",
+                    "dry",
+                    "fan_only",
+                    "off",
+                  ],
+                },
+              ],
+            }),
+            ...(this.selectedDomain === "media_player" && {
+              features: [{ type: "media-player-volume-slider" }],
+            }),
+            ...(this.selectedDomain === "lock" && {
+              features: [{ type: "lock-commands" }],
+            }),
+            ...(this.selectedDomain === "fan" && {
+              features: [{ type: "fan-speed" }],
+            }),
+            ...(this.selectedDomain === "switch" && {
+              features: [{ type: "toggle" }],
+            }),
+            ...(this.selectedDomain === "counter" && {
+              features: [{ type: "counter-actions", actions: ["increment", "decrement", "reset"] }],
+            }),
+            ...(this.selectedDomain === "update" && {
+              features: [{ type: "update-actions", backup: "ask" }],
+            }),
+          })}
+                          </div>
+                        `)}
+                      </div>
+                    </div>
+                  `;
+        })}
+            `}
+    </ha-dialog>
+  `;
+  }
+
+  private _handleDomainAction(domain: string, deviceClass?: string): (ev: ActionHandlerEvent) => void {
+    return (ev: ActionHandlerEvent) => {
+      ev.stopPropagation();
+
+      let key: string;
+      if (deviceClass) {
+        key = `${this._formatDomain(domain)} - ${deviceClass}`;
+      } else {
+        key = domain;
+      }
+      const customization = this.getCustomizationForType(key);
+
+      let actionFromCustomization: ActionConfig | undefined;
+      let actionFromConfig: ActionConfig | undefined;
+
+      if (ev.detail.action === "tap") {
+        actionFromCustomization = customization?.tap_action ? { ...customization.tap_action } : undefined;
+        actionFromConfig = this._config?.tap_action ? { ...this._config.tap_action } : undefined;
+      } else if (ev.detail.action === "hold") {
+        actionFromCustomization = customization?.hold_action ? { ...customization.hold_action } : undefined;
+        actionFromConfig = this._config?.hold_action ? { ...this._config.hold_action } : undefined;
+      } else if (ev.detail.action === "double_tap") {
+        actionFromCustomization = customization?.double_tap_action ? { ...customization.double_tap_action } : undefined;
+        actionFromConfig = this._config?.double_tap_action ? { ...this._config.double_tap_action } : undefined;
+      }
+
+      let actionConfig = (actionFromCustomization !== undefined)
+        ? actionFromCustomization
+        : actionFromConfig;
+
+      console.log("ActionConfig: ", actionConfig);
+      console.log("Customization: ", customization);
+
+      const isMoreInfo =
+        (typeof actionConfig === "string" && actionConfig === "more-info") ||
+        (typeof actionConfig === "object" && actionConfig?.action === "more-info");
+
+      const isToggle =
+        (typeof actionConfig === "string" && actionConfig === "toggle") ||
+        (typeof actionConfig === "object" && actionConfig?.action === "toggle");
+
+      if (isMoreInfo || actionConfig === undefined) {
+        this.selectedDomain = domain;
+        this.selectedDeviceClass = deviceClass || null;
+        return;
+      }
+
+      if (isToggle) {
+        const entities = this._isOn(domain, deviceClass);
+        const invert = customization?.invert === true;
+
+        if (entities.length === 0) {
+          console.warn(`Keine aktiven Entitäten für ${domain} gefunden.`);
+          return;
+        }
+
+        for (const entity of entities) {
+          let isOn = !STATES_OFF.includes(entity.state);
+          if (invert) {
+            isOn = !isOn;
+          }
+
+          if (domain === "media_player") {
+            this.hass.callService( domain, isOn ? "media_pause" : "media_play",{ entity_id: entity.entity_id });
+          } else if (domain === "lock") {
+            this.hass.callService( domain, isOn ? "lock" : "unlock", { entity_id: entity.entity_id });
+          } else if (domain === "vacuum") { 
+            this.hass.callService( domain, isOn ? "stop" : "start", { entity_id: entity.entity_id });
+          } else if (domain === "alarm_control_panel") {
+            this.hass.callService( domain, isOn ? "alarm_arm_away" : "alarm_disarm", { entity_id: entity.entity_id });
+          } else if (domain === "lawn_mower") {
+            this.hass.callService( domain, isOn ? "pause" : "start_mowing", { entity_id: entity.entity_id });
+          } else if (domain === "water_heater") {
+            this.hass.callService( domain, isOn ? "turn_off" : "turn_on", { entity_id: entity.entity_id });
+          } else if (domain === "update") {
+            this.hass.callService( domain, isOn ? "skip" : "install", { entity_id: entity.entity_id });
+          }
+        }
+        return;
+      }
+
+      const config = {
+        tap_action: customization?.tap_action || this._config.tap_action,
+        hold_action: customization?.hold_action || this._config.hold_action,
+        double_tap_action: customization?.double_tap_action || this._config.double_tap_action,
+      };
+
+      handleAction(this, this.hass!, config, ev.detail.action!);
+
+    };
   }
 
   protected render() {
     const configContent = this._config.content || [];
-  
-    // Aus config.items trennen wir die reinen Domains (ohne " - ") und die Device-Class-Items (mit " - ")
     const domainContent = configContent.filter(content => !content.includes(" - "));
     const deviceClassContent = configContent.filter(content => content.includes(" - "));
-  
-    // Erstelle ein Array von "domain"-Objekten. Die Reihenfolge entspricht dem Index in config.items.
+
     const domainEntities = domainContent.map(content => ({
       type: 'domain',
-      // Bei Domains nehmen wir den String direkt – z. B. "media_player"
       domain: content,
       order: configContent.indexOf(content)
     }));
-  
-    // Erstelle ein Array von "deviceClass"-Objekten. Hier parsen wir den String.
+
     const deviceClassEntities = deviceClassContent.map(content => {
-      // Beispiel: "Binary Sensor - door"
       const parts = content.split(" - ");
-      // Den Domain-Teil (links) wandeln wir in lowercase um und ersetzen Leerzeichen durch Unterstriche,
-      // damit wir z. B. "Binary Sensor" zu "binary_sensor" erhalten.
       const domain = parts[0].trim().toLowerCase().replace(/\s+/g, "_");
       const deviceClass = parts[1].trim().toLowerCase();
       return {
@@ -788,104 +908,98 @@ private mobileStyles = `
         order: configContent.indexOf(content)
       };
     });
-  
+
     const extraEntities = this.loadExtraEntities().map(({ entities }) => {
       const entity = entities[0];
       const customIndex = this._config.content?.findIndex((item: string) => item === entity.entity_id);
       const order = customIndex !== -1 && customIndex !== undefined ? customIndex : 0;
-      // Hier wird nun der Entity-Parameter mit übergeben:
       const calculatedIcon = this.getCustomIcon(entity.entity_id, undefined, entity);
       const calculatedName = this.getCustomName(entity.entity_id, undefined, entity);
       const calculatedcolor = this.getCustomColor(entity.entity_id, undefined, entity);
       return { entity, icon: calculatedIcon, name: calculatedName, color: calculatedcolor, order, type: 'extra' };
     });
-    
 
-  
-    // Alle Items zusammenfügen:
     const allEntities = [
       ...extraEntities,
       ...domainEntities,
       ...deviceClassEntities,
     ];
-  
-    // Nach dem Orderwert (der dem Index in config.items entspricht) sortieren
+
     const sortedEntities = allEntities.sort((a, b) => a.order - b.order);
-  
+
     return html`
       <ha-card>
         <paper-tabs scrollable hide-scroll-buttons>
           ${this.renderPersonEntities()}
   
           ${sortedEntities.map((item: any) => {
-            if (item.type === 'extra') {
-              // Rendern eines extra_entity-Tabs
-              const { entity, icon, name, color } = item;
-              const domain = computeDomain(entity.entity_id);
-              const translatedEntityState = translateEntityState(this.hass!, entity.state, domain);
-              return html`
-                <paper-tab @click="${() => this.showMoreInfo(entity)}">
-                  <div class="extra-entity">
-                    <div class="entity-icon" style="${color ? `color: var(--${color}-color);` : ''}">
+          if (item.type === 'extra') {
+            const { entity, icon, name, color } = item;
+            const domain = computeDomain(entity.entity_id);
+            const translatedEntityState = translateEntityState(this.hass!, entity.state, domain);
+
+            return html`
+              <paper-tab @click="${() => this.showMoreInfo(entity)}">
+                <div class="extra-entity">
+                  <div class="entity-icon" style="${color ? `color: var(--${color}-color);` : ''}">
                       <ha-icon icon="${icon}"></ha-icon>
-                    </div>
-                    <div class="entity-info">
+                  </div>
+                  <div class="entity-info">
                     ${this._config?.hide_content_name !== true
-                      ? html`<div class="entity-name">${name}</div>`
-                      : ''}
-                      <div class="entity-state">${translatedEntityState}</div>
-                    </div>
+                    ? html`<div class="entity-name">${name}</div>` : ''}
+                    <div class="entity-state">${translatedEntityState}</div>
                   </div>
-                </paper-tab>
-              `;
-            }
-            else if (item.type === 'domain') {
-              // Für Domains: Hier holen wir die aktiven Entitäten zur Domain
-              const activeEntities = this._isOn(item.domain);
-              const totalEntities = this._totalEntities(item.domain);
-              if (activeEntities.length === 0) return null;
-              const color = this.getCustomColor(item.domain);
-              return html`
-                <paper-tab @click="${() => this._showEntities(item.domain)}">
-                  <div class="entity">
-                    <div class="entity-icon" style="${color ? `color: var(--${color}-color);` : ''}">
-                      <ha-icon icon="${this.getCustomIcon(item.domain)}"></ha-icon>
-                    </div>
+                </div>
+              </paper-tab>
+            `;
+          } else if (item.type === 'domain') {
+            const activeEntities = this._isOn(item.domain);
+            const totalEntities = this._totalEntities(item.domain);
+            if (activeEntities.length === 0) return null;
+            const color = this.getCustomColor(item.domain);
+            const customization = this.getCustomizationForType(item.domain);
+            return html`            
+              <paper-tab @action=${this._handleDomainAction(item.domain)}
+                .actionHandler=${actionHandler({
+                hasHold: hasAction(customization?.hold_action ?? this._config.hold_action),
+                hasDoubleClick: hasAction(customization?.double_tap_action ?? this._config.double_tap_action) })}>
+                <div class="entity">
+                  <div class="entity-icon" style="${color ? `color: var(--${color}-color);` : ''}">
+                    <ha-icon icon="${this.getCustomIcon(item.domain)}"></ha-icon>
+                  </div>
                     <div class="entity-info">
                       <div class="entity-name">
-                        ${!this.hide_content_name
-                          ? this.getCustomName(item.domain) || this.computeLabel({ name: item.domain })
-                          : ""}
+                        ${!this.hide_content_name ? this.getCustomName(item.domain) || this.computeLabel({ name: item.domain }) : ""}
                       </div>
                       <div class="entity-state">
-                        <span>${!this._config.show_total_number ? activeEntities.length + " " + this.getStatusProperty(item.domain): activeEntities.length + "/" + totalEntities.length + " " + this.getStatusProperty(item.domain)}</span>
+                        <span>${!this._config.show_total_number ? activeEntities.length + " " + this.getStatusProperty(item.domain) : activeEntities.length + "/" + totalEntities.length + " " + this.getStatusProperty(item.domain)}</span>
                       </div>
                     </div>
+                </div>
+              </paper-tab>
+            `;
+          } else if (item.type === 'deviceClass') {
+            const { domain, deviceClass } = item;
+            const activeEntities = this._isOn(domain, deviceClass);
+            const totalEntities = this._totalEntities(domain, deviceClass);
+            if (activeEntities.length === 0) return null;
+            const color = this.getCustomColor(domain, deviceClass);
+            const customization = this.getCustomizationForType(`${this._formatDomain(domain)} - ${deviceClass}`);
+            return html`
+              <paper-tab @action=${this._handleDomainAction(domain, deviceClass)}
+                  .actionHandler=${actionHandler({
+                  hasHold: hasAction(customization?.hold_action ?? this._config.hold_action),
+                  hasDoubleClick: hasAction(customization?.double_tap_action ?? this._config.double_tap_action)})}>
+                <div class="entity">
+                  <div class="entity-icon" style="${color ? `color: var(--${color}-color);` : ''}">
+                    <ha-icon icon="${this.getCustomIcon(domain, deviceClass)}"></ha-icon>
                   </div>
-                </paper-tab>
-              `;
-            }
-            else if (item.type === 'deviceClass') {
-              // Für Device Classes: Wir nutzen _isOn(domain, deviceClass)
-              const { domain, deviceClass } = item;
-              const activeEntities = this._isOn(domain, deviceClass);
-              const totalEntities = this._totalEntities(domain, deviceClass);
-              if (activeEntities.length === 0) return null;
-              const color = this.getCustomColor(domain, deviceClass);
-              return html`
-                <paper-tab @click="${() => this._showEntities(domain, deviceClass)}">
-                  <div class="entity">
-                    <div class="entity-icon" style="${color ? `color: var(--${color}-color);` : ''}">
-                      <ha-icon icon="${this.getCustomIcon(domain, deviceClass)}"></ha-icon>
+                  <div class="entity-info">
+                    <div class="entity-name">
+                      ${!this.hide_content_name ? this.getCustomName(domain, deviceClass) || this.computeLabel({ name: deviceClass }) : ""}
                     </div>
-                    <div class="entity-info">
-                      <div class="entity-name">
-                        ${!this.hide_content_name
-                          ? this.getCustomName(domain, deviceClass) || this.computeLabel({ name: deviceClass })
-                          : ""}
-                      </div>
                       <div class="entity-state">
-                        <span>${!this._config.show_total_number ? activeEntities.length + " " + this.getStatusProperty(domain, deviceClass): activeEntities.length + "/" + totalEntities.length + " " + this.getStatusProperty(domain, deviceClass)}</span>
+                        <span>${!this._config.show_total_number ? activeEntities.length + " " + this.getStatusProperty(domain, deviceClass) : activeEntities.length + "/" + totalEntities.length + " " + this.getStatusProperty(domain, deviceClass)}</span>
                       </div>
                     </div>
                   </div>
@@ -893,14 +1007,13 @@ private mobileStyles = `
               `;
             }
             return null;
-          })}
+            })}
   
           ${this.selectedDomain ? this.renderPopup() : ''}
         </paper-tabs>
       </ha-card>
     `;
   }
-  
 
   static get styles() {
     return css`
@@ -910,25 +1023,61 @@ private mobileStyles = `
         height: 100%;
         align-content: center;
       }    
-      paper-tabs { height: 110px; padding: 4px 8px;  }
-      paper-tab {padding: 0 5px; }
-      .center {display: flex; align-items: center; justify-content: center;}
-      .entity, .extra-entity { display: flex; flex-direction: column; align-items: center;}
-      .entity-icon { width: 50px; height: 50px; border-radius: 50%;
-          background-color: rgba(var(--rgb-primary-text-color), 0.15);
-          display: flex; align-items: center; justify-content: center;
-          overflow: hidden;}      
-      .entity-icon img {width: 100%; height: 100%; object-fit: cover; border-radius: 50%;}
-      .entity-info { text-align: center; margin-top: 5px; }
-      .entity-name { font-weight: bold; margin-bottom: 2px; }
-      .entity-state { color: var(--secondary-text-color); font-size: 0.9em; }            
+      paper-tabs { 
+        height: 110px; 
+        padding: 4px 8px;  
+      }
+      paper-tab {
+        padding: 0 5px; 
+      }
+      .center {
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+      }
+      .entity, .extra-entity { 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center;
+      }
+      .entity-icon { 
+        width: 50px; 
+        height: 50px; 
+        border-radius: 50%;
+        background-color: rgba(var(--rgb-primary-text-color), 0.15);
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        overflow: hidden;
+      }      
+      .entity-icon img {
+        width: 100%; 
+        height: 100%; 
+        object-fit: cover; 
+        border-radius: 50%;
+      }
+      .entity-info { 
+        text-align: center; 
+        margin-top: 5px; 
+      }
+      .entity-name { 
+        font-weight: bold; 
+        margin-bottom: 2px; 
+      }
+      .entity-state { 
+        color: var(--secondary-text-color); 
+        font-size: 0.9em;          
+      }
+      paper-tab {
+        pointer-events: auto;
+      }
+      paper-tab * {
+        pointer-events: none;
       }
     `;
   }
 
   static getStubConfig() {
     return {};
-}
-
-
+  }
 }

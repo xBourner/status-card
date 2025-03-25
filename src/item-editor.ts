@@ -1,7 +1,7 @@
 import { LitElement, TemplateResult, html, css, CSSResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant } from "custom-card-helpers";
-import { Settings } from "./helpers";
+import { Settings, UiAction } from "./helpers";
 import { CardConfig } from "./editor";
 import memoizeOne from "memoize-one";
 
@@ -23,17 +23,27 @@ export class ItemEditor extends LitElement {
   @state() private getSchema?: string;
   @state() private _config?: CardConfig;
 
-  private _schemadomain = memoizeOne(() => [
-    { name: "invert", selector: { boolean: {} } },
-    { name: "name", selector: { text: {} } },
-    { name: "icon", selector: { icon: {} } },
-    { name: "icon_color", selector: {
-      ui_color: { default_color: "state", include_state: true },
-    } },
-  ]);
+
+  private _schemadomain = memoizeOne(() => {
+    const actions: UiAction[] = ["more-info", "toggle", "navigate", "url", "perform-action", "none"];
+    return [
+      { name: "invert", selector: { boolean: {} } },
+      { name: "name", selector: { text: {} } },
+      { name: "icon", selector: { icon: {} } },
+      { name: "icon_color", selector: {
+        ui_color: { default_color: "state", include_state: true },
+      } },
+    { name: "tap_action", selector: { ui_action: {actions} } },    
+    { name: "double_tap_action", selector: { ui_action: {actions} }},    
+    { name: "hold_action", selector: { ui_action: {actions} } },    
+  ];
+});
+
+
 
   private _schemaEntity = memoizeOne(() => {
     const entityId = this.config?.type || '';
+    const actions: UiAction[] = ["more-info", "toggle", "navigate", "url", "perform-action", "none"];
     return [
       {
         name: "",
@@ -74,6 +84,9 @@ export class ItemEditor extends LitElement {
         name: "icon_color",
         selector: { ui_color: { default_color: "state", include_state: true } }
       },
+      { name: "tap_action", selector: { ui_action: {actions} } },    
+      { name: "double_tap_action", selector: { ui_action: {actions} }},    
+      { name: "hold_action", selector: { ui_action: {actions} } },  
     ];
   });
   
@@ -132,12 +145,14 @@ export class ItemEditor extends LitElement {
       case "invert":
       case "invert_state":
         return this.hass!.localize("ui.dialogs.entity_registry.editor.invert.label");
-      case "name":
-        return this.hass!.localize("ui.panel.lovelace.editor.card.generic.name"); 
-      case "icon":
-        return this.hass!.localize("ui.panel.lovelace.editor.card.generic.icon");
       case "color":
-        return this.hass!.localize("ui.panel.lovelace.editor.card.tile.color");
+        return this.hass!.localize("ui.panel.lovelace.editor.card.tile.color");   
+      case "name":
+      case "icon":
+      case "tap_action":
+      case "hold_action":
+      case "double_tap_action":
+      return this.hass!.localize(`ui.panel.lovelace.editor.card.generic.${schema.name}`);  
       default:
         return this.hass!.localize(`ui.panel.lovelace.editor.card.area.${schema.name}`);
     }

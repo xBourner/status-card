@@ -9,6 +9,7 @@ import {
   Settings,
   fireEvent,
   SubElementConfig,
+  UiAction
 } from "./helpers";
 import { mdiTextBoxEdit } from "@mdi/js";
 import "./items-editor";
@@ -358,7 +359,9 @@ export class StatusCardEditor extends LitElement {
     }
   );
 
-  private _toggleschema = memoizeOne((toggleDomains: SelectOption[]) => [
+  private _toggleschema = memoizeOne((toggleDomains: SelectOption[]) => {
+    const actions: UiAction[] = ["more-info", "toggle", "navigate", "url", "perform-action", "none"];
+    return [
     {
       name: "content",
       selector: {
@@ -378,7 +381,11 @@ export class StatusCardEditor extends LitElement {
       name: "color",
       selector: { ui_color: { default_color: "state", include_state: true } },
     },
-  ]);
+    { name: "tap_action", selector: { ui_action: {actions} } },    
+    { name: "double_tap_action", selector: { ui_action: {actions} }},    
+    { name: "hold_action", selector: { ui_action: {actions} } },    
+  ];
+});
 
   private _valueChanged(event: CustomEvent) {
     this._config = event.detail.value;
