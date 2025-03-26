@@ -824,9 +824,6 @@ export class StatusCard extends LitElement {
         ? actionFromCustomization
         : actionFromConfig;
 
-      console.log("ActionConfig: ", actionConfig);
-      console.log("Customization: ", customization);
-
       const isMoreInfo =
         (typeof actionConfig === "string" && actionConfig === "more-info") ||
         (typeof actionConfig === "object" && actionConfig?.action === "more-info");

@@ -450,7 +450,6 @@ export class StatusCardEditor extends LitElement {
             area.includes(this.hass!.devices[e.device_id]?.area_id as string))
       );
     } else if (floor && floor.length > 0) {
-      // Ermittele alle areas, deren floor_id in dem Array floor enthalten ist
       const areasInFloor = Object.values(this.hass!.areas)
         .filter((a) => a.floor_id !== undefined && floor.includes(a.floor_id as string))
         .map((a) => a.area_id);

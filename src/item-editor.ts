@@ -100,7 +100,7 @@ export class ItemEditor extends LitElement {
     if (!this._config?.invert_state) {
       this._config = {
         ...this._config,
-        invert_state: "false", // Setze den Standardwert hier auf false
+        invert_state: "false",
         icon_color: this.config.icon_color || undefined,
         
       };
