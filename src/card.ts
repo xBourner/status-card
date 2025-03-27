@@ -847,6 +847,11 @@ export class StatusCard extends LitElement {
           return;
         }
 
+        if (["light", "switch", "fan", "cover", "siren", "climate", "humidifier", "valve",  "remote",].includes(domain)) {
+          this.hass.callService(domain, "toggle", { entity_id: entities.map(e => e.entity_id) });
+          return;
+        }
+
         for (const entity of entities) {
           let isOn = !STATES_OFF.includes(entity.state);
           if (invert) {
