@@ -2,7 +2,11 @@ interface DeviceClasses {
   [key: string]: string[];
 }
 
-export function domainIcon(domain: string, state?: string, deviceClass?: string): string {
+export function domainIcon(
+  domain: string,
+  state?: string,
+  deviceClass?: string
+): string {
   switch (domain) {
     case "alarm_control_panel":
       return state === "off" ? "mdi:alarm-light-off" : "mdi:alarm-light";
@@ -39,8 +43,14 @@ export function domainIcon(domain: string, state?: string, deviceClass?: string)
             return state === "off" ? "mdi:valve-closed" : "mdi:valve";
           case "awning":
             return state === "off" ? "mdi:awning-outline" : "mdi:awning";
+          case "shutter":
+            return state === "off"
+              ? "mdi:window-shutter"
+              : "mdi:window-shutter-open";
           case "shade":
-            return state === "off" ? "mdi:roller-shade-closed" : "mdi:roller-shade";
+            return state === "off"
+              ? "mdi:roller-shade-closed"
+              : "mdi:roller-shade";
           case "window":
             return state === "off" ? "mdi:window-closed" : "mdi:window-open";
           default:
@@ -58,7 +68,9 @@ export function domainIcon(domain: string, state?: string, deviceClass?: string)
           case "lock":
             return state === "off" ? "mdi:lock-open" : "mdi:lock";
           case "motion":
-            return state === "off" ? "mdi:motion-sensor-off" : "mdi:motion-sensor";
+            return state === "off"
+              ? "mdi:motion-sensor-off"
+              : "mdi:motion-sensor";
           case "presence":
             return state === "off" ? "mdi:home-off" : "mdi:home";
           case "occupancy":
@@ -72,7 +84,9 @@ export function domainIcon(domain: string, state?: string, deviceClass?: string)
           case "battery":
             return state === "off" ? "mdi:battery-off" : "mdi:battery";
           case "battery_charging":
-            return state === "off" ? "mdi:battery-alert" : "mdi:battery-charging";
+            return state === "off"
+              ? "mdi:battery-alert"
+              : "mdi:battery-charging";
           case "moving":
             return state === "off" ? "mdi:car-off" : "mdi:car";
           case "running":
@@ -84,7 +98,9 @@ export function domainIcon(domain: string, state?: string, deviceClass?: string)
           case "cold":
             return state === "off" ? "mdi:snowflake-off" : "mdi:snowflake";
           case "heat":
-            return state === "off" ? "mdi:weather-sunny-off" : "mdi:weather-sunny";
+            return state === "off"
+              ? "mdi:weather-sunny-off"
+              : "mdi:weather-sunny";
           case "moisture":
             return state === "off" ? "mdi:water-off" : "mdi:water";
           case "connectivity":
@@ -96,22 +112,32 @@ export function domainIcon(domain: string, state?: string, deviceClass?: string)
           case "light":
             return state === "off" ? "mdi:lightbulb-off" : "mdi:lightbulb-on";
           case "problem":
-            return state === "off" ? "mdi:alert-circle-check" : "mdi:alert-circle";
+            return state === "off"
+              ? "mdi:alert-circle-check"
+              : "mdi:alert-circle";
           case "safety":
-            return state === "off" ? "mdi:shield-alert-outline" : "mdi:shield-alert";
+            return state === "off"
+              ? "mdi:shield-alert-outline"
+              : "mdi:shield-alert";
           case "smoke":
-            return state === "off" ? "mdi:smoke-detector-off" : "mdi:smoke-detector";
+            return state === "off"
+              ? "mdi:smoke-detector-off"
+              : "mdi:smoke-detector";
           case "sound":
             return state === "off" ? "mdi:volume-off" : "mdi:volume-high";
           case "tamper":
-            return state === "off" ? "mdi:shield-home-outline" : "mdi:shield-home";
+            return state === "off"
+              ? "mdi:shield-home-outline"
+              : "mdi:shield-home";
           case "update":
             return state === "off" ? "mdi:autorenew-off" : "mdi:autorenew";
           default:
-            return "mdi:help-circle"; 
+            return "mdi:help-circle";
         }
       }
-      return state === "off" ? "mdi:radiobox-blank" : "mdi:checkbox-marked-circle";
+      return state === "off"
+        ? "mdi:radiobox-blank"
+        : "mdi:checkbox-marked-circle";
     case "humidifier":
       return state === "off" ? "mdi:water-off" : "mdi:air-humidifier";
     case "lawn_mower":
@@ -125,7 +151,7 @@ export function domainIcon(domain: string, state?: string, deviceClass?: string)
     case "device_tracker":
       return state === "off" ? "mdi:account-off" : "mdi:cellphone";
     case "update":
-      return state === "off" ? "mdi:autorenew-off" : "mdi:autorenew";      
+      return state === "off" ? "mdi:autorenew-off" : "mdi:autorenew";
     case "input_boolean":
       return state === "off" ? "mdi:toggle-switch-off" : "mdi:toggle-switch";
     case "timer":
@@ -136,83 +162,153 @@ export function domainIcon(domain: string, state?: string, deviceClass?: string)
       return state === "off" ? "mdi:calendar-off" : "mdi:calendar";
     default:
       console.warn(`Unable to find icon for domain ${domain} (${state})`);
-      return "mdi:help-circle"; 
+      return "mdi:help-circle";
   }
 }
 
-  export const sortOrder= [
-    "alarm_control_panel",
-    "siren",
-    "lock",
-    "light",
-    "media_player",
-    "climate",
-    "switch",
-    "vacuum",
-    "fan",
-    "humidifier",
-    "lawn_mower",
-    "valve",
-    "water_heater",
-    "remote",
-    "Cover - door",
-    "Cover - window",
-    "Cover - garage",
-    "Cover - gate",
-    "Cover - blind",
-    "Cover - curtain",
-    "Cover - damper",
-    "Cover - awning",
-    "Cover - shade",
-    "Cover - shutter",
-    "Binary Sensor - door",
-    "Binary Sensor - window",
-    "Binary Sensor - lock",
-    "Binary Sensor - motion",
-    "Binary Sensor - presence",
-    "Binary Sensor - occupancy",
-    "Binary Sensor - vibration",
-    "Binary Sensor - plug",
-    "Binary Sensor - power",
-    "Binary Sensor - battery",
-    "Binary Sensor - battery_charging",
-    "Binary Sensor - moving",
-    "Binary Sensor - running",
-    "Binary Sensor - gas",
-    "Binary Sensor - carbon_monoxide",
-    "Binary Sensor - cold",
-    "Binary Sensor - heat",
-    "Binary Sensor - moisture",
-    "Binary Sensor - connectivity",
-    "Binary Sensor - opening",
-    "Binary Sensor - garage_door",
-    "Binary Sensor - light",
-    "Binary Sensor - problem",
-    "Binary Sensor - safety",
-    "Binary Sensor - smoke",
-    "Binary Sensor - sound",
-    "Binary Sensor - tamper",
-    "Binary Sensor - update",
-    "update",
-    "device_tracker",
-    "input_boolean",
-    "timer",
-    "counter",
-    "calendar"
-  ];
-
+export const sortOrder = [
+  "alarm_control_panel",
+  "siren",
+  "lock",
+  "light",
+  "media_player",
+  "climate",
+  "switch",
+  "vacuum",
+  "fan",
+  "humidifier",
+  "lawn_mower",
+  "valve",
+  "water_heater",
+  "remote",
+  "Cover - door",
+  "Cover - window",
+  "Cover - garage",
+  "Cover - gate",
+  "Cover - blind",
+  "Cover - curtain",
+  "Cover - damper",
+  "Cover - awning",
+  "Cover - shade",
+  "Cover - shutter",
+  "Binary Sensor - door",
+  "Binary Sensor - window",
+  "Binary Sensor - lock",
+  "Binary Sensor - motion",
+  "Binary Sensor - presence",
+  "Binary Sensor - occupancy",
+  "Binary Sensor - vibration",
+  "Binary Sensor - plug",
+  "Binary Sensor - power",
+  "Binary Sensor - battery",
+  "Binary Sensor - battery_charging",
+  "Binary Sensor - moving",
+  "Binary Sensor - running",
+  "Binary Sensor - gas",
+  "Binary Sensor - carbon_monoxide",
+  "Binary Sensor - cold",
+  "Binary Sensor - heat",
+  "Binary Sensor - moisture",
+  "Binary Sensor - connectivity",
+  "Binary Sensor - opening",
+  "Binary Sensor - garage_door",
+  "Binary Sensor - light",
+  "Binary Sensor - problem",
+  "Binary Sensor - safety",
+  "Binary Sensor - smoke",
+  "Binary Sensor - sound",
+  "Binary Sensor - tamper",
+  "Binary Sensor - update",
+  "update",
+  "device_tracker",
+  "input_boolean",
+  "timer",
+  "counter",
+  "calendar",
+];
 
 export const ALLOWED_DOMAINS = [
-  "alarm_control_panel", "siren", "lock", "light", "media_player", "climate", 
-  "switch", "vacuum", "fan", "cover", "binary_sensor", "humidifier",      
-  "lawn_mower", "valve", "water_heater", "remote",
-  "update", "device_tracker", "input_boolean", "timer", "counter", "calendar"
+  "alarm_control_panel",
+  "siren",
+  "lock",
+  "light",
+  "media_player",
+  "climate",
+  "switch",
+  "vacuum",
+  "fan",
+  "cover",
+  "binary_sensor",
+  "humidifier",
+  "lawn_mower",
+  "valve",
+  "water_heater",
+  "remote",
+  "update",
+  "device_tracker",
+  "input_boolean",
+  "timer",
+  "counter",
+  "calendar",
 ];
 
 export const deviceClasses: DeviceClasses = {
-  binary_sensor: ["door", "window", "lock", "motion", "presence", "occupancy", 
-    "plug", "power", "battery", "battery_charging", "moving", "running", "gas", 
-    "carbon_monoxide", "vibration", "cold", "heat", "moisture", "connectivity", "opening", 
-    "garage_door", "light", "problem", "safety", "smoke", "sound", "tamper", "update"],
-  cover: ["door", "window", "garage", "gate", "blind", "curtain", "damper", "awning", "shade", "shutter"],
+  binary_sensor: [
+    "door",
+    "window",
+    "lock",
+    "motion",
+    "presence",
+    "occupancy",
+    "plug",
+    "power",
+    "battery",
+    "battery_charging",
+    "moving",
+    "running",
+    "gas",
+    "carbon_monoxide",
+    "vibration",
+    "cold",
+    "heat",
+    "moisture",
+    "connectivity",
+    "opening",
+    "garage_door",
+    "light",
+    "problem",
+    "safety",
+    "smoke",
+    "sound",
+    "tamper",
+    "update",
+  ],
+  cover: [
+    "door",
+    "window",
+    "garage",
+    "gate",
+    "blind",
+    "curtain",
+    "damper",
+    "awning",
+    "shade",
+    "shutter",
+  ],
 };
+
+export class DataStore {
+  private static _entitiesByDomain: { [domain: string]: string[] } = {};
+
+  static setEntitiesByDomain(entities: { [domain: string]: string[] }): void {
+    this._entitiesByDomain = entities;
+  }
+
+  static getEntitiesByDomain(): { [domain: string]: string[] } {
+    return this._entitiesByDomain;
+  }
+
+  static getAllEntities(): string[] {
+    return Object.values(this._entitiesByDomain).flat();
+  }
+}

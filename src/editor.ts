@@ -2,14 +2,14 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, computeDomain } from "custom-card-helpers";
 import { computeLabelCallback } from "./translations";
-import { ALLOWED_DOMAINS, sortOrder } from "./properties";
+import { ALLOWED_DOMAINS, sortOrder, DataStore } from "./properties";
 import memoizeOne from "memoize-one";
 import {
   caseInsensitiveStringCompare,
   Settings,
   fireEvent,
   SubElementConfig,
-  UiAction
+  UiAction,
 } from "./helpers";
 import { mdiTextBoxEdit } from "@mdi/js";
 import "./items-editor";
@@ -33,7 +33,7 @@ export interface CardConfig {
   state?: string | string[];
   multiple_areas?: boolean;
   multiple_floors?: boolean;
-  invert_state? : "true" | "false";
+  invert_state?: "true" | "false";
   icon_color?: string;
 }
 
@@ -69,6 +69,10 @@ export class StatusCardEditor extends LitElement {
       return computeLabelCallback(this.hass, schema, domain, deviceClass);
     }
   );
+
+  private getAllEntities(): string[] {
+    return DataStore.getAllEntities();
+  }
 
   setConfig(config: CardConfig) {
     this._config = {
@@ -135,11 +139,11 @@ export class StatusCardEditor extends LitElement {
       const newContent = this._config.content ?? [];
 
       const currentArea = Array.isArray(this._config.area)
-      ? [...this._config.area]
-      : [];
+        ? [...this._config.area]
+        : [];
       const currentFloor = Array.isArray(this._config.floor)
-      ? [...this._config.floor]
-      : [];
+        ? [...this._config.floor]
+        : [];
       const currentLabel = Array.isArray(this._config.label)
         ? [...this._config.label]
         : [];
@@ -156,17 +160,16 @@ export class StatusCardEditor extends LitElement {
       const previousArea = this._lastFilter.area;
       const previousFloor = this._lastFilter.floor;
       const previousLabel = this._lastFilter.label;
-      const labelsChanged = JSON.stringify(previousLabel) !== JSON.stringify(currentLabel);
-      const floorsChanged = JSON.stringify(previousFloor) !== JSON.stringify(currentFloor);
-      const areasChanged =  JSON.stringify(previousArea) !== JSON.stringify(currentArea);
+      const labelsChanged =
+        JSON.stringify(previousLabel) !== JSON.stringify(currentLabel);
+      const floorsChanged =
+        JSON.stringify(previousFloor) !== JSON.stringify(currentFloor);
+      const areasChanged =
+        JSON.stringify(previousArea) !== JSON.stringify(currentArea);
 
       let updated = false;
 
-      if (
-        areasChanged ||
-        floorsChanged ||
-        labelsChanged
-      ) {
+      if (areasChanged || floorsChanged || labelsChanged) {
         const possibleToggleDomains = this._toggleDomainsForArea(
           currentArea,
           currentFloor,
@@ -204,7 +207,8 @@ export class StatusCardEditor extends LitElement {
         });
 
         content = content.filter(
-          (content) => !content.includes(".") || newExtraEntities.includes(content)
+          (content) =>
+            !content.includes(".") || newExtraEntities.includes(content)
         );
 
         if (JSON.stringify(content) !== JSON.stringify(newContent)) {
@@ -239,12 +243,20 @@ export class StatusCardEditor extends LitElement {
   }
 
   private _schema = memoizeOne(
-    (Filter: string, LabelFilter: boolean, HideFilter: string, MultipleAreas: boolean, MultipleFloors: boolean) => {
+    (
+      Filter: string,
+      LabelFilter: boolean,
+      HideFilter: string,
+      MultipleAreas: boolean,
+      MultipleFloors: boolean
+    ) => {
       const area = this.computeLabel({ name: "area" });
       const floor = this.computeLabel({ name: "floor" });
       const label = this.computeLabel({ name: "label" });
       const entity = this.computeLabel({ name: "entity" });
-      
+
+      const allEntities = this.getAllEntities();
+
       return [
         {
           name: "",
@@ -283,32 +295,35 @@ export class StatusCardEditor extends LitElement {
                   selector: { select: { options: [area, floor] } },
                 },
                 { name: "label_filter", selector: { boolean: {} } },
-                
               ],
             },
             ...(Filter === area && MultipleAreas === false
               ? ([
                   { name: "multiple_areas", selector: { boolean: {} } },
-                  { name: "area",selector: { area:  { }  }},] as const)
+                  { name: "area", selector: { area: {} } },
+                ] as const)
               : []),
 
-              ...(Filter === area && MultipleAreas === true
-                ? ([
-                    { name: "multiple_areas", selector: { boolean: {} } },
-                    { name: "area",selector: { area:  { multiple: true }  }},] as const)
-                : []),
+            ...(Filter === area && MultipleAreas === true
+              ? ([
+                  { name: "multiple_areas", selector: { boolean: {} } },
+                  { name: "area", selector: { area: { multiple: true } } },
+                ] as const)
+              : []),
 
             ...(Filter === floor && MultipleFloors === false
               ? ([
                   { name: "multiple_floors", selector: { boolean: {} } },
-                  { name: "floor", selector: { floor: { }  }}] as const)
+                  { name: "floor", selector: { floor: {} } },
+                ] as const)
               : []),
 
-              ...(Filter === floor && MultipleFloors === true
-                ? ([
-                    { name: "multiple_floors", selector: { boolean: {} } },
-                    { name: "floor", selector: { floor: { multiple: true }  }}] as const)
-                : []),
+            ...(Filter === floor && MultipleFloors === true
+              ? ([
+                  { name: "multiple_floors", selector: { boolean: {} } },
+                  { name: "floor", selector: { floor: { multiple: true } } },
+                ] as const)
+              : []),
 
             ...(LabelFilter
               ? ([
@@ -341,7 +356,9 @@ export class StatusCardEditor extends LitElement {
               ? ([
                   {
                     name: "hidden_entities",
-                    selector: { entity: { multiple: true } },
+                    selector: {
+                      entity: { multiple: true, include_entities: allEntities },
+                    },
                   },
                 ] as const)
               : []),
@@ -360,32 +377,39 @@ export class StatusCardEditor extends LitElement {
   );
 
   private _toggleschema = memoizeOne((toggleDomains: SelectOption[]) => {
-    const actions: UiAction[] = ["more-info", "toggle", "navigate", "url", "perform-action", "none"];
+    const actions: UiAction[] = [
+      "more-info",
+      "toggle",
+      "navigate",
+      "url",
+      "perform-action",
+      "none",
+    ];
     return [
-    {
-      name: "content",
-      selector: {
-        select: {
-          reorder: true,
-          multiple: true,
-          custom_value: true,
-          options: toggleDomains,
+      {
+        name: "content",
+        selector: {
+          select: {
+            reorder: true,
+            multiple: true,
+            custom_value: true,
+            options: toggleDomains,
+          },
         },
       },
-    },
-    {
-      name: "show_total_number",
-      selector: { boolean: { } },
-    },    
-    {
-      name: "color",
-      selector: { ui_color: { default_color: "state", include_state: true } },
-    },
-    { name: "tap_action", selector: { ui_action: {actions} } },    
-    { name: "double_tap_action", selector: { ui_action: {actions} }},    
-    { name: "hold_action", selector: { ui_action: {actions} } },    
-  ];
-});
+      {
+        name: "show_total_number",
+        selector: { boolean: {} },
+      },
+      {
+        name: "color",
+        selector: { ui_color: { default_color: "state", include_state: true } },
+      },
+      { name: "tap_action", selector: { ui_action: { actions } } },
+      { name: "double_tap_action", selector: { ui_action: { actions } } },
+      { name: "hold_action", selector: { ui_action: { actions } } },
+    ];
+  });
 
   private _valueChanged(event: CustomEvent) {
     this._config = event.detail.value;
@@ -412,6 +436,11 @@ export class StatusCardEditor extends LitElement {
     );
   }
 
+  public get contentSelectOptions(): SelectOption[] {
+    const content = this._config.content ?? [];
+    return this._buildOptions("toggle", content, content);
+  }
+
   private _buildToggleOptions = memoizeOne(
     (possibleClasses: string[], currentClasses: string[]): SelectOption[] =>
       this._buildOptions("toggle", possibleClasses, currentClasses)
@@ -434,7 +463,7 @@ export class StatusCardEditor extends LitElement {
   private _classesForArea(
     area: string[] | undefined,
     floor: string[] | undefined,
-    label: string[] | undefined,
+    label: string[] | undefined
   ): string[] {
     const extraEntities = this._config?.extra_entities || [];
 
@@ -451,16 +480,22 @@ export class StatusCardEditor extends LitElement {
       );
     } else if (floor && floor.length > 0) {
       const areasInFloor = Object.values(this.hass!.areas)
-        .filter((a) => a.floor_id !== undefined && floor.includes(a.floor_id as string))
+        .filter(
+          (a) =>
+            a.floor_id !== undefined && floor.includes(a.floor_id as string)
+        )
         .map((a) => a.area_id);
-      entities = entities.filter((e) =>
-        (e.area_id !== undefined && areasInFloor.includes(e.area_id)) ||
-        (e.device_id &&
-          this.hass!.devices[e.device_id]?.area_id !== undefined &&
-          areasInFloor.includes(this.hass!.devices[e.device_id]!.area_id as string))
+      entities = entities.filter(
+        (e) =>
+          (e.area_id !== undefined && areasInFloor.includes(e.area_id)) ||
+          (e.device_id &&
+            this.hass!.devices[e.device_id]?.area_id !== undefined &&
+            areasInFloor.includes(
+              this.hass!.devices[e.device_id]!.area_id as string
+            ))
       );
     }
-    
+
     if (label && label.length > 0) {
       entities = entities.filter(
         (e) =>
@@ -547,7 +582,7 @@ export class StatusCardEditor extends LitElement {
         label:
           entry === "scene"
             ? "Scene"
-            : type === "toggle" 
+            : type === "toggle"
             ? this.hass!.localize(
                 `component.${entry}.entity_component._.name`
               ) || entry
@@ -557,9 +592,19 @@ export class StatusCardEditor extends LitElement {
       };
     });
 
-    options.sort((a, b) =>
-      caseInsensitiveStringCompare(a.label, b.label, this.hass!.locale.language)
-    );
+    options.sort((a, b) => {
+      const aIsEntity = a.value.includes(".");
+      const bIsEntity = b.value.includes(".");
+
+      if (aIsEntity && !bIsEntity) return -1;
+      if (!aIsEntity && bIsEntity) return 1;
+
+      return caseInsensitiveStringCompare(
+        a.label,
+        b.label,
+        this.hass!.locale.language
+      );
+    });
 
     return options;
   }
@@ -736,7 +781,7 @@ export class StatusCardEditor extends LitElement {
       this._config!.label_filter ?? false,
       this._config!.hide_filter ?? "",
       this._config!.multiple_areas ?? false,
-      this._config!.multiple_floors ?? false,
+      this._config!.multiple_floors ?? false
     );
 
     const possibleToggleDomains = this._toggleDomainsForArea(
@@ -780,7 +825,7 @@ export class StatusCardEditor extends LitElement {
           <status-items-editor
             .hass=${this.hass}
             .customization=${this._config.customization}
-            .SelectOptions=${this.toggleSelectOptions}
+            .SelectOptions=${this.contentSelectOptions}
             @edit-item=${this._edit_itemDomain}
             @config-changed=${this._customizationChangedDomain}
           >

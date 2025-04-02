@@ -1,7 +1,12 @@
 import memoizeOne from "memoize-one";
 import { ActionConfig } from "custom-card-helpers";
-import { noChange } from 'lit';
-import { AttributePart, directive, Directive, DirectiveParameters } from 'lit/directive.js';
+import { noChange } from "lit";
+import {
+  AttributePart,
+  directive,
+  Directive,
+  DirectiveParameters,
+} from "lit/directive.js";
 
 export interface SubElementConfig {
   index?: number;
@@ -21,6 +26,7 @@ export interface EditorTarget extends EventTarget {
 export interface Settings {
   type: string;
   state?: string;
+  invert_state?: "true" | "false";
   icon_color?: string;
 }
 
@@ -73,7 +79,6 @@ export const caseInsensitiveStringCompare = (
 
   return fallbackStringCompare(a.toLowerCase(), b.toLowerCase());
 };
-
 
 export function fireEvent<T>(
   node: HTMLElement | Window,
@@ -141,172 +146,172 @@ export interface ActionHandlerOptions {
   disabled?: boolean;
 }
 
+class ActionHandler extends HTMLElement implements ActionHandlerType {
+  public holdTime = 500;
 
-  class ActionHandler extends HTMLElement implements ActionHandlerType {
-    public holdTime = 500;
-  
-    protected timer?: number;
-  
-    protected held = false;
-  
-    private cancelled = false;
-  
-    private dblClickTimeout?: number;
-  
-    public connectedCallback() {
-      [
-        "touchcancel",
-        "mouseout",
-        "mouseup",
-        "touchmove",
-        "mousewheel",
-        "wheel",
-        "scroll",
-      ].forEach((ev) => {
-        document.addEventListener(
-          ev,
-          () => {
-            this.cancelled = true;
-            if (this.timer) {
-              clearTimeout(this.timer);
-              this.timer = undefined;
-            }
-          },
-          { passive: true }
-        );
-      });
-    }
-  
-    public bind(
-      element: ActionHandlerElement,
-      options: ActionHandlerOptions = {}
+  protected timer?: number;
+
+  protected held = false;
+
+  private cancelled = false;
+
+  private dblClickTimeout?: number;
+
+  public connectedCallback() {
+    [
+      "touchcancel",
+      "mouseout",
+      "mouseup",
+      "touchmove",
+      "mousewheel",
+      "wheel",
+      "scroll",
+    ].forEach((ev) => {
+      document.addEventListener(
+        ev,
+        () => {
+          this.cancelled = true;
+          if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = undefined;
+          }
+        },
+        { passive: true }
+      );
+    });
+  }
+
+  public bind(
+    element: ActionHandlerElement,
+    options: ActionHandlerOptions = {}
+  ) {
+    if (
+      element.actionHandler &&
+      deepEqual(options, element.actionHandler.options)
     ) {
+      return;
+    }
+
+    if (element.actionHandler) {
+      element.removeEventListener("touchstart", element.actionHandler.start!);
+      element.removeEventListener("touchend", element.actionHandler.end!);
+      element.removeEventListener("touchcancel", element.actionHandler.end!);
+
+      element.removeEventListener("mousedown", element.actionHandler.start!);
+      element.removeEventListener("click", element.actionHandler.end!);
+
+      element.removeEventListener(
+        "keydown",
+        element.actionHandler.handleKeyDown!
+      );
+    }
+    element.actionHandler = { options };
+
+    if (options.disabled) {
+      return;
+    }
+
+    element.actionHandler.start = (ev: Event) => {
+      this.cancelled = false;
+      let x: number;
+      let y: number;
+      if ((ev as TouchEvent).touches) {
+        x = (ev as TouchEvent).touches[0].clientX;
+        y = (ev as TouchEvent).touches[0].clientY;
+      } else {
+        x = (ev as MouseEvent).clientX;
+        y = (ev as MouseEvent).clientY;
+      }
+
+      if (options.hasHold) {
+        this.held = false;
+        this.timer = window.setTimeout(() => {
+          this.held = true;
+        }, this.holdTime);
+      }
+    };
+
+    element.actionHandler.end = (ev: Event) => {
+      // Don't respond when moved or scrolled while touch
+      if (ev.currentTarget !== ev.target) {
+        return;
+      }
       if (
-        element.actionHandler &&
-        deepEqual(options, element.actionHandler.options)
+        ev.type === "touchcancel" ||
+        (ev.type === "touchend" && this.cancelled)
       ) {
         return;
       }
-  
-      if (element.actionHandler) {
-        element.removeEventListener("touchstart", element.actionHandler.start!);
-        element.removeEventListener("touchend", element.actionHandler.end!);
-        element.removeEventListener("touchcancel", element.actionHandler.end!);
-  
-        element.removeEventListener("mousedown", element.actionHandler.start!);
-        element.removeEventListener("click", element.actionHandler.end!);
-  
-        element.removeEventListener(
-          "keydown",
-          element.actionHandler.handleKeyDown!
-        );
+      const target = ev.target as HTMLElement;
+      // Prevent mouse event if touch event
+      if (ev.cancelable) {
+        ev.preventDefault();
       }
-      element.actionHandler = { options };
-  
-      if (options.disabled) {
+      if (options.hasHold) {
+        clearTimeout(this.timer);
+        this.timer = undefined;
+      }
+      if (options.hasHold && this.held) {
+        fireEvent(target, "action", { action: "hold" });
+      } else if (options.hasDoubleClick) {
+        if (
+          (ev.type === "click" && (ev as MouseEvent).detail < 2) ||
+          !this.dblClickTimeout
+        ) {
+          this.dblClickTimeout = window.setTimeout(() => {
+            this.dblClickTimeout = undefined;
+            fireEvent(target, "action", { action: "tap" });
+          }, 250);
+        } else {
+          clearTimeout(this.dblClickTimeout);
+          this.dblClickTimeout = undefined;
+          fireEvent(target, "action", { action: "double_tap" });
+        }
+      } else {
+        fireEvent(target, "action", { action: "tap" });
+      }
+    };
+
+    element.actionHandler.handleKeyDown = (ev: KeyboardEvent) => {
+      if (!["Enter", " "].includes(ev.key)) {
         return;
       }
-  
-      element.actionHandler.start = (ev: Event) => {
-        this.cancelled = false;
-        let x: number;
-        let y: number;
-        if ((ev as TouchEvent).touches) {
-          x = (ev as TouchEvent).touches[0].clientX;
-          y = (ev as TouchEvent).touches[0].clientY;
-        } else {
-          x = (ev as MouseEvent).clientX;
-          y = (ev as MouseEvent).clientY;
-        }
-  
-        if (options.hasHold) {
-          this.held = false;
-          this.timer = window.setTimeout(() => {
-            this.held = true;
-          }, this.holdTime);
-        }
-      };
-  
-      element.actionHandler.end = (ev: Event) => {
-        // Don't respond when moved or scrolled while touch
-        if (ev.currentTarget !== ev.target) {
-          return;
-        }
-        if (
-          ev.type === "touchcancel" ||
-          (ev.type === "touchend" && this.cancelled)
-        ) {
-          return;
-        }
-        const target = ev.target as HTMLElement;
-        // Prevent mouse event if touch event
-        if (ev.cancelable) {
-          ev.preventDefault();
-        }
-        if (options.hasHold) {
-          clearTimeout(this.timer);
-          this.timer = undefined;
-        }
-        if (options.hasHold && this.held) {
-          fireEvent(target, "action", { action: "hold" });
-        } else if (options.hasDoubleClick) {
-          if (
-            (ev.type === "click" && (ev as MouseEvent).detail < 2) ||
-            !this.dblClickTimeout
-          ) {
-            this.dblClickTimeout = window.setTimeout(() => {
-              this.dblClickTimeout = undefined;
-              fireEvent(target, "action", { action: "tap" });
-            }, 250);
-          } else {
-            clearTimeout(this.dblClickTimeout);
-            this.dblClickTimeout = undefined;
-            fireEvent(target, "action", { action: "double_tap" });
-          }
-        } else {
-          fireEvent(target, "action", { action: "tap" });
-        }
-      };
-  
-      element.actionHandler.handleKeyDown = (ev: KeyboardEvent) => {
-        if (!["Enter", " "].includes(ev.key)) {
-          return;
-        }
-        (ev.currentTarget as ActionHandlerElement).actionHandler!.end!(ev);
-      };
-  
-      element.addEventListener("touchstart", element.actionHandler.start, {
-        passive: true,
-      });
-      element.addEventListener("touchend", element.actionHandler.end);
-      element.addEventListener("touchcancel", element.actionHandler.end);
-  
-      element.addEventListener("mousedown", element.actionHandler.start, {
-        passive: true,
-      });
-      element.addEventListener("click", element.actionHandler.end);
-  
-      element.addEventListener("keydown", element.actionHandler.handleKeyDown);
-    }
-  
-  }
-  
-  customElements.define("action-handler-status-card", ActionHandler);
+      (ev.currentTarget as ActionHandlerElement).actionHandler!.end!(ev);
+    };
 
+    element.addEventListener("touchstart", element.actionHandler.start, {
+      passive: true,
+    });
+    element.addEventListener("touchend", element.actionHandler.end);
+    element.addEventListener("touchcancel", element.actionHandler.end);
+
+    element.addEventListener("mousedown", element.actionHandler.start, {
+      passive: true,
+    });
+    element.addEventListener("click", element.actionHandler.end);
+
+    element.addEventListener("keydown", element.actionHandler.handleKeyDown);
+  }
+}
+
+customElements.define("action-handler-status-card", ActionHandler);
 
 const getActionHandler = (): ActionHandler => {
   const body = document.body;
-  if (body.querySelector('action-handler-status-card')) {
-    return body.querySelector('action-handler-status-card') as ActionHandler;
+  if (body.querySelector("action-handler-status-card")) {
+    return body.querySelector("action-handler-status-card") as ActionHandler;
   }
 
-  const actionhandler = document.createElement('action-handler-status-card');
+  const actionhandler = document.createElement("action-handler-status-card");
   body.appendChild(actionhandler);
 
   return actionhandler as ActionHandler;
 };
 
-export const actionHandlerBind = (element: ActionHandlerElement, options?: ActionHandlerOptions): void => {
+export const actionHandlerBind = (
+  element: ActionHandlerElement,
+  options?: ActionHandlerOptions
+): void => {
   const actionhandler: ActionHandler = getActionHandler();
   if (!actionhandler) {
     return;
@@ -322,9 +327,8 @@ export const actionHandler = directive(
     }
     // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
     render(_options?: ActionHandlerOptions) {}
-  },
+  }
 );
-
 
 // From https://github.com/epoberezkin/fast-deep-equal
 // MIT License - Copyright (c) 2017 Evgeny Poberezkin
@@ -334,7 +338,7 @@ export const deepEqual = (a: any, b: any): boolean => {
     return true;
   }
 
-  if (a && b && typeof a === 'object' && typeof b === 'object') {
+  if (a && b && typeof a === "object" && typeof b === "object") {
     if (a.constructor !== b.constructor) {
       return false;
     }

@@ -13,7 +13,6 @@ interface Schema {
   type?: string;
 }
 
-
 @customElement("status-item-editor")
 export class ItemEditor extends LitElement {
   @property({ attribute: false }) config?: Settings;
@@ -23,27 +22,42 @@ export class ItemEditor extends LitElement {
   @state() private getSchema?: string;
   @state() private _config?: CardConfig;
 
-
   private _schemadomain = memoizeOne(() => {
-    const actions: UiAction[] = ["more-info", "toggle", "navigate", "url", "perform-action", "none"];
+    const actions: UiAction[] = [
+      "more-info",
+      "toggle",
+      "navigate",
+      "url",
+      "perform-action",
+      "none",
+    ];
     return [
       { name: "invert", selector: { boolean: {} } },
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
-      { name: "icon_color", selector: {
-        ui_color: { default_color: "state", include_state: true },
-      } },
-    { name: "tap_action", selector: { ui_action: {actions} } },    
-    { name: "double_tap_action", selector: { ui_action: {actions} }},    
-    { name: "hold_action", selector: { ui_action: {actions} } },    
-  ];
-});
-
-
+      {
+        name: "icon_color",
+        selector: {
+          ui_color: { default_color: "state", include_state: true },
+        },
+      },
+      { name: "icon_css", selector: { template: {} } },
+      { name: "tap_action", selector: { ui_action: { actions } } },
+      { name: "double_tap_action", selector: { ui_action: { actions } } },
+      { name: "hold_action", selector: { ui_action: { actions } } },
+    ];
+  });
 
   private _schemaEntity = memoizeOne(() => {
-    const entityId = this.config?.type || '';
-    const actions: UiAction[] = ["more-info", "toggle", "navigate", "url", "perform-action", "none"];
+    const entityId = this.config?.type || "";
+    const actions: UiAction[] = [
+      "more-info",
+      "toggle",
+      "navigate",
+      "url",
+      "perform-action",
+      "none",
+    ];
     return [
       {
         name: "",
@@ -71,42 +85,48 @@ export class ItemEditor extends LitElement {
                 ],
               },
             },
-          },   
+          },
           {
             name: "state",
-            selector: { state: { entity_id: entityId } }
+            selector: { state: { entity_id: entityId } },
           },
-    ]},
+        ],
+      },
 
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
       {
         name: "icon_color",
-        selector: { ui_color: { default_color: "state", include_state: true } }
+        selector: { ui_color: { default_color: "state", include_state: true } },
       },
-      { name: "tap_action", selector: { ui_action: {actions} } },    
-      { name: "double_tap_action", selector: { ui_action: {actions} }},    
-      { name: "hold_action", selector: { ui_action: {actions} } },  
+      { name: "icon_css", selector: { template: {} } },
+      { name: "tap_action", selector: { ui_action: { actions } } },
+      { name: "double_tap_action", selector: { ui_action: { actions } } },
+      { name: "hold_action", selector: { ui_action: { actions } } },
     ];
   });
-  
-
 
   protected render(): TemplateResult {
     if (!this.hass || !this.config) {
       return html``;
     }
 
-    if (!this._config?.invert_state) {
+    // Setze invert_state nur, wenn das Schema "entity" ist.
+    if (this.getSchema === "entity" && !this._config?.invert_state) {
       this._config = {
         ...this._config,
-        invert_state: "false",
-        icon_color: this.config.icon_color || undefined,
-        
+        invert_state: this.config.invert_state || "false",
+        icon_color: this.config.icon_color,
       };
     }
 
-  
+    if (this.getSchema === "domain") {
+      this._config = {
+        ...this._config,
+        icon_color: this.config.icon_color,
+      };
+    }
+
     let schema;
     switch (this.getSchema) {
       case "domain":
@@ -117,13 +137,10 @@ export class ItemEditor extends LitElement {
         break;
     }
 
-
-
     const data = {
       ...this._config,
     };
-  
-  
+
     return html`
       <ha-form
         .hass=${this.hass}
@@ -134,27 +151,34 @@ export class ItemEditor extends LitElement {
       ></ha-form>
     `;
   }
-  
 
   private _computeLabelCallback = (schema: Schema): string => {
     switch (schema.name) {
       case "hide":
         return this.hass!.localize("ui.common.hide");
       case "state":
-        return this.hass!.localize("ui.components.entity.entity-state-picker.state");       
+        return this.hass!.localize(
+          "ui.components.entity.entity-state-picker.state"
+        );
       case "invert":
       case "invert_state":
-        return this.hass!.localize("ui.dialogs.entity_registry.editor.invert.label");
+        return this.hass!.localize(
+          "ui.dialogs.entity_registry.editor.invert.label"
+        );
       case "color":
-        return this.hass!.localize("ui.panel.lovelace.editor.card.tile.color");   
+        return this.hass!.localize("ui.panel.lovelace.editor.card.tile.color");
       case "name":
       case "icon":
       case "tap_action":
       case "hold_action":
       case "double_tap_action":
-      return this.hass!.localize(`ui.panel.lovelace.editor.card.generic.${schema.name}`);  
+        return this.hass!.localize(
+          `ui.panel.lovelace.editor.card.generic.${schema.name}`
+        );
       default:
-        return this.hass!.localize(`ui.panel.lovelace.editor.card.area.${schema.name}`);
+        return this.hass!.localize(
+          `ui.panel.lovelace.editor.card.area.${schema.name}`
+        );
     }
   };
 
@@ -168,17 +192,15 @@ export class ItemEditor extends LitElement {
       ...this.config,
       ...event.detail.value,
     };
-    
-  
+
     this._config = updatedConfig;
-  
+
     this.dispatchEvent(
       new CustomEvent("config-changed", {
         detail: updatedConfig,
       })
     );
   }
-    
 
   static get styles(): CSSResult {
     return css`

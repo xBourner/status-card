@@ -1,11 +1,21 @@
 import { LitElement, html, css, PropertyValues, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import memoizeOne from "memoize-one";
-import { HomeAssistant, computeDomain, LovelaceCard, applyThemesOnElement, hasAction, handleAction, ActionHandlerEvent, ActionConfig, STATES_OFF } from "custom-card-helpers";
+import {
+  HomeAssistant,
+  computeDomain,
+  LovelaceCard,
+  applyThemesOnElement,
+  hasAction,
+  handleAction,
+  ActionHandlerEvent,
+  ActionConfig,
+  STATES_OFF,
+} from "custom-card-helpers";
 import type { HassEntity } from "home-assistant-js-websocket";
-import { domainIcon, ALLOWED_DOMAINS } from './properties';
+import { domainIcon, ALLOWED_DOMAINS, DataStore } from "./properties";
 import { computeLabelCallback, translateEntityState } from "./translations";
-import { actionHandler } from "./helpers"
+import { actionHandler } from "./helpers";
 
 interface EntityRegistryEntry {
   entity_id: string;
@@ -40,6 +50,7 @@ interface CustomizationConfig {
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
   double_tap_action?: ActionConfig;
+  icon_css?: string;
 }
 
 interface Config {
@@ -92,14 +103,12 @@ export class StatusCard extends LitElement {
   @state() private list_mode: boolean = false;
   @state() private _isMobile: boolean = false;
 
-
-  private computeLabel(schema: Schema, domain?: string, deviceClass?: string): string {
+  private computeLabel(
+    schema: Schema,
+    domain?: string,
+    deviceClass?: string
+  ): string {
     return computeLabelCallback(this.hass, schema, domain, deviceClass);
-  }
-
-  private _showEntities(domain: string, deviceClass?: string): void {
-    this.selectedDomain = domain;
-    this.selectedDeviceClass = deviceClass || null;
   }
 
   private _closeDialog(): void {
@@ -112,7 +121,6 @@ export class StatusCard extends LitElement {
     if (dialog && container?.contains(dialog)) {
       container.removeChild(dialog);
     }
-
   }
 
   static getConfigElement() {
@@ -124,9 +132,12 @@ export class StatusCard extends LitElement {
       throw new Error("Invalid configuration.");
     }
     this._config = config;
-    this.hide_person_name = config.hide_person_name !== undefined ? config.hide_person_name : false;
-    this.hide_person = config.hide_person !== undefined ? config.hide_person : false;
-    this.hide_content_name = config.hide_content_name !== undefined ? config.hide_content_name : false;
+    this.hide_person_name =
+      config.hide_person_name !== undefined ? config.hide_person_name : false;
+    this.hide_person =
+      config.hide_person !== undefined ? config.hide_person : false;
+    this.hide_content_name =
+      config.hide_content_name !== undefined ? config.hide_content_name : false;
     this.list_mode = config.list_mode !== undefined ? config.list_mode : false;
     this.hiddenEntities = config.hidden_entities || [];
     this.hiddenLabels = config.hidden_labels || [];
@@ -180,12 +191,21 @@ export class StatusCard extends LitElement {
 
   private async _loadData(): Promise<void> {
     try {
-      const [areas, devices, entities]: [AreaRegistryEntry[], DeviceRegistryEntry[], EntityRegistryEntry[]] =
-        await Promise.all([
-          this.hass?.callWS<AreaRegistryEntry[]>({ type: "config/area_registry/list" }) ?? [],
-          this.hass?.callWS<DeviceRegistryEntry[]>({ type: "config/device_registry/list" }) ?? [],
-          this.hass?.callWS<EntityRegistryEntry[]>({ type: "config/entity_registry/list" }) ?? [],
-        ]);
+      const [areas, devices, entities]: [
+        AreaRegistryEntry[],
+        DeviceRegistryEntry[],
+        EntityRegistryEntry[]
+      ] = await Promise.all([
+        this.hass?.callWS<AreaRegistryEntry[]>({
+          type: "config/area_registry/list",
+        }) ?? [],
+        this.hass?.callWS<DeviceRegistryEntry[]>({
+          type: "config/device_registry/list",
+        }) ?? [],
+        this.hass?.callWS<EntityRegistryEntry[]>({
+          type: "config/entity_registry/list",
+        }) ?? [],
+      ]);
 
       this.areas = areas;
       this.devices = devices;
@@ -198,12 +218,23 @@ export class StatusCard extends LitElement {
   }
 
   private _processEntities(): void {
-
-    this.entitiesByDomain = this._entitiesByDomain(
+    const entitiesByDomain = this._entitiesByDomain(
       this.entities,
       this.devices,
       (this.hass as HomeAssistant).states
     );
+
+    // Speichere die Ergebnisse in der DataStore-Klasse
+    DataStore.setEntitiesByDomain(
+      Object.fromEntries(
+        Object.entries(entitiesByDomain).map(([domain, entities]) => [
+          domain,
+          entities.map((entity) => entity.entity_id),
+        ])
+      )
+    );
+
+    this.entitiesByDomain = entitiesByDomain;
   }
 
   private showMoreInfo(entity: HassEntity): void {
@@ -237,34 +268,39 @@ export class StatusCard extends LitElement {
             return !entry.hidden_by && !entry.disabled_by;
           }
 
-          const device = entry.device_id ? deviceMap.get(entry.device_id) : null;
+          const device = entry.device_id
+            ? deviceMap.get(entry.device_id)
+            : null;
           const isInAnyArea =
             entry.area_id !== null || (device && device.area_id !== null);
           if (!isInAnyArea) {
             return false;
           }
 
-          const matchesLabel =
-            label
-              ? entry.labels?.some((l) => label.includes(l)) ||
+          const matchesLabel = label
+            ? entry.labels?.some((l) => label.includes(l)) ||
               (device?.labels?.some((l) => label.includes(l)) ?? false)
-              : true;
+            : true;
           if (!matchesLabel) {
             return false;
           }
 
           const areas = area ? (Array.isArray(area) ? area : [area]) : null;
-          const floors = floor ? (Array.isArray(floor) ? floor : [floor]) : null;
+          const floors = floor
+            ? Array.isArray(floor)
+              ? floor
+              : [floor]
+            : null;
 
           const matchesArea = areas
-            ? ((entry.area_id !== undefined && areas.includes(entry.area_id)) ||
-              (device && device.area_id !== undefined && areas.includes(device.area_id)))
+            ? (entry.area_id !== undefined && areas.includes(entry.area_id)) ||
+              (device &&
+                device.area_id !== undefined &&
+                areas.includes(device.area_id))
             : true;
 
-
           const matchesFloor = floors
-            ? (
-              (entry.area_id !== undefined &&
+            ? (entry.area_id !== undefined &&
                 this.areas?.some(
                   (a) =>
                     a.area_id === entry.area_id &&
@@ -278,7 +314,6 @@ export class StatusCard extends LitElement {
                     a.floor_id !== undefined &&
                     floors.includes(a.floor_id)
                 ))
-            )
             : true;
 
           return (
@@ -326,7 +361,8 @@ export class StatusCard extends LitElement {
     return entities
       .filter((entity) => !["unavailable", "unknown"].includes(entity.state))
       .filter((entity) => {
-        const matchesDeviceClass = !deviceClass || entity.attributes.device_class === deviceClass;
+        const matchesDeviceClass =
+          !deviceClass || entity.attributes.device_class === deviceClass;
 
         let key: string;
         if (deviceClass) {
@@ -337,13 +373,36 @@ export class StatusCard extends LitElement {
         const customization = this.getCustomizationForType(key);
         const isInverted = customization?.invert === true;
 
-        const isActive = !["closed", "locked", "off", "docked", "idle", "standby", "paused", "auto", "not_home", "disarmed", "0"].includes(entity.state);
+        const isActive = ![
+          "closed",
+          "locked",
+          "off",
+          "docked",
+          "idle",
+          "standby",
+          "paused",
+          "auto",
+          "not_home",
+          "disarmed",
+          "0",
+        ].includes(entity.state);
         const isInactive = !isActive;
 
         if (domain === "climate") {
           const hvacAction = entity.attributes.hvac_action;
           if (hvacAction !== undefined) {
-            return isInverted ? ["idle", "off"].includes(hvacAction) : !["idle", "off"].includes(hvacAction);
+            return isInverted
+              ? ["idle", "off"].includes(hvacAction)
+              : !["idle", "off"].includes(hvacAction);
+          }
+        }
+
+        if (domain === "humidifier") {
+          const humAction = entity.attributes.action;
+          if (humAction !== undefined) {
+            return isInverted
+              ? ["idle", "off"].includes(humAction)
+              : !["idle", "off"].includes(humAction);
           }
         }
 
@@ -366,13 +425,32 @@ export class StatusCard extends LitElement {
       return [];
     }
     return entities.filter((entity) => {
-      const matchesDeviceClass = !deviceClass || entity.attributes.device_class === deviceClass;
-      return matchesDeviceClass && !["unavailable", "unknown"].includes(entity.state);
+      const matchesDeviceClass =
+        !deviceClass || entity.attributes.device_class === deviceClass;
+      return (
+        matchesDeviceClass && !["unavailable", "unknown"].includes(entity.state)
+      );
     });
   }
 
-  private getStatusProperty(domain: string, deviceClass?: string, state?: string): string {
-    const openDeviceClasses = ['window', 'door', 'lock', 'awning', 'blind', 'curtain', 'damper', 'garage', 'gate', 'shade', 'shutter'];
+  private getStatusProperty(
+    domain: string,
+    deviceClass?: string,
+    state?: string
+  ): string {
+    const openDeviceClasses = [
+      "window",
+      "door",
+      "lock",
+      "awning",
+      "blind",
+      "curtain",
+      "damper",
+      "garage",
+      "gate",
+      "shade",
+      "shutter",
+    ];
 
     let key: string;
     if (deviceClass) {
@@ -384,21 +462,33 @@ export class StatusCard extends LitElement {
     const isInverted = customization?.invert === true;
 
     switch (domain) {
-      case 'device_tracker': {
-        const normalState = translateEntityState(this.hass!, "home", "device_tracker");
-        const invertedState = translateEntityState(this.hass!, "not_home", "device_tracker");
+      case "device_tracker": {
+        const normalState = translateEntityState(
+          this.hass!,
+          "home",
+          "device_tracker"
+        );
+        const invertedState = translateEntityState(
+          this.hass!,
+          "not_home",
+          "device_tracker"
+        );
         return isInverted ? invertedState : normalState;
       }
-      case 'lock':
-      case 'cover': {
+      case "lock":
+      case "cover": {
         const normalState = translateEntityState(this.hass!, "open", "cover");
-        const invertedState = translateEntityState(this.hass!, "closed", "cover");
+        const invertedState = translateEntityState(
+          this.hass!,
+          "closed",
+          "cover"
+        );
         return isInverted ? invertedState : normalState;
       }
-      case 'person': {
-        if (state === 'home') {
+      case "person": {
+        if (state === "home") {
           return translateEntityState(this.hass!, "home", "person");
-        } else if (state === 'not_home') {
+        } else if (state === "not_home") {
           return translateEntityState(this.hass!, "not_home", "person");
         } else {
           return state ?? "unknown";
@@ -407,25 +497,50 @@ export class StatusCard extends LitElement {
       default: {
         if (deviceClass && openDeviceClasses.includes(deviceClass)) {
           const normalState = translateEntityState(this.hass!, "open", "cover");
-          const invertedState = translateEntityState(this.hass!, "closed", "cover");
+          const invertedState = translateEntityState(
+            this.hass!,
+            "closed",
+            "cover"
+          );
           return isInverted ? invertedState : normalState;
         }
-        const normalState = translateEntityState(this.hass!, state ?? "on", "light");
-        const invertedState = translateEntityState(this.hass!, state ?? "off", "light");
+        const normalState = translateEntityState(
+          this.hass!,
+          state ?? "on",
+          "light"
+        );
+        const invertedState = translateEntityState(
+          this.hass!,
+          state ?? "off",
+          "light"
+        );
         return isInverted ? invertedState : normalState;
       }
     }
   }
 
-  private getCustomizationForType(
-    type: string
-  ): { name?: string; icon?: string; icon_color?: string; invert?: boolean; tap_action?: ActionConfig; double_tap_action?: ActionConfig; hold_action?: ActionConfig } | undefined {
-    return this._config.customization?.find((entry: any) =>
-      entry.type?.toLowerCase() === type.toLowerCase()
+  private getCustomizationForType(type: string):
+    | {
+        name?: string;
+        icon?: string;
+        icon_color?: string;
+        invert?: boolean;
+        tap_action?: ActionConfig;
+        double_tap_action?: ActionConfig;
+        hold_action?: ActionConfig;
+        icon_css?: string;
+      }
+    | undefined {
+    return this._config.customization?.find(
+      (entry: any) => entry.type?.toLowerCase() === type.toLowerCase()
     );
   }
 
-  private getCustomIcon(domain: string, deviceClass?: string, entity?: HassEntity): string {
+  private getCustomIcon(
+    domain: string,
+    deviceClass?: string,
+    entity?: HassEntity
+  ): string {
     let key: string;
     if (deviceClass) {
       key = `${this._formatDomain(domain)} - ${deviceClass}`;
@@ -452,7 +567,11 @@ export class StatusCard extends LitElement {
     return domainIcon(fallbackDomain, state, deviceClass);
   }
 
-  private getCustomColor(domain: string, deviceClass?: string, entity?: HassEntity): string | undefined {
+  private getCustomColor(
+    domain: string,
+    deviceClass?: string,
+    entity?: HassEntity
+  ): string | undefined {
     let key: string;
     if (deviceClass) {
       key = `${this._formatDomain(domain)} - ${deviceClass}`;
@@ -469,7 +588,11 @@ export class StatusCard extends LitElement {
     return undefined;
   }
 
-  private getCustomName(domain: string, deviceClass?: string, entity?: HassEntity): string | undefined {
+  private getCustomName(
+    domain: string,
+    deviceClass?: string,
+    entity?: HassEntity
+  ): string | undefined {
     let key: string;
     if (deviceClass) {
       key = `${this._formatDomain(domain)} - ${deviceClass}`;
@@ -486,6 +609,24 @@ export class StatusCard extends LitElement {
     return undefined;
   }
 
+  private getCustomCSS(
+    domain: string,
+    deviceClass?: string,
+    entity?: HassEntity
+  ): string | undefined {
+    let key: string;
+    if (deviceClass) {
+      key = `${this._formatDomain(domain)} - ${deviceClass}`;
+    } else {
+      key = domain;
+    }
+    const customization = this.getCustomizationForType(key);
+    if (customization && customization.icon_css) {
+      return customization.icon_css;
+    }
+    return undefined;
+  }
+
   private _formatDomain(domain: string): string {
     return domain
       .split("_")
@@ -495,27 +636,28 @@ export class StatusCard extends LitElement {
 
   private loadPersonEntities(): HassEntity[] {
     return !this.hide_person
-      ? this.entities.filter((entity) =>
-        entity.entity_id.startsWith("person.") &&
-        !this.hiddenEntities.includes(entity.entity_id) &&
-        !entity.labels?.some((l) => this.hiddenLabels.includes(l)) &&
-        !entity.hidden_by &&
-        !entity.disabled_by
-      )
-        .map((entry) => (this.hass as HomeAssistant).states[entry.entity_id])
-        .filter((stateObj): stateObj is HassEntity => !!stateObj)
+      ? this.entities
+          .filter(
+            (entity) =>
+              entity.entity_id.startsWith("person.") &&
+              !this.hiddenEntities.includes(entity.entity_id) &&
+              !entity.labels?.some((l) => this.hiddenLabels.includes(l)) &&
+              !entity.hidden_by &&
+              !entity.disabled_by
+          )
+          .map((entry) => (this.hass as HomeAssistant).states[entry.entity_id])
+          .filter((stateObj): stateObj is HassEntity => !!stateObj)
       : [];
   }
 
   private renderPersonEntities(): TemplateResult[] {
     const personEntities = this.loadPersonEntities();
 
-    return personEntities
-      .map((entity) => {
-        const entityState = this.hass!.states[entity.entity_id];
-        const isNotHome = entityState?.state === "not_home";
+    return personEntities.map((entity) => {
+      const entityState = this.hass!.states[entity.entity_id];
+      const isNotHome = entityState?.state === "not_home";
 
-        return html`
+      return html`
         <paper-tab @click="${() => this.showMoreInfo(entity)}">
           <div class="entity">
             <div class="entity-icon">
@@ -526,16 +668,30 @@ export class StatusCard extends LitElement {
               />
             </div>
             <div class="entity-info">
-              <div class="entity-name"> ${!this.hide_person_name ? (entity.attributes.friendly_name?.split(" ")[0] || "") : ""} </div>
-              <div class="entity-state"> ${this.getStatusProperty("person", undefined, entityState?.state)} </div>
+              <div class="entity-name">
+                ${!this.hide_person_name
+                  ? entity.attributes.friendly_name?.split(" ")[0] || ""
+                  : ""}
+              </div>
+              <div class="entity-state">
+                ${this.getStatusProperty(
+                  "person",
+                  undefined,
+                  entityState?.state
+                )}
+              </div>
             </div>
           </div>
         </paper-tab>
       `;
-      });
+    });
   }
 
-  private loadExtraEntities(): { type: string; entities: HassEntity[]; icon: string }[] {
+  private loadExtraEntities(): {
+    type: string;
+    entities: HassEntity[];
+    icon: string;
+  }[] {
     if (!this._config?.extra_entities || !this.hass) {
       return [];
     }
@@ -553,14 +709,16 @@ export class StatusCard extends LitElement {
           (entry: any) => entry.type === entity_id
         );
 
-        if (customizationEntry && customizationEntry.state !== undefined && customizationEntry.invert_state !== undefined) {
+        if (
+          customizationEntry &&
+          customizationEntry.state !== undefined &&
+          customizationEntry.invert_state !== undefined
+        ) {
           if (customizationEntry.invert_state === "false") {
-
             if (entity.state !== customizationEntry.state) {
               return null;
             }
           } else if (customizationEntry.invert_state === "true") {
-
             if (entity.state === customizationEntry.state) {
               return null;
             }
@@ -573,11 +731,18 @@ export class StatusCard extends LitElement {
           icon: entity.attributes.icon || domainIcon(domain),
         };
       })
-      .filter((item): item is { type: string; entities: HassEntity[]; icon: string } => item !== null);
+      .filter(
+        (
+          item
+        ): item is { type: string; entities: HassEntity[]; icon: string } =>
+          item !== null
+      );
   }
 
-  createCard(cardConfig: { type: string, entity: string, [key: string]: any }) {
-    const cardElement = document.createElement(`hui-${cardConfig.type}-card`) as LovelaceCard;
+  createCard(cardConfig: { type: string; entity: string; [key: string]: any }) {
+    const cardElement = document.createElement(
+      `hui-${cardConfig.type}-card`
+    ) as LovelaceCard;
     if (cardElement) {
       cardElement.hass = this.hass;
       cardElement.setConfig(cardConfig);
@@ -612,14 +777,14 @@ export class StatusCard extends LitElement {
 `;
 
   private getAreaForEntity(entity: HassEntity): string {
-    const entry = this.entities.find(e => e.entity_id === entity.entity_id);
+    const entry = this.entities.find((e) => e.entity_id === entity.entity_id);
     if (entry) {
       if (entry.area_id) {
         return entry.area_id;
       }
 
       if (entry.device_id) {
-        const device = this.devices.find(d => d.id === entry.device_id);
+        const device = this.devices.find((d) => d.id === entry.device_id);
         if (device && device.area_id) {
           return device.area_id;
         }
@@ -628,11 +793,13 @@ export class StatusCard extends LitElement {
     return "unassigned";
   }
 
-
   private renderPopup(): TemplateResult {
     const columns = this.list_mode ? 1 : this._config.columns || 4;
     const styleBlock = this._isMobile ? this.mobileStyles : this.desktopStyles;
-    const entities = this._isOn(this.selectedDomain!, this.selectedDeviceClass!);
+    const entities = this._isOn(
+      this.selectedDomain!,
+      this.selectedDeviceClass!
+    );
 
     const groups = new Map<string, HassEntity[]>();
     for (const entity of entities) {
@@ -645,156 +812,305 @@ export class StatusCard extends LitElement {
 
     const sortEntities = (ents: HassEntity[]) => {
       return ents.slice().sort((a, b) => {
-        const nameA = (a.attributes?.friendly_name || a.entity_id).toLowerCase();
-        const nameB = (b.attributes?.friendly_name || b.entity_id).toLowerCase();
+        const nameA = (
+          a.attributes?.friendly_name || a.entity_id
+        ).toLowerCase();
+        const nameB = (
+          b.attributes?.friendly_name || b.entity_id
+        ).toLowerCase();
         return nameA.localeCompare(nameB);
       });
     };
 
-    const sortedGroups = Array.from(groups.entries()).sort(([areaIdA], [areaIdB]) => {
-      const areaObjA = this.areas?.find(a => a.area_id === areaIdA);
-      const areaObjB = this.areas?.find(a => a.area_id === areaIdB);
+    const sortedGroups = Array.from(groups.entries()).sort(
+      ([areaIdA], [areaIdB]) => {
+        const areaObjA = this.areas?.find((a) => a.area_id === areaIdA);
+        const areaObjB = this.areas?.find((a) => a.area_id === areaIdB);
 
-      const nameA = areaObjA ? areaObjA.name.toLowerCase() : (areaIdA === "unassigned" ? "Unassigned" : areaIdA);
-      const nameB = areaObjB ? areaObjB.name.toLowerCase() : (areaIdB === "unassigned" ? "Unassigned" : areaIdB);
+        const nameA = areaObjA
+          ? areaObjA.name.toLowerCase()
+          : areaIdA === "unassigned"
+          ? "Unassigned"
+          : areaIdA;
+        const nameB = areaObjB
+          ? areaObjB.name.toLowerCase()
+          : areaIdB === "unassigned"
+          ? "Unassigned"
+          : areaIdB;
 
-      return nameA.localeCompare(nameB);
-    });
+        return nameA.localeCompare(nameB);
+      }
+    );
 
     return html`
-    <ha-dialog id="more-info-dialog" style="--columns: ${columns};" open @closed="${this._closeDialog}">
-      <style>
-        ${styleBlock}
-      </style>
-      <div class="dialog-header">
-        <ha-icon-button slot="navigationIcon" dialogaction="cancel" @click=${() => this._closeDialog()} title="${this.computeLabel({ name: "close" })}">
-          <ha-icon class="center" icon="mdi:close"></ha-icon>
-        </ha-icon-button>
-        <h3>
-          ${this.selectedDomain && this.selectedDeviceClass
-        ? this.computeLabel({ name: "header" }, this.selectedDomain, this.selectedDeviceClass)
-        : this.computeLabel({ name: "header" }, this.selectedDomain || undefined)}
-        </h3>
-      </div>
+      <ha-dialog
+        id="more-info-dialog"
+        style="--columns: ${columns};"
+        open
+        @closed="${this._closeDialog}"
+      >
+        <style>
+          ${styleBlock}
+        </style>
+        <div class="dialog-header">
+          <ha-icon-button
+            slot="navigationIcon"
+            dialogaction="cancel"
+            @click=${() => this._closeDialog()}
+            title="${this.computeLabel({ name: "close" })}"
+          >
+            <ha-icon class="center" icon="mdi:close"></ha-icon>
+          </ha-icon-button>
+          <h3>
+            ${this.selectedDomain && this.selectedDeviceClass
+              ? this.computeLabel(
+                  { name: "header" },
+                  this.selectedDomain,
+                  this.selectedDeviceClass
+                )
+              : this.computeLabel(
+                  { name: "header" },
+                  this.selectedDomain || undefined
+                )}
+          </h3>
+        </div>
         ${this.list_mode
-        ? html`
+          ? html`
               <ul class="entity-list">
                 ${sortedGroups.map(([areaId, groupEntities]) => {
-          const areaObj = this.areas?.find(a => a.area_id === areaId);
-          const areaName = areaObj ? areaObj.name : (areaId === "unassigned" ? "Unassigned" : areaId);
-          const sortedEntities = sortEntities(groupEntities);
-          return html`
+                  const areaObj = this.areas?.find((a) => a.area_id === areaId);
+                  const areaName = areaObj
+                    ? areaObj.name
+                    : areaId === "unassigned"
+                    ? "Unassigned"
+                    : areaId;
+                  const sortedEntities = sortEntities(groupEntities);
+                  return html`
                     <li class="entity-item">
                       <h4>${areaName}:</h4>
                       <ul>
-                        ${sortedEntities.map(entity => html`
-                          <li class="entity-item"> - ${entity.entity_id}</li>
-                        `)}
+                        ${sortedEntities.map(
+                          (entity) => html`
+                            <li class="entity-item">- ${entity.entity_id}</li>
+                          `
+                        )}
                       </ul>
                     </li>
                   `;
-        })}
+                })}
               </ul>
             `
-        : html`
+          : html`
               ${sortedGroups.map(([areaId, groupEntities]) => {
-          const areaObj = this.areas?.find(a => a.area_id === areaId);
-          const areaName = areaObj ? areaObj.name : (areaId === "unassigned" ? "Unassigned" : areaId);
-          const sortedEntities = sortEntities(groupEntities);
-          return html`
-                    <div class="area-group">
-                      <h4>${areaName}</h4>
-                      <div class="entity-cards">
-                        ${sortedEntities.map(entity => html`
+                const areaObj = this.areas?.find((a) => a.area_id === areaId);
+                const areaName = areaObj
+                  ? areaObj.name
+                  : areaId === "unassigned"
+                  ? "Unassigned"
+                  : areaId;
+                const sortedEntities = sortEntities(groupEntities);
+                return html`
+                  <div class="area-group">
+                    <h4>${areaName}</h4>
+                    <div class="entity-cards">
+                      ${sortedEntities.map(
+                        (entity) => html`
                           <div class="entity-card">
                             ${this.createCard({
-            type: "tile",
-            entity: entity.entity_id,
-            ...(this.selectedDomain === "alarm_control_panel" && {
-              features: [
-                {
-                  type: "alarm-modes",
-                  modes: [
-                    "armed_home",
-                    "armed_away",
-                    "armed_night",
-                    "armed_vacation",
-                    "armed_custom_bypass",
-                    "disarmed",
-                  ],
-                },
-              ],
-            }),
-            ...(this.selectedDomain === "light" && {
-              features: [{ type: "light-brightness" }],
-            }),
-            ...(this.selectedDomain === "cover" && {
-              features: [
-                { type: "cover-open-close" },
-                { type: "cover-position" },
-              ],
-            }),
-            ...(this.selectedDomain === "vacuum" && {
-              features: [
-                {
-                  type: "vacuum-commands",
-                  commands: [
-                    "start_pause",
-                    "stop",
-                    "clean_spot",
-                    "locate",
-                    "return_home",
-                  ],
-                },
-              ],
-            }),
-            ...(this.selectedDomain === "climate" && {
-              features: [
-                {
-                  type: "climate-hvac-modes",
-                  hvac_modes: [
-                    "auto",
-                    "heat_cool",
-                    "heat",
-                    "cool",
-                    "dry",
-                    "fan_only",
-                    "off",
-                  ],
-                },
-              ],
-            }),
-            ...(this.selectedDomain === "media_player" && {
-              features: [{ type: "media-player-volume-slider" }],
-            }),
-            ...(this.selectedDomain === "lock" && {
-              features: [{ type: "lock-commands" }],
-            }),
-            ...(this.selectedDomain === "fan" && {
-              features: [{ type: "fan-speed" }],
-            }),
-            ...(this.selectedDomain === "switch" && {
-              features: [{ type: "toggle" }],
-            }),
-            ...(this.selectedDomain === "counter" && {
-              features: [{ type: "counter-actions", actions: ["increment", "decrement", "reset"] }],
-            }),
-            ...(this.selectedDomain === "update" && {
-              features: [{ type: "update-actions", backup: "ask" }],
-            }),
-          })}
+                              type: "tile",
+                              entity: entity.entity_id,
+                              ...(this.selectedDomain ===
+                                "alarm_control_panel" && {
+                                state_content: ["state", "last_changed"],
+                                features: [
+                                  {
+                                    type: "alarm-modes",
+                                    modes: [
+                                      "armed_home",
+                                      "armed_away",
+                                      "armed_night",
+                                      "armed_vacation",
+                                      "armed_custom_bypass",
+                                      "disarmed",
+                                    ],
+                                  },
+                                ],
+                              }),
+                              ...(this.selectedDomain === "light" && {
+                                state_content: [
+                                  "state",
+                                  "brightness",
+                                  "last_changed",
+                                ],
+                                features: [{ type: "light-brightness" }],
+                              }),
+                              ...(this.selectedDomain === "cover" && {
+                                state_content: [
+                                  "state",
+                                  "position",
+                                  "last_changed",
+                                ],
+                                features: [
+                                  { type: "cover-open-close" },
+                                  { type: "cover-position" },
+                                ],
+                              }),
+                              ...(this.selectedDomain === "vacuum" && {
+                                state_content: ["state", "last_changed"],
+                                features: [
+                                  {
+                                    type: "vacuum-commands",
+                                    commands: [
+                                      "start_pause",
+                                      "stop",
+                                      "clean_spot",
+                                      "locate",
+                                      "return_home",
+                                    ],
+                                  },
+                                ],
+                              }),
+                              ...(this.selectedDomain === "climate" && {
+                                state_content: [
+                                  "state",
+                                  "current_temperature",
+                                  "last_changed",
+                                ],
+                                features: [
+                                  {
+                                    type: "climate-hvac-modes",
+                                    hvac_modes: [
+                                      "auto",
+                                      "heat_cool",
+                                      "heat",
+                                      "cool",
+                                      "dry",
+                                      "fan_only",
+                                      "off",
+                                    ],
+                                  },
+                                ],
+                              }),
+                              ...(this.selectedDomain === "water_heater" && {
+                                state_content: ["state", "last_changed"],
+                                features: [
+                                  {
+                                    type: "water-heater-operation-modes",
+                                    operation_modes: [
+                                      "electric",
+                                      "gas",
+                                      "heat_pump",
+                                      "eco",
+                                      "performance",
+                                      "high_demand",
+                                      "off",
+                                    ],
+                                  },
+                                ],
+                              }),
+                              ...(this.selectedDomain === "humidifier" && {
+                                state_content: [
+                                  "state",
+                                  "current_humidity",
+                                  "last_changed",
+                                ],
+                                features: [
+                                  {
+                                    type: "target-humidity",
+                                  },
+                                ],
+                              }),
+                              ...(this.selectedDomain === "media_player" && {
+                                show_entity_picture: true,
+                                state_content: [
+                                  "state",
+                                  "volume_level",
+                                  "last_changed",
+                                ],
+                                features: [
+                                  { type: "media-player-volume-slider" },
+                                ],
+                              }),
+                              ...(this.selectedDomain === "lock" && {
+                                state_content: ["state", "last_changed"],
+                                features: [{ type: "lock-commands" }],
+                              }),
+                              ...(this.selectedDomain === "fan" && {
+                                state_content: [
+                                  "state",
+                                  "percentage",
+                                  "last_changed",
+                                ],
+                                features: [{ type: "fan-speed" }],
+                              }),
+                              ...(this.selectedDomain === "counter" && {
+                                state_content: ["state", "last_changed"],
+                                features: [
+                                  {
+                                    type: "counter-actions",
+                                    actions: [
+                                      "increment",
+                                      "decrement",
+                                      "reset",
+                                    ],
+                                  },
+                                ],
+                              }),
+                              ...(this.selectedDomain === "lawn_mower" && {
+                                state_content: ["state", "last_changed"],
+                                features: [
+                                  {
+                                    type: "lawn-mower-commands",
+                                    commands: ["start_pause", "dock"],
+                                  },
+                                ],
+                              }),
+                              ...(this.selectedDomain === "update" && {
+                                state_content: [
+                                  "state",
+                                  "latest_version",
+                                  "last_changed",
+                                ],
+                                features: [
+                                  { type: "update-actions", backup: "ask" },
+                                ],
+                              }),
+                              ...(["switch", "input_boolean"].includes(
+                                this.selectedDomain as string
+                              ) && {
+                                state_content: ["state", "last_changed"],
+                                features: [{ type: "toggle" }],
+                              }),
+                              ...(this.selectedDomain === "calendar" && {
+                                state_content: "message",
+                              }),
+                              ...(this.selectedDomain === "timer" && {
+                                state_content: ["state", "remaining_time"],
+                              }),
+                              ...([
+                                "binary_sensor",
+                                "device_tracker",
+                                "remote",
+                              ].includes(this.selectedDomain as string) && {
+                                state_content: ["state", "last_changed"],
+                              }),
+                            })}
                           </div>
-                        `)}
-                      </div>
+                        `
+                      )}
                     </div>
-                  `;
-        })}
+                  </div>
+                `;
+              })}
             `}
-    </ha-dialog>
-  `;
+      </ha-dialog>
+    `;
   }
 
-  private _handleDomainAction(domain: string, deviceClass?: string): (ev: ActionHandlerEvent) => void {
+  private _handleDomainAction(
+    domain: string,
+    deviceClass?: string
+  ): (ev: ActionHandlerEvent) => void {
     return (ev: ActionHandlerEvent) => {
       ev.stopPropagation();
 
@@ -810,23 +1126,37 @@ export class StatusCard extends LitElement {
       let actionFromConfig: ActionConfig | undefined;
 
       if (ev.detail.action === "tap") {
-        actionFromCustomization = customization?.tap_action ? { ...customization.tap_action } : undefined;
-        actionFromConfig = this._config?.tap_action ? { ...this._config.tap_action } : undefined;
+        actionFromCustomization = customization?.tap_action
+          ? { ...customization.tap_action }
+          : undefined;
+        actionFromConfig = this._config?.tap_action
+          ? { ...this._config.tap_action }
+          : undefined;
       } else if (ev.detail.action === "hold") {
-        actionFromCustomization = customization?.hold_action ? { ...customization.hold_action } : undefined;
-        actionFromConfig = this._config?.hold_action ? { ...this._config.hold_action } : undefined;
+        actionFromCustomization = customization?.hold_action
+          ? { ...customization.hold_action }
+          : undefined;
+        actionFromConfig = this._config?.hold_action
+          ? { ...this._config.hold_action }
+          : undefined;
       } else if (ev.detail.action === "double_tap") {
-        actionFromCustomization = customization?.double_tap_action ? { ...customization.double_tap_action } : undefined;
-        actionFromConfig = this._config?.double_tap_action ? { ...this._config.double_tap_action } : undefined;
+        actionFromCustomization = customization?.double_tap_action
+          ? { ...customization.double_tap_action }
+          : undefined;
+        actionFromConfig = this._config?.double_tap_action
+          ? { ...this._config.double_tap_action }
+          : undefined;
       }
 
-      let actionConfig = (actionFromCustomization !== undefined)
-        ? actionFromCustomization
-        : actionFromConfig;
+      let actionConfig =
+        actionFromCustomization !== undefined
+          ? actionFromCustomization
+          : actionFromConfig;
 
       const isMoreInfo =
         (typeof actionConfig === "string" && actionConfig === "more-info") ||
-        (typeof actionConfig === "object" && actionConfig?.action === "more-info");
+        (typeof actionConfig === "object" &&
+          actionConfig?.action === "more-info");
 
       const isToggle =
         (typeof actionConfig === "string" && actionConfig === "toggle") ||
@@ -847,8 +1177,22 @@ export class StatusCard extends LitElement {
           return;
         }
 
-        if (["light", "switch", "fan", "cover", "siren", "climate", "humidifier", "valve",  "remote",].includes(domain)) {
-          this.hass.callService(domain, "toggle", { entity_id: entities.map(e => e.entity_id) });
+        if (
+          [
+            "light",
+            "switch",
+            "fan",
+            "cover",
+            "siren",
+            "climate",
+            "humidifier",
+            "valve",
+            "remote",
+          ].includes(domain)
+        ) {
+          this.hass.callService(domain, "toggle", {
+            entity_id: entities.map((e) => e.entity_id),
+          });
           return;
         }
 
@@ -859,19 +1203,35 @@ export class StatusCard extends LitElement {
           }
 
           if (domain === "media_player") {
-            this.hass.callService( domain, isOn ? "media_pause" : "media_play",{ entity_id: entity.entity_id });
+            this.hass.callService(domain, isOn ? "media_pause" : "media_play", {
+              entity_id: entity.entity_id,
+            });
           } else if (domain === "lock") {
-            this.hass.callService( domain, isOn ? "lock" : "unlock", { entity_id: entity.entity_id });
-          } else if (domain === "vacuum") { 
-            this.hass.callService( domain, isOn ? "stop" : "start", { entity_id: entity.entity_id });
+            this.hass.callService(domain, isOn ? "lock" : "unlock", {
+              entity_id: entity.entity_id,
+            });
+          } else if (domain === "vacuum") {
+            this.hass.callService(domain, isOn ? "stop" : "start", {
+              entity_id: entity.entity_id,
+            });
           } else if (domain === "alarm_control_panel") {
-            this.hass.callService( domain, isOn ? "alarm_arm_away" : "alarm_disarm", { entity_id: entity.entity_id });
+            this.hass.callService(
+              domain,
+              isOn ? "alarm_arm_away" : "alarm_disarm",
+              { entity_id: entity.entity_id }
+            );
           } else if (domain === "lawn_mower") {
-            this.hass.callService( domain, isOn ? "pause" : "start_mowing", { entity_id: entity.entity_id });
+            this.hass.callService(domain, isOn ? "pause" : "start_mowing", {
+              entity_id: entity.entity_id,
+            });
           } else if (domain === "water_heater") {
-            this.hass.callService( domain, isOn ? "turn_off" : "turn_on", { entity_id: entity.entity_id });
+            this.hass.callService(domain, isOn ? "turn_off" : "turn_on", {
+              entity_id: entity.entity_id,
+            });
           } else if (domain === "update") {
-            this.hass.callService( domain, isOn ? "skip" : "install", { entity_id: entity.entity_id });
+            this.hass.callService(domain, isOn ? "skip" : "install", {
+              entity_id: entity.entity_id,
+            });
           }
         }
         return;
@@ -880,45 +1240,77 @@ export class StatusCard extends LitElement {
       const config = {
         tap_action: customization?.tap_action || this._config.tap_action,
         hold_action: customization?.hold_action || this._config.hold_action,
-        double_tap_action: customization?.double_tap_action || this._config.double_tap_action,
+        double_tap_action:
+          customization?.double_tap_action || this._config.double_tap_action,
       };
 
       handleAction(this, this.hass!, config, ev.detail.action!);
-
     };
   }
 
   protected render() {
     const configContent = this._config.content || [];
-    const domainContent = configContent.filter(content => !content.includes(" - "));
-    const deviceClassContent = configContent.filter(content => content.includes(" - "));
+    const domainContent = configContent.filter(
+      (content) => !content.includes(" - ")
+    );
+    const deviceClassContent = configContent.filter((content) =>
+      content.includes(" - ")
+    );
 
-    const domainEntities = domainContent.map(content => ({
-      type: 'domain',
+    const domainEntities = domainContent.map((content) => ({
+      type: "domain",
       domain: content,
-      order: configContent.indexOf(content)
+      order: configContent.indexOf(content),
     }));
 
-    const deviceClassEntities = deviceClassContent.map(content => {
+    const deviceClassEntities = deviceClassContent.map((content) => {
       const parts = content.split(" - ");
       const domain = parts[0].trim().toLowerCase().replace(/\s+/g, "_");
       const deviceClass = parts[1].trim().toLowerCase();
       return {
-        type: 'deviceClass',
+        type: "deviceClass",
         domain,
         deviceClass,
-        order: configContent.indexOf(content)
+        order: configContent.indexOf(content),
       };
     });
 
     const extraEntities = this.loadExtraEntities().map(({ entities }) => {
       const entity = entities[0];
-      const customIndex = this._config.content?.findIndex((item: string) => item === entity.entity_id);
-      const order = customIndex !== -1 && customIndex !== undefined ? customIndex : 0;
-      const calculatedIcon = this.getCustomIcon(entity.entity_id, undefined, entity);
-      const calculatedName = this.getCustomName(entity.entity_id, undefined, entity);
-      const calculatedcolor = this.getCustomColor(entity.entity_id, undefined, entity);
-      return { entity, icon: calculatedIcon, name: calculatedName, color: calculatedcolor, order, type: 'extra' };
+      const customIndex = this._config.content?.findIndex(
+        (item: string) => item === entity.entity_id
+      );
+      const order =
+        customIndex !== -1 && customIndex !== undefined ? customIndex : 0;
+      const calculatedIcon = this.getCustomIcon(
+        entity.entity_id,
+        undefined,
+        entity
+      );
+      const calculatedName = this.getCustomName(
+        entity.entity_id,
+        undefined,
+        entity
+      );
+      const calculatedcolor = this.getCustomColor(
+        entity.entity_id,
+        undefined,
+        entity
+      );
+      const calculatedCSS = this.getCustomCSS(
+        entity.entity_id,
+        undefined,
+        entity
+      );
+      return {
+        entity,
+        icon: calculatedIcon,
+        name: calculatedName,
+        color: calculatedcolor,
+        icon_css: calculatedCSS,
+        order,
+        type: "extra",
+      };
     });
 
     const allEntities = [
@@ -933,75 +1325,162 @@ export class StatusCard extends LitElement {
       <ha-card>
         <paper-tabs scrollable hide-scroll-buttons>
           ${this.renderPersonEntities()}
-  
           ${sortedEntities.map((item: any) => {
-          if (item.type === 'extra') {
-            const { entity, icon, name, color } = item;
-            const domain = computeDomain(entity.entity_id);
-            const translatedEntityState = translateEntityState(this.hass!, entity.state, domain);
+            if (item.type === "extra") {
+              const { entity, icon, name, color, icon_css } = item;
+              const domain = computeDomain(entity.entity_id);
+              const translatedEntityState = translateEntityState(
+                this.hass!,
+                entity.state,
+                domain
+              );
 
-            return html`
-              <paper-tab @click="${() => this.showMoreInfo(entity)}">
-                <div class="extra-entity">
-                  <div class="entity-icon" style="${color ? `color: var(--${color}-color);` : ''}">
-                      <ha-icon icon="${icon}"></ha-icon>
+              return html`
+                <paper-tab @click="${() => this.showMoreInfo(entity)}">
+                  <div class="extra-entity">
+                    <div
+                      class="entity-icon"
+                      style="${color ? `color: var(--${color}-color);` : ""}"
+                    >
+                      <ha-icon
+                        icon="${icon}"
+                        style="${icon_css
+                          ? icon_css
+                              .split("\n")
+                              .map((line: string) => line.trim())
+                              .filter(
+                                (line: string) => line && line.includes(":")
+                              )
+                              .map((line: string) =>
+                                line.endsWith(";") ? line : `${line};`
+                              )
+                              .join(" ")
+                          : ""}"
+                      ></ha-icon>
+                    </div>
+                    <div class="entity-info">
+                      ${this._config?.hide_content_name !== true
+                        ? html`<div class="entity-name">${name}</div>`
+                        : ""}
+                      <div class="entity-state">${translatedEntityState}</div>
+                    </div>
                   </div>
-                  <div class="entity-info">
-                    ${this._config?.hide_content_name !== true
-                    ? html`<div class="entity-name">${name}</div>` : ''}
-                    <div class="entity-state">${translatedEntityState}</div>
-                  </div>
-                </div>
-              </paper-tab>
-            `;
-          } else if (item.type === 'domain') {
-            const activeEntities = this._isOn(item.domain);
-            const totalEntities = this._totalEntities(item.domain);
-            if (activeEntities.length === 0) return null;
-            const color = this.getCustomColor(item.domain);
-            const customization = this.getCustomizationForType(item.domain);
-            return html`            
-              <paper-tab @action=${this._handleDomainAction(item.domain)}
-                .actionHandler=${actionHandler({
-                hasHold: hasAction(customization?.hold_action ?? this._config.hold_action),
-                hasDoubleClick: hasAction(customization?.double_tap_action ?? this._config.double_tap_action) })}>
-                <div class="entity">
-                  <div class="entity-icon" style="${color ? `color: var(--${color}-color);` : ''}">
-                    <ha-icon icon="${this.getCustomIcon(item.domain)}"></ha-icon>
-                  </div>
+                </paper-tab>
+              `;
+            } else if (item.type === "domain") {
+              const activeEntities = this._isOn(item.domain);
+              const totalEntities = this._totalEntities(item.domain);
+              if (activeEntities.length === 0) return null;
+              const color = this.getCustomColor(item.domain);
+              const customization = this.getCustomizationForType(item.domain);
+              return html`
+                <paper-tab
+                  @action=${this._handleDomainAction(item.domain)}
+                  .actionHandler=${actionHandler({
+                    hasHold: hasAction(
+                      customization?.hold_action ?? this._config.hold_action
+                    ),
+                    hasDoubleClick: hasAction(
+                      customization?.double_tap_action ??
+                        this._config.double_tap_action
+                    ),
+                  })}
+                >
+                  <div class="entity">
+                    <div
+                      class="entity-icon"
+                      style="${color ? `color: var(--${color}-color);` : ""}"
+                    >
+                      <ha-icon
+                        icon="${this.getCustomIcon(item.domain)}"
+                        style="${customization?.icon_css
+                          ? customization.icon_css
+                              .split("\n")
+                              .map((line: string) => line.trim())
+                              .filter(
+                                (line: string) => line && line.includes(":")
+                              )
+                              .map((line: string) =>
+                                line.endsWith(";") ? line : `${line};`
+                              )
+                              .join(" ")
+                          : ""}"
+                      ></ha-icon>
+                    </div>
                     <div class="entity-info">
                       <div class="entity-name">
-                        ${!this.hide_content_name ? this.getCustomName(item.domain) || this.computeLabel({ name: item.domain }) : ""}
+                        ${!this.hide_content_name
+                          ? this.getCustomName(item.domain) ||
+                            this.computeLabel({ name: item.domain })
+                          : ""}
                       </div>
                       <div class="entity-state">
-                        <span>${!this._config.show_total_number ? activeEntities.length + " " + this.getStatusProperty(item.domain) : activeEntities.length + "/" + totalEntities.length + " " + this.getStatusProperty(item.domain)}</span>
+                        <span
+                          >${!this._config.show_total_number
+                            ? activeEntities.length +
+                              " " +
+                              this.getStatusProperty(item.domain)
+                            : activeEntities.length +
+                              "/" +
+                              totalEntities.length +
+                              " " +
+                              this.getStatusProperty(item.domain)}</span
+                        >
                       </div>
                     </div>
-                </div>
-              </paper-tab>
-            `;
-          } else if (item.type === 'deviceClass') {
-            const { domain, deviceClass } = item;
-            const activeEntities = this._isOn(domain, deviceClass);
-            const totalEntities = this._totalEntities(domain, deviceClass);
-            if (activeEntities.length === 0) return null;
-            const color = this.getCustomColor(domain, deviceClass);
-            const customization = this.getCustomizationForType(`${this._formatDomain(domain)} - ${deviceClass}`);
-            return html`
-              <paper-tab @action=${this._handleDomainAction(domain, deviceClass)}
-                  .actionHandler=${actionHandler({
-                  hasHold: hasAction(customization?.hold_action ?? this._config.hold_action),
-                  hasDoubleClick: hasAction(customization?.double_tap_action ?? this._config.double_tap_action)})}>
-                <div class="entity">
-                  <div class="entity-icon" style="${color ? `color: var(--${color}-color);` : ''}">
-                    <ha-icon icon="${this.getCustomIcon(domain, deviceClass)}"></ha-icon>
                   </div>
-                  <div class="entity-info">
-                    <div class="entity-name">
-                      ${!this.hide_content_name ? this.getCustomName(domain, deviceClass) || this.computeLabel({ name: deviceClass }) : ""}
+                </paper-tab>
+              `;
+            } else if (item.type === "deviceClass") {
+              const { domain, deviceClass } = item;
+              const activeEntities = this._isOn(domain, deviceClass);
+              const totalEntities = this._totalEntities(domain, deviceClass);
+              if (activeEntities.length === 0) return null;
+              const color = this.getCustomColor(domain, deviceClass);
+              const customization = this.getCustomizationForType(
+                `${this._formatDomain(domain)} - ${deviceClass}`
+              );
+              return html`
+                <paper-tab
+                  @action=${this._handleDomainAction(domain, deviceClass)}
+                  .actionHandler=${actionHandler({
+                    hasHold: hasAction(
+                      customization?.hold_action ?? this._config.hold_action
+                    ),
+                    hasDoubleClick: hasAction(
+                      customization?.double_tap_action ??
+                        this._config.double_tap_action
+                    ),
+                  })}
+                >
+                  <div class="entity">
+                    <div
+                      class="entity-icon"
+                      style="${color ? `color: var(--${color}-color);` : ""}"
+                    >
+                      <ha-icon
+                        icon="${this.getCustomIcon(domain, deviceClass)}"
+                      ></ha-icon>
                     </div>
+                    <div class="entity-info">
+                      <div class="entity-name">
+                        ${!this.hide_content_name
+                          ? this.getCustomName(domain, deviceClass) ||
+                            this.computeLabel({ name: deviceClass })
+                          : ""}
+                      </div>
                       <div class="entity-state">
-                        <span>${!this._config.show_total_number ? activeEntities.length + " " + this.getStatusProperty(domain, deviceClass) : activeEntities.length + "/" + totalEntities.length + " " + this.getStatusProperty(domain, deviceClass)}</span>
+                        <span
+                          >${!this._config.show_total_number
+                            ? activeEntities.length +
+                              " " +
+                              this.getStatusProperty(domain, deviceClass)
+                            : activeEntities.length +
+                              "/" +
+                              totalEntities.length +
+                              " " +
+                              this.getStatusProperty(domain, deviceClass)}</span
+                        >
                       </div>
                     </div>
                   </div>
@@ -1009,9 +1488,8 @@ export class StatusCard extends LitElement {
               `;
             }
             return null;
-            })}
-  
-          ${this.selectedDomain ? this.renderPopup() : ''}
+          })}
+          ${this.selectedDomain ? this.renderPopup() : ""}
         </paper-tabs>
       </ha-card>
     `;
@@ -1024,51 +1502,52 @@ export class StatusCard extends LitElement {
         position: relative;
         height: 100%;
         align-content: center;
-      }    
-      paper-tabs { 
-        height: 110px; 
-        padding: 4px 8px;  
+      }
+      paper-tabs {
+        height: 110px;
+        padding: 4px 8px;
       }
       paper-tab {
-        padding: 0 5px; 
+        padding: 0 5px;
       }
       .center {
-        display: flex; 
-        align-items: center; 
+        display: flex;
+        align-items: center;
         justify-content: center;
       }
-      .entity, .extra-entity { 
-        display: flex; 
-        flex-direction: column; 
+      .entity,
+      .extra-entity {
+        display: flex;
+        flex-direction: column;
         align-items: center;
       }
-      .entity-icon { 
-        width: 50px; 
-        height: 50px; 
+      .entity-icon {
+        width: 50px;
+        height: 50px;
         border-radius: 50%;
         background-color: rgba(var(--rgb-primary-text-color), 0.15);
-        display: flex; 
-        align-items: center; 
+        display: flex;
+        align-items: center;
         justify-content: center;
         overflow: hidden;
-      }      
+      }
       .entity-icon img {
-        width: 100%; 
-        height: 100%; 
-        object-fit: cover; 
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
         border-radius: 50%;
       }
-      .entity-info { 
-        text-align: center; 
-        margin-top: 5px; 
+      .entity-info {
+        text-align: center;
+        margin-top: 5px;
       }
-      .entity-name { 
-        font-weight: bold; 
-        margin-bottom: 2px; 
+      .entity-name {
+        font-weight: bold;
+        margin-bottom: 2px;
       }
-      .entity-state { 
-        color: var(--secondary-text-color); 
-        font-size: 0.9em;          
+      .entity-state {
+        color: var(--secondary-text-color);
+        font-size: 0.9em;
       }
       paper-tab {
         pointer-events: auto;

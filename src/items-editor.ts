@@ -38,9 +38,13 @@ abstract class BaseItemsEditor extends LitElement {
           (conf, index) => html`
             <div class="customize-item">
               <ha-select
-            label=${this.hass!.localize(
-              "ui.panel.lovelace.editor.common.edit"
-            ) + " " +  this.hass!.localize("ui.panel.lovelace.editor.card.markdown.content")}
+                label=${this.hass!.localize(
+                  "ui.panel.lovelace.editor.common.edit"
+                ) +
+                " " +
+                this.hass!.localize(
+                  "ui.panel.lovelace.editor.card.markdown.content"
+                )}
                 name="Customize"
                 class="select-customization"
                 naturalMenuWidth
@@ -80,7 +84,11 @@ abstract class BaseItemsEditor extends LitElement {
           <ha-select
             label=${this.hass!.localize(
               "ui.panel.lovelace.editor.common.edit"
-            ) + " " +  this.hass!.localize("ui.panel.lovelace.editor.card.markdown.content")}
+            ) +
+            " " +
+            this.hass!.localize(
+              "ui.panel.lovelace.editor.card.markdown.content"
+            )}
             name="Customize"
             class="add-customization"
             naturalMenuWidth
