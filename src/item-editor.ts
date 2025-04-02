@@ -41,7 +41,6 @@ export class ItemEditor extends LitElement {
           ui_color: { default_color: "state", include_state: true },
         },
       },
-      { name: "icon_css", selector: { template: {} } },
       { name: "tap_action", selector: { ui_action: { actions } } },
       { name: "double_tap_action", selector: { ui_action: { actions } } },
       { name: "hold_action", selector: { ui_action: { actions } } },
@@ -99,7 +98,6 @@ export class ItemEditor extends LitElement {
         name: "icon_color",
         selector: { ui_color: { default_color: "state", include_state: true } },
       },
-      { name: "icon_css", selector: { template: {} } },
       { name: "tap_action", selector: { ui_action: { actions } } },
       { name: "double_tap_action", selector: { ui_action: { actions } } },
       { name: "hold_action", selector: { ui_action: { actions } } },
@@ -112,18 +110,11 @@ export class ItemEditor extends LitElement {
     }
 
     // Setze invert_state nur, wenn das Schema "entity" ist.
-    if (this.getSchema === "entity" && !this._config?.invert_state) {
+    if (!this._config?.invert_state) {
       this._config = {
         ...this._config,
         invert_state: this.config.invert_state || "false",
-        icon_color: this.config.icon_color,
-      };
-    }
-
-    if (this.getSchema === "domain") {
-      this._config = {
-        ...this._config,
-        icon_color: this.config.icon_color,
+        icon_color: this.config.icon_color || undefined,
       };
     }
 
