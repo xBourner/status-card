@@ -19,7 +19,6 @@ export interface CardConfig {
   extra_entities?: string[];
   columns?: number;
   hide_person?: boolean;
-  hide_person_name?: boolean;
   list_mode?: boolean;
   hide_content_name?: boolean;
   customization?: any[];
@@ -79,7 +78,6 @@ export class StatusCardEditor extends LitElement {
       ...config,
       columns: config.columns ?? 4,
       hide_person: config.hide_person ?? false,
-      hide_person_name: config.hide_person_name ?? false,
       list_mode: config.list_mode ?? false,
       hide_content_name: config.hide_content_name ?? false,
       customization: config.customization ?? [],
@@ -263,9 +261,12 @@ export class StatusCardEditor extends LitElement {
           type: "grid",
           schema: [
             { name: "hide_person", selector: { boolean: {} } },
-            { name: "hide_person_name", selector: { boolean: {} } },
             { name: "list_mode", selector: { boolean: {} } },
             { name: "hide_content_name", selector: { boolean: {} } },
+            {
+              name: "show_total_number",
+              selector: { boolean: {} },
+            },
           ],
         },
         {
@@ -396,10 +397,6 @@ export class StatusCardEditor extends LitElement {
             options: toggleDomains,
           },
         },
-      },
-      {
-        name: "show_total_number",
-        selector: { boolean: {} },
       },
       {
         name: "color",

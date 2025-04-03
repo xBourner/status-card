@@ -57,7 +57,6 @@ interface Config {
   area?: string[];
   extra_entities?: string[];
   hide_person?: boolean;
-  hide_person_name?: boolean;
   list_mode?: boolean;
   hide_content_name?: boolean;
   floor?: string[];
@@ -95,7 +94,6 @@ export class StatusCard extends LitElement {
   @state() private entitiesByDomain: { [domain: string]: HassEntity[] } = {};
   @state() private selectedDomain: string | null = null;
   @state() private selectedDeviceClass: string | null = null;
-  @state() private hide_person_name: boolean = true;
   @state() private hiddenEntities: string[] = [];
   @state() private hiddenLabels: string[] = [];
   @state() private hide_person: boolean = false;
@@ -132,8 +130,6 @@ export class StatusCard extends LitElement {
       throw new Error("Invalid configuration.");
     }
     this._config = config;
-    this.hide_person_name =
-      config.hide_person_name !== undefined ? config.hide_person_name : false;
     this.hide_person =
       config.hide_person !== undefined ? config.hide_person : false;
     this.hide_content_name =
@@ -669,7 +665,7 @@ export class StatusCard extends LitElement {
             </div>
             <div class="entity-info">
               <div class="entity-name">
-                ${!this.hide_person_name
+                ${!this.hide_content_name
                   ? entity.attributes.friendly_name?.split(" ")[0] || ""
                   : ""}
               </div>
