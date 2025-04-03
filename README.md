@@ -66,7 +66,8 @@ You can specify the look of the domains and device classes. You can change the i
 ![image](https://github.com/user-attachments/assets/24737f78-f48b-4239-8023-314b20f0ea7b)
 
 
-![image](https://github.com/user-attachments/assets/cdfb8dff-373f-4fc6-82ab-d9c4ecc9a4dd)
+![image](https://github.com/user-attachments/assets/473553ea-1a4b-46d5-9ea1-96b371bafcbe)
+
 
 
 ## Hiding Names for Person, Domains, Device Classes & Extra Entities
@@ -77,7 +78,8 @@ You can specify the look of the domains and device classes. You can change the i
 
 ## More Info View
 For Extra Entities you have the default More Info View for your entity. If you click on a group (domain/deviceclass) you will get a list of all entities in the desired state.
-![image](https://github.com/user-attachments/assets/74b87943-5ffd-499a-b2f5-7aee07f63887)
+![image](https://github.com/user-attachments/assets/e64901ac-58bb-48c2-b2b3-7448eca3569c)
+
 
 You can set the columns of entities next together from 1 to 4 with this:
 
@@ -85,13 +87,14 @@ You can set the columns of entities next together from 1 to 4 with this:
 
 so it will look like this:
 
-![image](https://github.com/user-attachments/assets/92e49add-446a-4468-9816-a6712b663f7f)
+![image](https://github.com/user-attachments/assets/9e925bdd-d852-4c6d-a1d9-58095cad4135)
+
 
 
 ## List Mode (former known as Bulk Mode)
 List Mode will list all entities instead of showing entity cards. You can use this to have a quick access to copy all unwanted entities and paste them into hidden_entities via yaml.
 
-![image](https://github.com/user-attachments/assets/3ae9712e-2430-4b8f-b358-4303f5379a15)
+![image](https://github.com/user-attachments/assets/b8aec0a0-eee5-4f79-a86d-94c91814a825)
 
 
 
