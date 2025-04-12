@@ -255,30 +255,60 @@ export class StatusCardEditor extends LitElement {
 
       const allEntities = this.getAllEntities();
 
+      const actions: UiAction[] = [
+        "more-info",
+        "toggle",
+        "navigate",
+        "url",
+        "perform-action",
+        "none",
+      ];
+
       return [
         {
-          name: "",
-          type: "grid",
+          name: "appearance",
+          flatten: true,
+          type: "expandable",
+          icon: "mdi:palette",
           schema: [
-            { name: "hide_person", selector: { boolean: {} } },
-            { name: "list_mode", selector: { boolean: {} } },
-            { name: "hide_content_name", selector: { boolean: {} } },
             {
-              name: "show_total_number",
+              name: "",
+              type: "grid",
+              schema: [
+                { name: "hide_person", selector: { boolean: {} } },
+                { name: "list_mode", selector: { boolean: {} } },
+                { name: "hide_content_name", selector: { boolean: {} } },
+                {
+                  name: "show_total_number",
+                  selector: { boolean: {} },
+                },
+              ],
+            },
+            {
+              name: "",
+              type: "grid",
+              schema: [
+                { name: "theme", required: false, selector: { theme: {} } },
+                {
+                  name: "columns",
+                  required: false,
+                  selector: { number: { min: 1, max: 4, mode: "box" } },
+                },
+              ],
+            },
+            {
+              name: "square",
               selector: { boolean: {} },
             },
-          ],
-        },
-        {
-          name: "",
-          type: "grid",
-          schema: [
-            { name: "theme", required: false, selector: { theme: {} } },
             {
-              name: "columns",
-              required: false,
-              selector: { number: { min: 1, max: 4, mode: "box" } },
+              name: "color",
+              selector: {
+                ui_color: { default_color: "state", include_state: true },
+              },
             },
+            { name: "tap_action", selector: { ui_action: { actions } } },
+            { name: "double_tap_action", selector: { ui_action: { actions } } },
+            { name: "hold_action", selector: { ui_action: { actions } } },
           ],
         },
         {
@@ -378,14 +408,6 @@ export class StatusCardEditor extends LitElement {
   );
 
   private _toggleschema = memoizeOne((toggleDomains: SelectOption[]) => {
-    const actions: UiAction[] = [
-      "more-info",
-      "toggle",
-      "navigate",
-      "url",
-      "perform-action",
-      "none",
-    ];
     return [
       {
         name: "content",
@@ -398,13 +420,6 @@ export class StatusCardEditor extends LitElement {
           },
         },
       },
-      {
-        name: "color",
-        selector: { ui_color: { default_color: "state", include_state: true } },
-      },
-      { name: "tap_action", selector: { ui_action: { actions } } },
-      { name: "double_tap_action", selector: { ui_action: { actions } } },
-      { name: "hold_action", selector: { ui_action: { actions } } },
     ];
   });
 

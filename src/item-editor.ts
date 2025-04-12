@@ -93,6 +93,7 @@ export class ItemEditor extends LitElement {
       },
 
       { name: "name", selector: { text: {} } },
+      { name: "show_entity_picture", selector: { boolean: {} } },
       { name: "icon", selector: { icon: {} } },
       {
         name: "icon_color",
@@ -158,6 +159,11 @@ export class ItemEditor extends LitElement {
         );
       case "color":
         return this.hass!.localize("ui.panel.lovelace.editor.card.tile.color");
+
+      case "show_entity_picture":
+        return this.hass!.localize(
+          "ui.panel.lovelace.editor.card.tile.show_entity_picture"
+        );
       case "name":
       case "icon":
       case "tap_action":

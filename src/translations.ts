@@ -41,6 +41,8 @@ export function computeLabelCallback(
       }
       return hass.localize("ui.panel.lovelace.editor.card.entities.name");
     }
+    case "square":
+      return hass!.localize("ui.panel.lovelace.editor.card.grid.square");
     case "hide_person_name":
       return (
         hass!.localize("ui.common.hide") +
@@ -145,6 +147,11 @@ export function computeLabelCallback(
         ) +
         " " +
         hass!.localize("component.number.entity_component._.name")
+      );
+    case "appearance":
+      return (
+        hass!.localize(`ui.panel.lovelace.editor.card.tile.appearance`) ||
+        "Appearance"
       );
     case "tap_action":
     case "hold_action":

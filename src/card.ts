@@ -16,6 +16,7 @@ import type { HassEntity } from "home-assistant-js-websocket";
 import { domainIcon, ALLOWED_DOMAINS, DataStore } from "./properties";
 import { computeLabelCallback, translateEntityState } from "./translations";
 import { actionHandler } from "./helpers";
+import { styleMap } from "lit/directives/style-map.js";
 
 interface EntityRegistryEntry {
   entity_id: string;
@@ -73,6 +74,7 @@ interface Config {
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
   double_tap_action?: ActionConfig;
+  square?: boolean;
 }
 
 interface Schema {
@@ -521,6 +523,7 @@ export class StatusCard extends LitElement {
         icon?: string;
         icon_color?: string;
         invert?: boolean;
+        show_entity_picture?: boolean;
         tap_action?: ActionConfig;
         double_tap_action?: ActionConfig;
         hold_action?: ActionConfig;
@@ -545,6 +548,17 @@ export class StatusCard extends LitElement {
     }
 
     const customization = this.getCustomizationForType(key);
+
+    // Falls show_entity_picture aktiviert ist und ein Bild vorhanden ist, dieses zurückgeben:
+    if (
+      customization?.show_entity_picture === true &&
+      entity &&
+      entity.attributes &&
+      entity.attributes.entity_picture
+    ) {
+      return entity.attributes.entity_picture;
+    }
+
     if (customization && customization.icon) {
       return customization.icon;
     }
@@ -653,13 +667,18 @@ export class StatusCard extends LitElement {
       const entityState = this.hass!.states[entity.entity_id];
       const isNotHome = entityState?.state === "not_home";
 
+      const iconStyles = {
+        "border-radius": this._config?.square ? "20%" : "50%",
+        filter: isNotHome ? "grayscale(100%)" : "none",
+      };
+
       return html`
         <paper-tab @click="${() => this.showMoreInfo(entity)}">
           <div class="entity">
-            <div class="entity-icon">
+            <div class="entity-icon" style=${styleMap(iconStyles)}>
               <img
                 src="${entity.attributes.entity_picture || ""}"
-                style="${isNotHome ? "filter: grayscale(100%);" : ""}"
+                style=${styleMap(iconStyles)}
                 alt="${entity.attributes.friendly_name || entity.entity_id}"
               />
             </div>
@@ -1331,28 +1350,44 @@ export class StatusCard extends LitElement {
                 domain
               );
 
+              const iconStyles = {
+                color: color ? `var(--${color}-color)` : "",
+                "border-radius": this._config?.square ? "20%" : "50%",
+              };
+
               return html`
                 <paper-tab @click="${() => this.showMoreInfo(entity)}">
                   <div class="extra-entity">
-                    <div
-                      class="entity-icon"
-                      style="${color ? `color: var(--${color}-color);` : ""}"
-                    >
-                      <ha-icon
-                        icon="${icon}"
-                        style="${icon_css
-                          ? icon_css
-                              .split("\n")
-                              .map((line: string) => line.trim())
-                              .filter(
-                                (line: string) => line && line.includes(":")
-                              )
-                              .map((line: string) =>
-                                line.endsWith(";") ? line : `${line};`
-                              )
-                              .join(" ")
-                          : ""}"
-                      ></ha-icon>
+                    <div class="entity-icon" style=${styleMap(iconStyles)}>
+                      ${icon &&
+                      (icon.startsWith("/") || icon.startsWith("http"))
+                        ? html`
+                            <img
+                              src="${icon}"
+                              alt="${name}"
+                              style="border-radius: ${this._config?.square
+                                ? "20%"
+                                : "50%"};"
+                            />
+                          `
+                        : html`
+                            <ha-icon
+                              icon="${icon}"
+                              style="${icon_css
+                                ? icon_css
+                                    .split("\n")
+                                    .map((line: string) => line.trim())
+                                    .filter(
+                                      (line: string) =>
+                                        line && line.includes(":")
+                                    )
+                                    .map((line: string) =>
+                                      line.endsWith(";") ? line : `${line};`
+                                    )
+                                    .join(" ")
+                                : ""}"
+                            ></ha-icon>
+                          `}
                     </div>
                     <div class="entity-info">
                       ${this._config?.hide_content_name !== true
@@ -1368,6 +1403,10 @@ export class StatusCard extends LitElement {
               const totalEntities = this._totalEntities(item.domain);
               if (activeEntities.length === 0) return null;
               const color = this.getCustomColor(item.domain);
+              const iconStyles = {
+                color: color ? `var(--${color}-color)` : "",
+                "border-radius": this._config?.square ? "20%" : "50%",
+              };
               const customization = this.getCustomizationForType(item.domain);
               return html`
                 <paper-tab
@@ -1383,10 +1422,7 @@ export class StatusCard extends LitElement {
                   })}
                 >
                   <div class="entity">
-                    <div
-                      class="entity-icon"
-                      style="${color ? `color: var(--${color}-color);` : ""}"
-                    >
+                    <div class="entity-icon" style=${styleMap(iconStyles)}>
                       <ha-icon
                         icon="${this.getCustomIcon(item.domain)}"
                         style="${customization?.icon_css
@@ -1433,6 +1469,10 @@ export class StatusCard extends LitElement {
               const totalEntities = this._totalEntities(domain, deviceClass);
               if (activeEntities.length === 0) return null;
               const color = this.getCustomColor(domain, deviceClass);
+              const iconStyles = {
+                color: color ? `var(--${color}-color)` : "",
+                "border-radius": this._config?.square ? "20%" : "50%",
+              };
               const customization = this.getCustomizationForType(
                 `${this._formatDomain(domain)} - ${deviceClass}`
               );
@@ -1450,10 +1490,7 @@ export class StatusCard extends LitElement {
                   })}
                 >
                   <div class="entity">
-                    <div
-                      class="entity-icon"
-                      style="${color ? `color: var(--${color}-color);` : ""}"
-                    >
+                    <div class="entity-icon" style=${styleMap(iconStyles)}>
                       <ha-icon
                         icon="${this.getCustomIcon(domain, deviceClass)}"
                       ></ha-icon>
