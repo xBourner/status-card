@@ -28,7 +28,13 @@ This is my first custom card for Home Assistant.
 I am not a coder and have no background in coding. I always tried to achieve something like this with different approaches but nothing was the way i wanted to.
 So i tried to make a custom card and this is the result.
 
-![image](https://github.com/user-attachments/assets/32335d69-4286-4b92-9bb4-eccf0730ff87)
+
+<p align="center">
+  <img alt="Light" src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/status-card-light.png" width="49%">
+&nbsp; 
+  <img alt="Dark" src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/status-card-dark.png" width="49%">
+</p>
+
 
 This card i highly influenced by [Dwains Dashboard](https://github.com/dwainscheeren/dwains-lovelace-dashboard).
 I tried to have the logic of DD in a single custom card to use it in any dashboard i want. <br>
