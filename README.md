@@ -58,6 +58,28 @@ I also wanted to make the card as easy it can be but still manage a high customi
   </a>
 </p>
 
+## Installation
+
+###  HACS Installation (Recommended)
+
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xBourner&repository=status-card&category=plugin)
+
+#### Steps:
+
+1. Make sure **[HACS](https://hacs.xyz)** is installed.
+3. Go to **HACS → Custom Repositories**.
+4. Add this repository: `https://github.com/xBourner/status-card` as type `Dashboard`
+5. Install **Status Card**.
+6. **Clear your browser cache** and reload (F5) Home Assistant.
+
+For more info look at this link: [How to add Custom Repositories](https://hacs.xyz/docs/faq/custom_repositories/)
+
+
+<p align="right">
+  <a href="#top">
+    <img src="https://github.com/xBourner/status-card/blob/main/.github/img/top.png" alt="Back to Top" width="4%">
+  </a>
+</p>
 
 
 # Screenshots
@@ -113,17 +135,6 @@ List Mode will list all entities instead of showing entity cards. You can use th
 
 ![image](https://github.com/user-attachments/assets/b8aec0a0-eee5-4f79-a86d-94c91814a825)
 
-
-
-## Installation
-
-### Hacs
-
-Add this repository via HACS Custom repositories
-
-https://github.com/xBourner/status-card
-
-([How to add Custom Repositories](https://hacs.xyz/docs/faq/custom_repositories/))
 
 
 # Settings
