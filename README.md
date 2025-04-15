@@ -72,7 +72,7 @@ I also wanted to make the card as easy it can be but still manage a high customi
 5. Install **Status Card**.
 6. **Clear your browser cache** and reload (F5) Home Assistant.
 
-For more info look at this link: [How to add Custom Repositories](https://hacs.xyz/docs/faq/custom_repositories/)
+For more info look at [How to add Custom Repositories](https://hacs.xyz/docs/faq/custom_repositories/)
 
 
 <p align="right">
