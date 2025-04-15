@@ -37,8 +37,10 @@ You only need to assign your entities/devices to your areas and the card will do
  - 🤖 **Auto generating card** - Works when entities/devices are assigned to areas
  - ✅ **Based on entity states** - Shows entities that are in a on/active state (can be inverted)
  - 📚 **Automatic Grouping** - Entities grouped by domain/device_class
+ - 📑 **Popup View** - Entities will render as Tile Cards in a new view
  - 🧠 **GUI Editor** - No code or scripts needed
- - 🔧 **Highly customizable** - almost everything customizable 
+ - 🔧 **Highly customizable** - almost everything customizable
+ - 📱 **Optimized for desktop and phones**
  - 🌍 **Available in all HA languages**
 
 <br>
@@ -80,68 +82,67 @@ For more info look at [How to add Custom Repositories](https://hacs.xyz/docs/faq
 <summary>Show Content</summary>
 
 
-
 ### More Info/ Popup View
 
 <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/popup.png" alt="Status Card Header" width="100%">
 
-- Displays all entities in the domain or device_class you clicked on
-- shows controllable cards at default
-- list mode for easy copying entities
-- you can specify how many columns will be shown in the popup
+  - **Popup View** - Displays all entities in the domain or device_class you clicked on
+  - **Tile Cards** - Shows controllable cards at default
+  - **List Mode** - Easy copying entities (e.g. for hiding entities)
+  - **Columns** - Specify how many columns will be shown in the popup (still one on mobile view)
 
 ### Appearance
 
 <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/appearance.png" alt="Status Card Header" width="50%">
 
-- Hide Person => will hide all available person entities
-- Turn on List Display Mode => will show a list of entities instead of controllable cards
-- Hide content name => will hide all names from domains & device_classes and person entities
+- **Hide Person** - will hide all available person entities
+- **Turn on List Display Mode** - will show a list of entities instead of controllable cards
+- **Theme** - Choose a theme for the card
+- **More Info Columns** - Specify the amount of columns you will see in the popup
+- **Color** - change all icon colors for all domains & device_classes at once
+- **Tap, Double Tap & Hold Behavior** - specify which action will happen for all domains & device_classes at once
+  
+- **Hide content name** - will hide all names from domains & device_classes and person entities
   <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/hide-names.png" alt="Status Card Header" width="40%">
  
-- Enable Total Number => will show the total number of available entities in the card (for example 1/7 Lights on)
+- **Enable Total Number** - will show the total number of available entities in the card (for example 1/7 Lights on)
   <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/total-number.png" alt="Status Card Header" width="40%">
   
-- Theme => Choose a theme for the card
-- More Info Columns => Specify the amount of columns you will see in the popup
-- Render cards as square => will show all domains & device_classes as a rounded square instead of a circle
+- **Render cards as square** - will show all domains & device_classes as a rounded square instead of a circle
   <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/square.png" alt="Status Card Header" width="40%">
   
-- Color => change all icon colors for all domains & device_classes at once
-- Tap, Double Tap & Hold Behavior => specify which action will happen for all domains & device_classes at once
-
   ### Filters
 
 <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/filter.png" alt="Status Card Header" width="50%">
 
-- Area/Filter => choose which filter you want to set. Only entities from this area/floor will be shown
-- Label Filter => enable this and a new selection will show. You can chose multiple labels here. Only entities with the same label will be shown
-- Multi Area => enable this and you can select multiple areas/floors. Only entities from that areas/floors will be shown.
+- **Area/Filter** - choose which filter you want to set. Only entities from this area/floor will be shown
+- **Label Filter** - enable this and a new selection will show. You can chose multiple labels here. Only entities with the same label will be shown
+- **Multi Area** - enable this and you can select multiple areas/floors. Only entities from that areas/floors will be shown.
 
 
 ### Entities
 
 <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/entities.png" alt="Status Card Header" width="50%">
 
-- Extra Entities => choose which entities you want to show next to domains & device_classes
-- Hide Entities => you can hide/exclude entities from the card. you can specify them per entity itself or per label
+- **Extra Entities** - choose which entities you want to show next to domains & device_classes
+- **Hide Entities** - you can hide/exclude entities from the card. you can specify them per entity itself or per label
 
 ### Content
 
 <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/content.png" alt="Status Card Header" width="50%">
 
-- Selector => choose which domains & device_classes you want to show in the card
-- Edit Content => you can customize every domain, device_class or extra entity individual
+- **Selector** - choose which domains & device_classes you want to show in the card
+- **Edit Content** - you can customize every domain, device_class or extra entity individual
 
 ### Customization
 
 <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/customization.png" alt="Status Card Header" width="50%">
 
-- Invert State => instead showing domain or device_class with the "on" state it will show the "off" state (for example if you want to show closed locks instaed of open locks)
-- Name => Change the display name of the domain or device_class
-- Icon => Change the icon of the domain or device_class
-- Color => Change the icon color of the domain or device_class
-- Tap, Double Tap & Hold Behavior => specify which action will happen for individual domain or device_class
+- **Invert State** - instead showing domain or device_class with the "on" state it will show the "off" state (for example if you want to show closed locks instaed of open locks)
+- **Name** - Change the display name of the domain or device_class
+- **Icon** - Change the icon of the domain or device_class
+- **Color** - Change the icon color of the domain or device_class
+- **Tap, Double Tap & Hold Behavior** - specify which action will happen for individual domain or device_class
 
 <p align="right">
   <a href="#top">
