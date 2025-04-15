@@ -1,53 +1,52 @@
-# Status-card
+<a name="top"></a>
 
-[![stars - status-card](https://img.shields.io/github/stars/xBourner/status-card?style=for-the-badge)](https://github.com/xBourner/status-card)
+# Status Card
+
 [![GitHub release](https://img.shields.io/github/release/xBourner/status-card?style=for-the-badge)](https://github.com/xBourner/status-card/releases/)
+[![stars - status-card](https://img.shields.io/github/stars/xBourner/status-card?style=for-the-badge)](https://github.com/xBourner/status-card)
 [![GitHub issues](https://img.shields.io/github/issues/xBourner/status-card?style=for-the-badge)](https://github.com/xBourner/status-card/issues)
+
 
 <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/status-card-header.png" alt="Status Card Header" width="100%">
 
 # Support my work
 
-If you like my work it would be nice if you support it. You don't have to but this will keep me motivated and i will appreciate it much!
+If you like my work it would be nice if you support it. You don't have to but this will keep me motivated and i will appreciate it much! <br>
+You can also join my Discord Server to leave a feedback, get help or contribute with ideas :) 
 
 [![Discord](https://img.shields.io/discord/1341456711835455609?style=for-the-badge&logo=discord&logoColor=%237289da&label=Discord&color=%237289da)](https://discord.gg/RfVx7hmZD3)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?&logo=buy-me-a-coffee&logoColor=black&style=for-the-badge)](https://www.buymeacoffee.com/bourner)
-[![PayPal](https://img.shields.io/badge/PayPal-003087?logo=paypal&logoColor=fff&style=for-the-badge)](https://www.paypal.me/gibgas123)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor%20on%20GitHub-30363d?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sponsors/xBourner)
+[![PayPal](https://img.shields.io/badge/PayPal-003087?logo=paypal&logoColor=fff&style=for-the-badge)](https://www.paypal.me/gibgas123)
+
 
 # Overview
 
-A status card for home assistant dashboard
+A status card for Home Assistant dashboard
 
 This is my first custom card for Home Assistant.
-I am not a coder and have no background in coding. I always tried to achieve something like this with different approaches but nothing was the way in wanted to.
-So i tried a bit and i was able to create my own custom card.
+I am not a coder and have no background in coding. I always tried to achieve something like this with different approaches but nothing was the way i wanted to.
+So i tried to make a custom card and this is the result.
 
 ![image](https://github.com/user-attachments/assets/32335d69-4286-4b92-9bb4-eccf0730ff87)
 
 This card i highly influenced by [Dwains Dashboard](https://github.com/dwainscheeren/dwains-lovelace-dashboard).
-I tried to to have this in every dashboard i want and dont want to be restricted by Dwains Dashboard.
+I tried to have the logic of DD in a single custom card to use it in any dashboard i want. <br>
+I also wanted to make the card as easy it can be but still manage a high customization.
 
-I also made some tweaks so it has some more functions.
-I added a graphical Interface to edit the card. Everything is managable from GUI :)
-
-# Features
+### Features
  - shows person entities
- - shows all entities which aren't off grouped by domain or deivce class
- - filter for areas/floors
+ - shows all entities which are considered as "on" (on, open, heating etc.) !entities or devices must be linked to an area!
+ - grouped by domain or device class
+ - filter for single or multiple areas/floors
  - customization of domains and device classes
  - can show extra entities
  - you can hide certain entities
  - graphical editor
  - should work in all available HA languages
 
-# How does it work?
+<p align="right"><a href="#top">⬆️ back to top</a></p>
 
-This card shows every person entity which is present in your HA environment. You can also disable that person entities will be shown.
-Also this card goes through a bunch of domains and device classes and looks for the state of all entities inside them.
-
-If the entity is on, home or open (or something else which isn't off) it will show up in the card.
-Please keep attention that it will only show entities which are linked to any area. Without this it would be a mess.
 
 # Screenshots
 ### Graphical Editor
