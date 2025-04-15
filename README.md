@@ -22,12 +22,10 @@ You can also join my Discord Server to leave a feedback, get help or contribute 
 
 # Overview
 
-A status card for Home Assistant dashboard
+A **Status Card** for Home Assistant Dashboards
 
-This is my first custom card for Home Assistant.
-I am not a coder and have no background in coding. I always tried to achieve something like this with different approaches but nothing was the way i wanted to.
-So i tried to make a custom card and this is the result.
-
+I always wanted to make an overview card that shows a lot of entities without the need to change it like everyday. This card will show all relevant data in a quick look.
+You only need to assign your entities/devices to your areas and the card will do the rest.
 
 <p align="center">
   <img alt="Light" src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/status-card-light.png" width="49%">
@@ -35,22 +33,17 @@ So i tried to make a custom card and this is the result.
   <img alt="Dark" src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/status-card-dark.png" width="49%">
 </p>
 
+### How it works
+ - 🤖 **Auto generating card** - Works when entities/devices are assigned to areas
+ - ✅ **Based on entity states** - Shows entities that are in a on/active state (can be inverted)
+ - 📚 **Automatic Grouping** - Entities grouped by domain/device_class
+ - 🧠 **GUI Editor** - No code or scripts needed
+ - 🔧 **Highly customizable** - almost everything customizable 
+ - 🌍 **Available in all HA languages**
 
-This card i highly influenced by [Dwains Dashboard](https://github.com/dwainscheeren/dwains-lovelace-dashboard).
-I tried to have the logic of DD in a single custom card to use it in any dashboard i want. <br>
-I also wanted to make the card as easy it can be but still manage a high customization.
+<br>
 
-### Features
- - shows person entities
- - shows all entities which are considered as "on" (on, open, heating etc.) !entities or devices must be linked to an area!
- - grouped by domain or device class
- - filter for single or multiple areas/floors
- - customization of domains and device classes
- - can show extra entities
- - you can hide certain entities
- - graphical editor
- - should work in all available HA languages
-
+This card i highly influenced by [Dwains Dashboard](https://github.com/dwainscheeren/dwains-lovelace-dashboard). So now you can use this great idea as a single card in all of your Dashboards
 
 <p align="right">
   <a href="#top">
@@ -81,8 +74,12 @@ For more info look at [How to add Custom Repositories](https://hacs.xyz/docs/faq
   </a>
 </p>
 
-
 # Screenshots & Explanation
+
+<details>
+<summary>Show Content</summary>
+
+
 
 ### More Info/ Popup View
 
@@ -100,10 +97,16 @@ For more info look at [How to add Custom Repositories](https://hacs.xyz/docs/faq
 - Hide Person => will hide all available person entities
 - Turn on List Display Mode => will show a list of entities instead of controllable cards
 - Hide content name => will hide all names from domains & device_classes and person entities
+  <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/hide-names.png" alt="Status Card Header" width="40%">
+ 
 - Enable Total Number => will show the total number of available entities in the card (for example 1/7 Lights on)
+  <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/total-number.png" alt="Status Card Header" width="40%">
+  
 - Theme => Choose a theme for the card
 - More Info Columns => Specify the amount of columns you will see in the popup
 - Render cards as square => will show all domains & device_classes as a rounded square instead of a circle
+  <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/square.png" alt="Status Card Header" width="40%">
+  
 - Color => change all icon colors for all domains & device_classes at once
 - Tap, Double Tap & Hold Behavior => specify which action will happen for all domains & device_classes at once
 
@@ -146,6 +149,7 @@ For more info look at [How to add Custom Repositories](https://hacs.xyz/docs/faq
   </a>
 </p>
 
+</details>
 
 # Settings
 
