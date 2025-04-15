@@ -48,7 +48,7 @@ I also wanted to make the card as easy it can be but still manage a high customi
 
 <p align="right">
   <a href="#top">
-    <img src="https://github.com/xBourner/status-card/blob/main/.github/img/top.png" alt="Back to Top" width="5%">
+    <img src="https://github.com/xBourner/status-card/blob/main/.github/img/top.png" alt="Back to Top" width="4%">
   </a>
 </p>
 
