@@ -82,59 +82,69 @@ For more info look at [How to add Custom Repositories](https://hacs.xyz/docs/faq
 </p>
 
 
-# Screenshots
-### Graphical Editor
-![image](https://github.com/user-attachments/assets/fba1e0c8-9025-4b2d-9de7-ad2e178b5bbf)
+# Screenshots & Explanation
+
+### More Info/ Popup View
+
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/popup.png" alt="Status Card Header" width="100%">
+
+- Displays all entities in the domain or device_class you clicked on
+- shows controllable cards at default
+- list mode for easy copying entities
+- you can specify how many columns will be shown in the popup
+
+### Appearance
+
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/appearance.png" alt="Status Card Header" width="50%">
+
+- Hide Person => will hide all available person entities
+- Turn on List Display Mode => will show a list of entities instead of controllable cards
+- Hide content name => will hide all names from domains & device_classes and person entities
+- Enable Total Number => will show the total number of available entities in the card (for example 1/7 Lights on)
+- Theme => Choose a theme for the card
+- More Info Columns => Specify the amount of columns you will see in the popup
+- Render cards as square => will show all domains & device_classes as a rounded square instead of a circle
+- Color => change all icon colors for all domains & device_classes at once
+- Tap, Double Tap & Hold Behavior => specify which action will happen for all domains & device_classes at once
+
+  ### Filters
+
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/filter.png" alt="Status Card Header" width="50%">
+
+- Area/Filter => choose which filter you want to set. Only entities from this area/floor will be shown
+- Label Filter => enable this and a new selection will show. You can chose multiple labels here. Only entities with the same label will be shown
+- Multi Area => enable this and you can select multiple areas/floors. Only entities from that areas/floors will be shown.
 
 
-### Area/Floor & Label Filter
-Use this to only show entities linked to an area/floor. You can combine this with the Label Filter. Only entities with this label will be shown. Area/Floor can be combined with the Label Filter.  
-![image](https://github.com/user-attachments/assets/e9b002c2-80bf-4b44-8c14-ccb78ac3ab03)
+### Entities
 
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/entities.png" alt="Status Card Header" width="50%">
 
-### Adding Extra Entities/Hiding Entities from card
-Choose an extra Entity which you want to see in your status card.
-Add an extra entity to the card, or remove unwanted entities by the entity itself or labels.
+- Extra Entities => choose which entities you want to show next to domains & device_classes
+- Hide Entities => you can hide/exclude entities from the card. you can specify them per entity itself or per label
 
-![image](https://github.com/user-attachments/assets/71856bae-a8a4-49b7-bbeb-326968a1636d)
+### Content
 
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/content.png" alt="Status Card Header" width="50%">
 
-## Customization of Domains or Device Classes
-You can specify the look of the domains and device classes. You can change the icon, icon color and sort order. You can also completly hide them and now you can invert them. If you only want to show closed garage, doors or locks for example.
+- Selector => choose which domains & device_classes you want to show in the card
+- Edit Content => you can customize every domain, device_class or extra entity individual
 
-![image](https://github.com/user-attachments/assets/24737f78-f48b-4239-8023-314b20f0ea7b)
+### Customization
 
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/customization.png" alt="Status Card Header" width="50%">
 
-![image](https://github.com/user-attachments/assets/473553ea-1a4b-46d5-9ea1-96b371bafcbe)
+- Invert State => instead showing domain or device_class with the "on" state it will show the "off" state (for example if you want to show closed locks instaed of open locks)
+- Name => Change the display name of the domain or device_class
+- Icon => Change the icon of the domain or device_class
+- Color => Change the icon color of the domain or device_class
+- Tap, Double Tap & Hold Behavior => specify which action will happen for individual domain or device_class
 
-
-
-## Hiding Names for Person, Domains, Device Classes & Extra Entities
-![image](https://github.com/user-attachments/assets/01acf476-c8f0-427a-a556-8eecde03a7c9)
-
-
-![image](https://github.com/user-attachments/assets/66c191af-31c6-4c33-a603-f576d524916b)
-
-## More Info View
-For Extra Entities you have the default More Info View for your entity. If you click on a group (domain/deviceclass) you will get a list of all entities in the desired state.
-![image](https://github.com/user-attachments/assets/e64901ac-58bb-48c2-b2b3-7448eca3569c)
-
-
-You can set the columns of entities next together from 1 to 4 with this:
-
-![image](https://github.com/user-attachments/assets/2a138f2c-f147-44ba-9bfe-cbafe047af6d)
-
-so it will look like this:
-
-![image](https://github.com/user-attachments/assets/9e925bdd-d852-4c6d-a1d9-58095cad4135)
-
-
-
-## List Mode (former known as Bulk Mode)
-List Mode will list all entities instead of showing entity cards. You can use this to have a quick access to copy all unwanted entities and paste them into hidden_entities via yaml.
-
-![image](https://github.com/user-attachments/assets/b8aec0a0-eee5-4f79-a86d-94c91814a825)
-
+<p align="right">
+  <a href="#top">
+    <img src="https://github.com/xBourner/status-card/blob/main/.github/img/top.png" alt="Back to Top" width="4%">
+  </a>
+</p>
 
 
 # Settings
@@ -179,11 +189,22 @@ customization:  # customize almost everything
 
 ```
 
+<p align="right">
+  <a href="#top">
+    <img src="https://github.com/xBourner/status-card/blob/main/.github/img/top.png" alt="Back to Top" width="4%">
+  </a>
+</p>
+
 # Feedback
 
 Thank you for using my custom cards. Please leave some feedback or a star.
 If you have any problems, suggestions for improvements or want to connect with me you can joing my discord: https://discord.gg/RfVx7hmZD3
 
+<p align="right">
+  <a href="#top">
+    <img src="https://github.com/xBourner/status-card/blob/main/.github/img/top.png" alt="Back to Top" width="4%">
+  </a>
+</p>
 
 
 
