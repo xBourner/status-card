@@ -1,15 +1,22 @@
+# Status-card
+
 [![stars - status-card](https://img.shields.io/github/stars/xBourner/status-card?style=for-the-badge)](https://github.com/xBourner/status-card)
 [![forks - status-card](https://img.shields.io/github/forks/xBourner/status-card?style=for-the-badge)](https://github.com/xBourner/status-card)
 [![GitHub release](https://img.shields.io/github/release/xBourner/status-card?style=for-the-badge)](https://github.com/xBourner/status-card/releases/)
 [![GitHub issues](https://img.shields.io/github/issues/xBourner/status-card?style=for-the-badge)](https://github.com/xBourner/status-card/issues)
 
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/status-card-header.png" alt="Status Card Header" width="100%">
+
+# Support my work
+
+If you like my work it would be nice if you support it. You don't have to but this will keep me motivated and i will appreciate it much!
+
 [![Discord](https://img.shields.io/discord/1341456711835455609?style=for-the-badge&logo=discord&logoColor=%237289da&label=Discord&color=%237289da)](https://discord.gg/RfVx7hmZD3)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?&logo=buy-me-a-coffee&logoColor=black&style=for-the-badge)](https://www.buymeacoffee.com/bourner)
 [![PayPal](https://img.shields.io/badge/PayPal-003087?logo=paypal&logoColor=fff&style=for-the-badge)](https://www.paypal.me/gibgas123)
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor%20on%20GitHub-30363d?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sponsors/xBourner)
 
-
-
-# status-card
+# Overview
 
 A status card for home assistant dashboard
 
