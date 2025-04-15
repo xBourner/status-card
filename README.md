@@ -45,7 +45,13 @@ I also wanted to make the card as easy it can be but still manage a high customi
  - graphical editor
  - should work in all available HA languages
 
-<p align="right"><a href="#top">⬆️ back to top</a></p>
+
+<p align="right">
+  <a href="#top">
+    <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/top.png" alt="Back to Top" width="5%">
+  </a>
+</p>
+
 
 
 # Screenshots
