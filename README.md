@@ -37,6 +37,7 @@ You only need to assign your entities/devices to your areas and the card will do
  - 🤖 **Auto generating card** - Works when entities/devices are assigned to areas
  - ✅ **Based on entity states** - Shows entities that are in a on/active state (can be inverted)
  - 📚 **Automatic Grouping** - Entities grouped by domain/device_class
+ - 🎨 Available in **Two Designs**
  - 📑 **Popup View** - Entities will render as Tile Cards in a new view
  - 🧠 **GUI Editor** - No code or scripts needed
  - 🔧 **Highly customizable** - almost everything customizable
