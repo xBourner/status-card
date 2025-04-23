@@ -7,7 +7,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/xBourner/status-card?style=for-the-badge)](https://github.com/xBourner/status-card/issues)
 
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/status-card-headerv2.png" alt="Status Card Header" width="100%">
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/status-card-header.png" alt="Status Card Header" width="100%">
 
 # Support my work
 
