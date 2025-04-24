@@ -52,6 +52,7 @@ interface CustomizationConfig {
   hold_action?: ActionConfig;
   double_tap_action?: ActionConfig;
   icon_css?: string;
+  background_color?: number[];
 }
 
 interface Config {
@@ -70,6 +71,7 @@ interface Config {
   customization?: CustomizationConfig[];
   theme?: string;
   color?: string;
+  background_color?: string[];
   show_total_number: boolean;
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
@@ -528,6 +530,7 @@ export class StatusCard extends LitElement {
         double_tap_action?: ActionConfig;
         hold_action?: ActionConfig;
         icon_css?: string;
+        background_color?: number[];
       }
     | undefined {
     return this._config.customization?.find(
@@ -575,6 +578,37 @@ export class StatusCard extends LitElement {
     }
 
     return domainIcon(fallbackDomain, state, deviceClass);
+  }
+
+  private getBackgroundColor(
+    domain: string,
+    deviceClass?: string,
+    entity?: HassEntity
+  ): string {
+    // 1) Erzeuge denselben key wie in getCustomColor
+    const key = deviceClass
+      ? `${this._formatDomain(domain)} - ${deviceClass}`
+      : domain;
+
+    // 2) Hole die customization für genau diesen key
+    const customization = this.getCustomizationForType(key);
+
+    // 3) Prüfe, ob in der customization ein Array für background_color steckt
+    if (
+      customization &&
+      Array.isArray((customization as any).background_color)
+    ) {
+      const arr = (customization as any).background_color as number[];
+      return `rgb(${arr.join(",")})`;
+    }
+
+    // 4) Sonst globalen Hintergrund aus this._config nehmen
+    if (Array.isArray(this._config?.background_color)) {
+      return `rgb(${this._config.background_color.join(",")})`;
+    }
+
+    // 5) letzter Fallback
+    return "rgba(var(--rgb-primary-text-color), 0.15)";
   }
 
   private getCustomColor(
@@ -669,7 +703,6 @@ export class StatusCard extends LitElement {
 
       const iconStyles = {
         "border-radius": this._config?.square ? "20%" : "50%",
-        filter: isNotHome ? "grayscale(100%)" : "none",
       };
 
       return html`
@@ -1317,12 +1350,18 @@ export class StatusCard extends LitElement {
         undefined,
         entity
       );
+      const calculatedBackground = this.getBackgroundColor(
+        entity.entity_id,
+        undefined,
+        entity
+      );
       return {
         entity,
         icon: calculatedIcon,
         name: calculatedName,
         color: calculatedcolor,
         icon_css: calculatedCSS,
+        background_color: calculatedBackground,
         order,
         type: "extra",
       };
@@ -1342,7 +1381,8 @@ export class StatusCard extends LitElement {
           ${this.renderPersonEntities()}
           ${sortedEntities.map((item: any) => {
             if (item.type === "extra") {
-              const { entity, icon, name, color, icon_css } = item;
+              const { entity, icon, name, color, icon_css, background_color } =
+                item;
               const domain = computeDomain(entity.entity_id);
               const translatedEntityState = translateEntityState(
                 this.hass!,
@@ -1353,6 +1393,7 @@ export class StatusCard extends LitElement {
               const iconStyles = {
                 color: color ? `var(--${color}-color)` : "",
                 "border-radius": this._config?.square ? "20%" : "50%",
+                "background-color": `${background_color}`,
               };
 
               return html`
@@ -1365,9 +1406,8 @@ export class StatusCard extends LitElement {
                             <img
                               src="${icon}"
                               alt="${name}"
-                              style="border-radius: ${this._config?.square
-                                ? "20%"
-                                : "50%"};"
+                              style="border-radius:
+                            ${this._config?.square ? "20%" : "50%"};"
                             />
                           `
                         : html`
@@ -1403,11 +1443,13 @@ export class StatusCard extends LitElement {
               const totalEntities = this._totalEntities(item.domain);
               if (activeEntities.length === 0) return null;
               const color = this.getCustomColor(item.domain);
+              const customization = this.getCustomizationForType(item.domain);
               const iconStyles = {
                 color: color ? `var(--${color}-color)` : "",
                 "border-radius": this._config?.square ? "20%" : "50%",
+                "background-color": this.getBackgroundColor(item.domain),
               };
-              const customization = this.getCustomizationForType(item.domain);
+
               return html`
                 <paper-tab
                   @action=${this._handleDomainAction(item.domain)}
@@ -1469,13 +1511,17 @@ export class StatusCard extends LitElement {
               const totalEntities = this._totalEntities(domain, deviceClass);
               if (activeEntities.length === 0) return null;
               const color = this.getCustomColor(domain, deviceClass);
-              const iconStyles = {
-                color: color ? `var(--${color}-color)` : "",
-                "border-radius": this._config?.square ? "20%" : "50%",
-              };
               const customization = this.getCustomizationForType(
                 `${this._formatDomain(domain)} - ${deviceClass}`
               );
+              const iconStyles = {
+                color: color ? `var(--${color}-color)` : "",
+                "border-radius": this._config?.square ? "20%" : "50%",
+                "background-color": this.getBackgroundColor(
+                  domain,
+                  deviceClass
+                ),
+              };
               return html`
                 <paper-tab
                   @action=${this._handleDomainAction(domain, deviceClass)}

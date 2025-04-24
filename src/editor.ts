@@ -34,6 +34,7 @@ export interface CardConfig {
   multiple_floors?: boolean;
   invert_state?: "true" | "false";
   icon_color?: string;
+  background_color?: [number, number, number];
 }
 
 interface Schema {
@@ -304,6 +305,12 @@ export class StatusCardEditor extends LitElement {
               name: "color",
               selector: {
                 ui_color: { default_color: "state", include_state: true },
+              },
+            },
+            {
+              name: "background_color",
+              selector: {
+                color_rgb: {},
               },
             },
             { name: "tap_action", selector: { ui_action: { actions } } },

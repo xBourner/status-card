@@ -41,6 +41,12 @@ export class ItemEditor extends LitElement {
           ui_color: { default_color: "state", include_state: true },
         },
       },
+      {
+        name: "background_color",
+        selector: {
+          color_rgb: { default_color: "state", include_state: true },
+        },
+      },
       { name: "tap_action", selector: { ui_action: { actions } } },
       { name: "double_tap_action", selector: { ui_action: { actions } } },
       { name: "hold_action", selector: { ui_action: { actions } } },
@@ -99,6 +105,12 @@ export class ItemEditor extends LitElement {
         name: "icon_color",
         selector: { ui_color: { default_color: "state", include_state: true } },
       },
+      {
+        name: "background_color",
+        selector: {
+          color_rgb: { default_color: "state", include_state: true },
+        },
+      },
       { name: "tap_action", selector: { ui_action: { actions } } },
       { name: "double_tap_action", selector: { ui_action: { actions } } },
       { name: "hold_action", selector: { ui_action: { actions } } },
@@ -110,7 +122,6 @@ export class ItemEditor extends LitElement {
       return html``;
     }
 
-    // Setze invert_state nur, wenn das Schema "entity" ist.
     if (!this._config?.invert_state) {
       this._config = {
         ...this._config,
@@ -159,7 +170,16 @@ export class ItemEditor extends LitElement {
         );
       case "color":
         return this.hass!.localize("ui.panel.lovelace.editor.card.tile.color");
-
+      case "background_color":
+        return (
+          this.hass!.localize("ui.panel.lovelace.editor.card.generic.icon") +
+          " " +
+          this.hass!.localize(
+            "ui.panel.lovelace.editor.edit_view.tab_background"
+          ) +
+          " " +
+          this.hass!.localize("ui.panel.lovelace.editor.card.tile.color")
+        );
       case "show_entity_picture":
         return this.hass!.localize(
           "ui.panel.lovelace.editor.card.tile.show_entity_picture"

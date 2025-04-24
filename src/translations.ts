@@ -126,6 +126,14 @@ export function computeLabelCallback(
       return hass!.localize("ui.components.selectors.selector.types.icon");
     case "color":
       return hass!.localize("ui.panel.lovelace.editor.card.tile.color");
+    case "background_color":
+      return (
+        hass!.localize("ui.panel.lovelace.editor.card.generic.icon") +
+        " " +
+        hass!.localize("ui.panel.lovelace.editor.edit_view.tab_background") +
+        " " +
+        hass!.localize("ui.panel.lovelace.editor.card.tile.color")
+      );
     case "multiple_areas":
       return (
         "Multi" +
