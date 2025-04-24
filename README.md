@@ -103,7 +103,8 @@ The card needs to work with your areas so you need to assign your relevant devic
 - **Turn on List Display Mode** - will show a list of entities instead of controllable cards
 - **Theme** - Choose a theme for the card
 - **More Info Columns** - Specify the amount of columns you will see in the popup
-- **Color** - change all icon colors for all domains & device_classes at once
+- **Color** - Change all icon colors for all domains & device_classes at once
+- **Icon Background Color** - Change the background color of the icon. Default is an rgba value so it has some opactiy.
 - **Tap, Double Tap & Hold Behavior** - specify which action will happen for all domains & device_classes at once
   
 - **Hide content name** - will hide all names from domains & device_classes and person entities
