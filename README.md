@@ -104,7 +104,7 @@ The card needs to work with your areas so you need to assign your relevant devic
 - **Theme** - Choose a theme for the card
 - **More Info Columns** - Specify the amount of columns you will see in the popup
 - **Color** - Change all icon colors for all domains & device_classes at once
-- **Icon Background Color** - Change the background color of the icon. Default is an rgba value so it has some opactiy.
+- **Icon Background Color** - Change the background color of all icons at once. Default is an rgba value so it has some opactiy.
 - **Tap, Double Tap & Hold Behavior** - specify which action will happen for all domains & device_classes at once
   
 - **Hide content name** - will hide all names from domains & device_classes and person entities
@@ -147,6 +147,7 @@ The card needs to work with your areas so you need to assign your relevant devic
 - **Name** - Change the display name of the domain or device_class
 - **Icon** - Change the icon of the domain or device_class
 - **Color** - Change the icon color of the domain or device_class
+- **Icon Background Color** - Change the background color of the individual icon. Default is an rgba value so it has some opactiy.
 - **Tap, Double Tap & Hold Behavior** - specify which action will happen for individual domain or device_class
 
 <p align="right">
