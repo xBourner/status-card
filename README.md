@@ -69,6 +69,9 @@ This card i highly influenced by [Dwains Dashboard](https://github.com/dwainsche
 
 For more info look at [How to add Custom Repositories](https://hacs.xyz/docs/faq/custom_repositories/)
 
+After adding the repository to your HA instance you need to add the card to one of your dashboards. <br>
+Just choose an area an the card will do the rest. <br>
+The card needs to work with your areas so you need to assign your relevant devices/entities to your areas.
 
 <p align="right">
   <a href="#top">
