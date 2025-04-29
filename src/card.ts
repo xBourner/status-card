@@ -359,20 +359,28 @@ export class StatusCard extends LitElement {
     }
 
     return entities
-      .filter((entity) => !["unavailable", "unknown"].includes(entity.state))
+      .filter((entity) => !["unavailable", "unknown"].includes(entity.state)) // Filtere ungültige Zustände
       .filter((entity) => {
-        const matchesDeviceClass =
-          !deviceClass || entity.attributes.device_class === deviceClass;
+        const entityDeviceClass = entity.attributes.device_class;
 
-        let key: string;
-        if (deviceClass) {
-          key = `${this._formatDomain(domain)} - ${deviceClass}`;
-        } else {
-          key = domain;
+        // Für die Domain "switch" spezielle Logik anwenden
+        if (domain === "switch") {
+          if (deviceClass === "outlet") {
+            // Zeige nur Entitäten mit device_class "outlet"
+            return entityDeviceClass === "outlet";
+          } else if (deviceClass === "switch") {
+            // Zeige Entitäten mit device_class "switch" oder ohne device_class
+            return (
+              entityDeviceClass === "switch" || entityDeviceClass === undefined
+            );
+          }
         }
-        const customization = this.getCustomizationForType(key);
-        const isInverted = customization?.invert === true;
 
+        // Standard-Logik für andere Domains
+        return !deviceClass || entityDeviceClass === deviceClass;
+      })
+      .filter((entity) => {
+        // Prüfe, ob die Entität aktiv oder inaktiv ist
         const isActive = ![
           "closed",
           "locked",
@@ -386,31 +394,15 @@ export class StatusCard extends LitElement {
           "disarmed",
           "0",
         ].includes(entity.state);
-        const isInactive = !isActive;
 
-        if (domain === "climate") {
-          const hvacAction = entity.attributes.hvac_action;
-          if (hvacAction !== undefined) {
-            return isInverted
-              ? ["idle", "off"].includes(hvacAction)
-              : !["idle", "off"].includes(hvacAction);
-          }
-        }
+        const customization = this.getCustomizationForType(
+          deviceClass
+            ? `${this._formatDomain(domain)} - ${deviceClass}`
+            : domain
+        );
+        const isInverted = customization?.invert === true;
 
-        if (domain === "humidifier") {
-          const humAction = entity.attributes.action;
-          if (humAction !== undefined) {
-            return isInverted
-              ? ["idle", "off"].includes(humAction)
-              : !["idle", "off"].includes(humAction);
-          }
-        }
-
-        if (["cover", "binary_sensor"].includes(domain)) {
-          return matchesDeviceClass && (isInverted ? isInactive : isActive);
-        }
-
-        return isInverted ? isInactive : isActive;
+        return isInverted ? !isActive : isActive;
       });
   }
 

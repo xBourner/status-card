@@ -530,13 +530,15 @@ export class StatusCardEditor extends LitElement {
     const domains = new Set(
       entities
         .map((e) => computeDomain(e.entity_id))
-        .filter((d) => d !== "binary_sensor" && d !== "cover")
+        .filter((d) => d !== "binary_sensor" && d !== "cover" && d !== "switch")
     );
 
     const deviceClassMap = new Map<string, Set<string>>();
     entities
       .filter((e) =>
-        ["binary_sensor", "cover"].includes(computeDomain(e.entity_id))
+        ["binary_sensor", "cover", "switch"].includes(
+          computeDomain(e.entity_id)
+        )
       )
       .forEach((e) => {
         const dom = computeDomain(e.entity_id);
@@ -580,6 +582,17 @@ export class StatusCardEditor extends LitElement {
       if (match) {
         const domain = match[1].toLowerCase().replace(" ", "_");
         const deviceClass = match[2].toLowerCase();
+
+        // Sonderfall für switch.switch
+        if (domain === "switch" && deviceClass === "switch") {
+          const translatedSwitch = this.hass!.localize(
+            `component.switch.entity_component._.name`
+          );
+          return {
+            value: entry,
+            label: `${translatedSwitch} - ${translatedSwitch}`,
+          };
+        }
 
         const translatedDomain =
           this.hass!.localize(`component.${domain}.entity_component._.name`) ||
@@ -732,16 +745,24 @@ export class StatusCardEditor extends LitElement {
       const domain = match[1].toLowerCase().replace(" ", "_");
       const deviceClass = match[2].toLowerCase();
 
-      const translatedDomain =
-        this.hass!.localize(`component.${domain}.entity_component._.name`) ||
-        match[1];
+      // Sonderfall für switch.switch
+      if (domain === "switch" && deviceClass === "switch") {
+        const translatedSwitch = this.hass!.localize(
+          `component.switch.entity_component._.name`
+        );
+        localizedType = `${translatedSwitch} - ${translatedSwitch}`;
+      } else {
+        const translatedDomain =
+          this.hass!.localize(`component.${domain}.entity_component._.name`) ||
+          match[1];
 
-      const translatedDeviceClass =
-        this.hass!.localize(
-          `ui.dialogs.entity_registry.editor.device_classes.${domain}.${deviceClass}`
-        ) || match[2];
+        const translatedDeviceClass =
+          this.hass!.localize(
+            `ui.dialogs.entity_registry.editor.device_classes.${domain}.${deviceClass}`
+          ) || match[2];
 
-      localizedType = `${translatedDomain} - ${translatedDeviceClass}`;
+        localizedType = `${translatedDomain} - ${translatedDeviceClass}`;
+      }
     } else {
       localizedType =
         this.hass!.localize(`component.${type}.entity_component._.name`) ||

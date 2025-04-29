@@ -20,12 +20,21 @@ export function domainIcon(
       return state === "off" ? "mdi:cast-off" : "mdi:cast";
     case "climate":
       return state === "off" ? "mdi:thermostat-cog" : "mdi:thermostat";
-    case "switch":
-      return state === "off" ? "mdi:toggle-switch-off" : "mdi:power";
     case "vacuum":
       return state === "off" ? "mdi:robot-vacuum-off" : "mdi:robot-vacuum";
     case "fan":
       return state === "off" ? "mdi:fan-off" : "mdi:fan";
+    case "switch":
+      if (deviceClass) {
+        switch (deviceClass) {
+          case "outlet":
+            return state === "off" ? "mdi:power-plug-off" : "mdi:power-plug";
+          case "switch":
+            return state === "off"
+              ? "mdi:toggle-switch-off"
+              : "mdi:toggle-switch";
+        }
+      }
     case "cover":
       if (deviceClass) {
         switch (deviceClass) {
@@ -173,7 +182,8 @@ export const sortOrder = [
   "light",
   "media_player",
   "climate",
-  "switch",
+  "Switch - switch",
+  "Switch - outlet",
   "vacuum",
   "fan",
   "humidifier",
@@ -295,6 +305,7 @@ export const deviceClasses: DeviceClasses = {
     "shade",
     "shutter",
   ],
+  switch: ["switch", "outlet"],
 };
 
 export class DataStore {

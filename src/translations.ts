@@ -29,6 +29,12 @@ export function computeLabelCallback(
   switch (schema.name) {
     case "header": {
       if (domain && deviceClass) {
+        // Spezielle Behandlung für switch.switch
+        if (domain === "switch" && deviceClass === "switch") {
+          return `${hass.localize(
+            "ui.panel.lovelace.editor.card.entities.name"
+          )} in ${hass.localize("component.switch.entity_component._.name")}`;
+        }
         return `${hass.localize(
           "ui.panel.lovelace.editor.card.entities.name"
         )} in ${hass.localize(
