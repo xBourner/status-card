@@ -224,7 +224,6 @@ export class StatusCard extends LitElement {
       (this.hass as HomeAssistant).states
     );
 
-    // Speichere die Ergebnisse in der DataStore-Klasse
     DataStore.setEntitiesByDomain(
       Object.fromEntries(
         Object.entries(entitiesByDomain).map(([domain, entities]) => [
@@ -358,29 +357,47 @@ export class StatusCard extends LitElement {
       return [];
     }
 
+    const customization = this.getCustomizationForType(
+      deviceClass ? `${this._formatDomain(domain)} - ${deviceClass}` : domain
+    );
+    const isInverted = customization?.invert === true;
+
     return entities
-      .filter((entity) => !["unavailable", "unknown"].includes(entity.state)) // Filtere ungültige Zustände
+      .filter((entity) => !["unavailable", "unknown"].includes(entity.state))
       .filter((entity) => {
         const entityDeviceClass = entity.attributes.device_class;
 
-        // Für die Domain "switch" spezielle Logik anwenden
         if (domain === "switch") {
           if (deviceClass === "outlet") {
-            // Zeige nur Entitäten mit device_class "outlet"
             return entityDeviceClass === "outlet";
           } else if (deviceClass === "switch") {
-            // Zeige Entitäten mit device_class "switch" oder ohne device_class
             return (
               entityDeviceClass === "switch" || entityDeviceClass === undefined
             );
           }
         }
 
-        // Standard-Logik für andere Domains
+        if (domain === "climate") {
+          const hvacAction = entity.attributes.hvac_action;
+          if (hvacAction !== undefined) {
+            return isInverted
+              ? ["idle", "off"].includes(hvacAction)
+              : !["idle", "off"].includes(hvacAction);
+          }
+        }
+
+        if (domain === "humidifier") {
+          const humAction = entity.attributes.action;
+          if (humAction !== undefined) {
+            return isInverted
+              ? ["idle", "off"].includes(humAction)
+              : !["idle", "off"].includes(humAction);
+          }
+        }
+
         return !deviceClass || entityDeviceClass === deviceClass;
       })
       .filter((entity) => {
-        // Prüfe, ob die Entität aktiv oder inaktiv ist
         const isActive = ![
           "closed",
           "locked",
@@ -394,13 +411,6 @@ export class StatusCard extends LitElement {
           "disarmed",
           "0",
         ].includes(entity.state);
-
-        const customization = this.getCustomizationForType(
-          deviceClass
-            ? `${this._formatDomain(domain)} - ${deviceClass}`
-            : domain
-        );
-        const isInverted = customization?.invert === true;
 
         return isInverted ? !isActive : isActive;
       });
@@ -544,7 +554,6 @@ export class StatusCard extends LitElement {
 
     const customization = this.getCustomizationForType(key);
 
-    // Falls show_entity_picture aktiviert ist und ein Bild vorhanden ist, dieses zurückgeben:
     if (
       customization?.show_entity_picture === true &&
       entity &&
@@ -577,15 +586,12 @@ export class StatusCard extends LitElement {
     deviceClass?: string,
     entity?: HassEntity
   ): string {
-    // 1) Erzeuge denselben key wie in getCustomColor
     const key = deviceClass
       ? `${this._formatDomain(domain)} - ${deviceClass}`
       : domain;
 
-    // 2) Hole die customization für genau diesen key
     const customization = this.getCustomizationForType(key);
 
-    // 3) Prüfe, ob in der customization ein Array für background_color steckt
     if (
       customization &&
       Array.isArray((customization as any).background_color)
@@ -594,12 +600,10 @@ export class StatusCard extends LitElement {
       return `rgb(${arr.join(",")})`;
     }
 
-    // 4) Sonst globalen Hintergrund aus this._config nehmen
     if (Array.isArray(this._config?.background_color)) {
       return `rgb(${this._config.background_color.join(",")})`;
     }
 
-    // 5) letzter Fallback
     return "rgba(var(--rgb-primary-text-color), 0.15)";
   }
 
