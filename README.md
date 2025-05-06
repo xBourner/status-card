@@ -94,6 +94,8 @@ The card needs to work with your areas so you need to assign your relevant devic
   - **Tile Cards** - Shows controllable cards at default
   - **List Mode** - Easy copying entities (e.g. for hiding entities)
   - **Columns** - Specify how many columns will be shown in the popup (still one on mobile view)
+  - **Turn off Entities** - Lets you turn off all entities of one domain with one click
+  - **Toggle Total Entities** - Toggle between entities with "on" state and all entities
 
 ### Appearance
 
@@ -105,6 +107,7 @@ The card needs to work with your areas so you need to assign your relevant devic
 - **More Info Columns** - Specify the amount of columns you will see in the popup
 - **Color** - Change all icon colors for all domains & device_classes at once
 - **Icon Background Color** - Change the background color of all icons at once. Default is an rgba value so it has some opactiy.
+- **Enable Total Entities** - Shows all entities instead of "on" state entities at default
 - **Tap, Double Tap & Hold Behavior** - specify which action will happen for all domains & device_classes at once
   
 - **Hide content name** - will hide all names from domains & device_classes and person entities
