@@ -88,7 +88,7 @@ The card needs to work with your areas so you need to assign your relevant devic
 
 ### More Info/ Popup View
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/popup.png" alt="Status Card Header" width="100%">
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/popup-status.png" alt="Status Card Header" width="100%">
 
   - **Popup View** - Displays all entities in the domain or device_class you clicked on
   - **Tile Cards** - Shows controllable cards at default
