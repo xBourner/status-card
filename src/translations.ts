@@ -29,7 +29,6 @@ export function computeLabelCallback(
   switch (schema.name) {
     case "header": {
       if (domain && deviceClass) {
-        // Spezielle Behandlung für switch.switch
         if (domain === "switch" && deviceClass === "switch") {
           return `${hass.localize(
             "ui.panel.lovelace.editor.card.entities.name"
@@ -161,6 +160,16 @@ export function computeLabelCallback(
         ) +
         " " +
         hass!.localize("component.number.entity_component._.name")
+      );
+    case "show_total_entities":
+      return (
+        hass!.localize("ui.common.enable") +
+        " " +
+        hass!.localize(
+          "component.sensor.entity_component._.state_attributes.state_class.state.total"
+        ) +
+        " " +
+        hass!.localize("ui.panel.lovelace.editor.card.entities.name")
       );
     case "appearance":
       return (

@@ -13,10 +13,20 @@ import {
   STATES_OFF,
 } from "custom-card-helpers";
 import type { HassEntity } from "home-assistant-js-websocket";
-import { domainIcon, ALLOWED_DOMAINS, DataStore } from "./properties";
+import {
+  domainIcon,
+  ALLOWED_DOMAINS,
+  DataStore,
+  TOGGLE_DOMAINS,
+} from "./properties";
 import { computeLabelCallback, translateEntityState } from "./translations";
-import { actionHandler } from "./helpers";
+import { actionHandler, stopPropagation } from "./helpers";
 import { styleMap } from "lit/directives/style-map.js";
+import {
+  mdiDotsVertical,
+  mdiSwapHorizontal,
+  mdiToggleSwitchOffOutline,
+} from "@mdi/js";
 
 interface EntityRegistryEntry {
   entity_id: string;
@@ -73,6 +83,7 @@ interface Config {
   color?: string;
   background_color?: string[];
   show_total_number: boolean;
+  show_total_entities: boolean;
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
   double_tap_action?: ActionConfig;
@@ -104,6 +115,7 @@ export class StatusCard extends LitElement {
   @state() private hide_content_name: boolean = true;
   @state() private list_mode: boolean = false;
   @state() private _isMobile: boolean = false;
+  @state() private _showAll = false;
 
   private computeLabel(
     schema: Schema,
@@ -123,6 +135,15 @@ export class StatusCard extends LitElement {
     if (dialog && container?.contains(dialog)) {
       container.removeChild(dialog);
     }
+    const tabGroup = this.shadowRoot?.querySelector("sl-tab-group");
+    if (tabGroup) {
+      (tabGroup as any).activeIndex = -1;
+    }
+    const tabs = this.shadowRoot?.querySelectorAll("sl-tab") || [];
+    tabs.forEach((tab) => {
+      tab.setAttribute("aria-selected", "false");
+      tab.removeAttribute("active");
+    });
   }
 
   static getConfigElement() {
@@ -699,10 +720,15 @@ export class StatusCard extends LitElement {
 
       const iconStyles = {
         "border-radius": this._config?.square ? "20%" : "50%",
+        filter: isNotHome ? "grayscale(100%)" : "none",
       };
 
       return html`
-        <paper-tab @click="${() => this.showMoreInfo(entity)}">
+        <sl-tab
+          slot="nav"
+          panel=${entity.entity_id}
+          @click="${() => this.showMoreInfo(entity)}"
+        >
           <div class="entity">
             <div class="entity-icon" style=${styleMap(iconStyles)}>
               <img
@@ -726,7 +752,7 @@ export class StatusCard extends LitElement {
               </div>
             </div>
           </div>
-        </paper-tab>
+        </sl-tab>
       `;
     });
   }
@@ -796,18 +822,36 @@ export class StatusCard extends LitElement {
   }
 
   private desktopStyles = `
+        ha-dialog {
+       --dialog-content-padding: 12px;
+      }
+      .area-group { padding: 0 15px;}
       .dialog-header { display: flex;  justify-content: flex-start; align-items: center; gap: 8px; margin-bottom: 12px;} 
       .dialog-header ha-icon-button { margin-right: 10px;  }
-      ha-dialog#more-info-dialog { --mdc-dialog-max-width: calc(22.5vw * var(--columns) + 3vw); }
+      ha-dialog#more-info-dialog { --mdc-dialog-max-width: none; --mdc-min-width: 15vw; width: auto; }
       .entity-card { width: 22.5vw ;  box-sizing: border-box; }
-      .entity-cards { display: flex; flex-wrap: wrap; gap: 4px; }
       .entity-list .entity-item { list-style: none;  display: flex; flex-direction: column; }
       ul { margin: 0; padding: 5px;  }
       ha-icon { display: flex; }
-      h4 { font-size: 1.2em; margin: 0.8em 0em;} 
+      h4 { font-size: 1.2em; margin: 0.8em 0.2em;} 
+      .menu-button { position: absolute; right: 4px; left: auto; }
+            .cards-wrapper {
+        display: flex;
+        justify-content: center;          
+        box-sizing: border-box;
+      }
+      .entity-cards {
+        display: grid;
+        grid-template-columns: repeat(var(--columns), 22.5vw);
+        gap: 4px;
+      }
 `;
 
   private mobileStyles = `
+        ha-dialog {
+       --dialog-content-padding: 12px;
+      }
+      .area-group { padding: 0 5px;}
       .dialog-header { display: flex;  justify-content: flex-start; align-items: center; gap: 8px; margin-bottom: 12px;} 
       .dialog-header ha-icon-button { margin-right: 10px;  }
       ha-dialog#more-info-dialog { --mdc-dialog-max-width: 96vw; --mdc-dialog-min-width: 96vw; }
@@ -816,7 +860,8 @@ export class StatusCard extends LitElement {
       .entity-card { flex-basis: 100%; max-width: 100%; }
       .entity-cards { display: flex; flex-direction: column; gap: 4px; }
       ha-icon { display: flex; }
-      h4 { font-size: 1.2em; margin: 0.6em 0em;} 
+      h4 { font-size: 1.2em; margin: 0.6em 0.2em;} 
+      .menu-button { position: absolute; right: 4px; left: auto; }
   }
 `;
 
@@ -837,13 +882,18 @@ export class StatusCard extends LitElement {
     return "unassigned";
   }
 
+  private toggleAllOrOn(): void {
+    this._showAll = !this._showAll;
+  }
+
   private renderPopup(): TemplateResult {
     const columns = this.list_mode ? 1 : this._config.columns || 4;
     const styleBlock = this._isMobile ? this.mobileStyles : this.desktopStyles;
-    const entities = this._isOn(
-      this.selectedDomain!,
-      this.selectedDeviceClass!
-    );
+    const initialShowAll = !!this._config.show_total_entities;
+    const effectiveShowAll = this._showAll ? !initialShowAll : initialShowAll;
+    const entities = effectiveShowAll
+      ? this._totalEntities(this.selectedDomain!, this.selectedDeviceClass!)
+      : this._isOn(this.selectedDomain!, this.selectedDeviceClass!);
 
     const groups = new Map<string, HassEntity[]>();
     for (const entity of entities) {
@@ -886,10 +936,16 @@ export class StatusCard extends LitElement {
       }
     );
 
+    const totalCards = sortedGroups.reduce(
+      (sum, [, ents]) => sum + ents.length,
+      0
+    );
+    const displayColumns = Math.min(columns, totalCards);
+
     return html`
       <ha-dialog
         id="more-info-dialog"
-        style="--columns: ${columns};"
+        style="--columns: ${displayColumns};"
         open
         @closed="${this._closeDialog}"
       >
@@ -917,6 +973,54 @@ export class StatusCard extends LitElement {
                   this.selectedDomain || undefined
                 )}
           </h3>
+          <ha-button-menu
+            class="menu-button"
+            slot="actionItems"
+            fixed
+            corner="BOTTOM_END"
+            menu-corner="END"
+            @closed=${stopPropagation}
+          >
+            <ha-icon-button
+              slot="trigger"
+              .label=${this.hass.localize("ui.common.menu")}
+              .path=${mdiDotsVertical}
+            ></ha-icon-button>
+            <ha-list-item
+              graphic="icon"
+              @click=${(e: MouseEvent) => {
+                e.stopPropagation();
+                this.toggleDomain();
+              }}
+            >
+              ${this.hass.localize("ui.card.common.turn_off") +
+              " " +
+              this.hass.localize("ui.panel.lovelace.editor.card.entities.name")}
+              <ha-svg-icon
+                slot="graphic"
+                .path=${mdiToggleSwitchOffOutline}
+              ></ha-svg-icon>
+            </ha-list-item>
+            <ha-list-item
+              graphic="icon"
+              @click=${(e: MouseEvent) => {
+                e.stopPropagation();
+                this.toggleAllOrOn();
+              }}
+            >
+              ${this.hass.localize("ui.card.common.toggle") +
+              " " +
+              this.hass.localize(
+                "component.sensor.entity_component._.state_attributes.state_class.state.total"
+              ) +
+              " " +
+              this.hass.localize("ui.panel.lovelace.editor.card.entities.name")}
+              <ha-svg-icon
+                slot="graphic"
+                .path=${mdiSwapHorizontal}
+              ></ha-svg-icon>
+            </ha-list-item>
+          </ha-button-menu>
         </div>
         ${this.list_mode
           ? html`
@@ -956,192 +1060,194 @@ export class StatusCard extends LitElement {
                 return html`
                   <div class="area-group">
                     <h4>${areaName}</h4>
-                    <div class="entity-cards">
-                      ${sortedEntities.map(
-                        (entity) => html`
-                          <div class="entity-card">
-                            ${this.createCard({
-                              type: "tile",
-                              entity: entity.entity_id,
-                              ...(this.selectedDomain ===
-                                "alarm_control_panel" && {
-                                state_content: ["state", "last_changed"],
-                                features: [
-                                  {
-                                    type: "alarm-modes",
-                                    modes: [
-                                      "armed_home",
-                                      "armed_away",
-                                      "armed_night",
-                                      "armed_vacation",
-                                      "armed_custom_bypass",
-                                      "disarmed",
-                                    ],
-                                  },
-                                ],
-                              }),
-                              ...(this.selectedDomain === "light" && {
-                                state_content: [
-                                  "state",
-                                  "brightness",
-                                  "last_changed",
-                                ],
-                                features: [{ type: "light-brightness" }],
-                              }),
-                              ...(this.selectedDomain === "cover" && {
-                                state_content: [
-                                  "state",
-                                  "position",
-                                  "last_changed",
-                                ],
-                                features: [
-                                  { type: "cover-open-close" },
-                                  { type: "cover-position" },
-                                ],
-                              }),
-                              ...(this.selectedDomain === "vacuum" && {
-                                state_content: ["state", "last_changed"],
-                                features: [
-                                  {
-                                    type: "vacuum-commands",
-                                    commands: [
-                                      "start_pause",
-                                      "stop",
-                                      "clean_spot",
-                                      "locate",
-                                      "return_home",
-                                    ],
-                                  },
-                                ],
-                              }),
-                              ...(this.selectedDomain === "climate" && {
-                                state_content: [
-                                  "state",
-                                  "current_temperature",
-                                  "last_changed",
-                                ],
-                                features: [
-                                  {
-                                    type: "climate-hvac-modes",
-                                    hvac_modes: [
-                                      "auto",
-                                      "heat_cool",
-                                      "heat",
-                                      "cool",
-                                      "dry",
-                                      "fan_only",
-                                      "off",
-                                    ],
-                                  },
-                                ],
-                              }),
-                              ...(this.selectedDomain === "water_heater" && {
-                                state_content: ["state", "last_changed"],
-                                features: [
-                                  {
-                                    type: "water-heater-operation-modes",
-                                    operation_modes: [
-                                      "electric",
-                                      "gas",
-                                      "heat_pump",
-                                      "eco",
-                                      "performance",
-                                      "high_demand",
-                                      "off",
-                                    ],
-                                  },
-                                ],
-                              }),
-                              ...(this.selectedDomain === "humidifier" && {
-                                state_content: [
-                                  "state",
-                                  "current_humidity",
-                                  "last_changed",
-                                ],
-                                features: [
-                                  {
-                                    type: "target-humidity",
-                                  },
-                                ],
-                              }),
-                              ...(this.selectedDomain === "media_player" && {
-                                show_entity_picture: true,
-                                state_content: [
-                                  "state",
-                                  "volume_level",
-                                  "last_changed",
-                                ],
-                                features: [
-                                  { type: "media-player-volume-slider" },
-                                ],
-                              }),
-                              ...(this.selectedDomain === "lock" && {
-                                state_content: ["state", "last_changed"],
-                                features: [{ type: "lock-commands" }],
-                              }),
-                              ...(this.selectedDomain === "fan" && {
-                                state_content: [
-                                  "state",
-                                  "percentage",
-                                  "last_changed",
-                                ],
-                                features: [{ type: "fan-speed" }],
-                              }),
-                              ...(this.selectedDomain === "counter" && {
-                                state_content: ["state", "last_changed"],
-                                features: [
-                                  {
-                                    type: "counter-actions",
-                                    actions: [
-                                      "increment",
-                                      "decrement",
-                                      "reset",
-                                    ],
-                                  },
-                                ],
-                              }),
-                              ...(this.selectedDomain === "lawn_mower" && {
-                                state_content: ["state", "last_changed"],
-                                features: [
-                                  {
-                                    type: "lawn-mower-commands",
-                                    commands: ["start_pause", "dock"],
-                                  },
-                                ],
-                              }),
-                              ...(this.selectedDomain === "update" && {
-                                state_content: [
-                                  "state",
-                                  "latest_version",
-                                  "last_changed",
-                                ],
-                                features: [
-                                  { type: "update-actions", backup: "ask" },
-                                ],
-                              }),
-                              ...(["switch", "input_boolean"].includes(
-                                this.selectedDomain as string
-                              ) && {
-                                state_content: ["state", "last_changed"],
-                                features: [{ type: "toggle" }],
-                              }),
-                              ...(this.selectedDomain === "calendar" && {
-                                state_content: "message",
-                              }),
-                              ...(this.selectedDomain === "timer" && {
-                                state_content: ["state", "remaining_time"],
-                              }),
-                              ...([
-                                "binary_sensor",
-                                "device_tracker",
-                                "remote",
-                              ].includes(this.selectedDomain as string) && {
-                                state_content: ["state", "last_changed"],
-                              }),
-                            })}
-                          </div>
-                        `
-                      )}
+                    <div class="cards-wrapper">
+                      <div class="entity-cards">
+                        ${sortedEntities.map(
+                          (entity) => html`
+                            <div class="entity-card">
+                              ${this.createCard({
+                                type: "tile",
+                                entity: entity.entity_id,
+                                ...(this.selectedDomain ===
+                                  "alarm_control_panel" && {
+                                  state_content: ["state", "last_changed"],
+                                  features: [
+                                    {
+                                      type: "alarm-modes",
+                                      modes: [
+                                        "armed_home",
+                                        "armed_away",
+                                        "armed_night",
+                                        "armed_vacation",
+                                        "armed_custom_bypass",
+                                        "disarmed",
+                                      ],
+                                    },
+                                  ],
+                                }),
+                                ...(this.selectedDomain === "light" && {
+                                  state_content: [
+                                    "state",
+                                    "brightness",
+                                    "last_changed",
+                                  ],
+                                  features: [{ type: "light-brightness" }],
+                                }),
+                                ...(this.selectedDomain === "cover" && {
+                                  state_content: [
+                                    "state",
+                                    "position",
+                                    "last_changed",
+                                  ],
+                                  features: [
+                                    { type: "cover-open-close" },
+                                    { type: "cover-position" },
+                                  ],
+                                }),
+                                ...(this.selectedDomain === "vacuum" && {
+                                  state_content: ["state", "last_changed"],
+                                  features: [
+                                    {
+                                      type: "vacuum-commands",
+                                      commands: [
+                                        "start_pause",
+                                        "stop",
+                                        "clean_spot",
+                                        "locate",
+                                        "return_home",
+                                      ],
+                                    },
+                                  ],
+                                }),
+                                ...(this.selectedDomain === "climate" && {
+                                  state_content: [
+                                    "state",
+                                    "current_temperature",
+                                    "last_changed",
+                                  ],
+                                  features: [
+                                    {
+                                      type: "climate-hvac-modes",
+                                      hvac_modes: [
+                                        "auto",
+                                        "heat_cool",
+                                        "heat",
+                                        "cool",
+                                        "dry",
+                                        "fan_only",
+                                        "off",
+                                      ],
+                                    },
+                                  ],
+                                }),
+                                ...(this.selectedDomain === "water_heater" && {
+                                  state_content: ["state", "last_changed"],
+                                  features: [
+                                    {
+                                      type: "water-heater-operation-modes",
+                                      operation_modes: [
+                                        "electric",
+                                        "gas",
+                                        "heat_pump",
+                                        "eco",
+                                        "performance",
+                                        "high_demand",
+                                        "off",
+                                      ],
+                                    },
+                                  ],
+                                }),
+                                ...(this.selectedDomain === "humidifier" && {
+                                  state_content: [
+                                    "state",
+                                    "current_humidity",
+                                    "last_changed",
+                                  ],
+                                  features: [
+                                    {
+                                      type: "target-humidity",
+                                    },
+                                  ],
+                                }),
+                                ...(this.selectedDomain === "media_player" && {
+                                  show_entity_picture: true,
+                                  state_content: [
+                                    "state",
+                                    "volume_level",
+                                    "last_changed",
+                                  ],
+                                  features: [
+                                    { type: "media-player-volume-slider" },
+                                  ],
+                                }),
+                                ...(this.selectedDomain === "lock" && {
+                                  state_content: ["state", "last_changed"],
+                                  features: [{ type: "lock-commands" }],
+                                }),
+                                ...(this.selectedDomain === "fan" && {
+                                  state_content: [
+                                    "state",
+                                    "percentage",
+                                    "last_changed",
+                                  ],
+                                  features: [{ type: "fan-speed" }],
+                                }),
+                                ...(this.selectedDomain === "counter" && {
+                                  state_content: ["state", "last_changed"],
+                                  features: [
+                                    {
+                                      type: "counter-actions",
+                                      actions: [
+                                        "increment",
+                                        "decrement",
+                                        "reset",
+                                      ],
+                                    },
+                                  ],
+                                }),
+                                ...(this.selectedDomain === "lawn_mower" && {
+                                  state_content: ["state", "last_changed"],
+                                  features: [
+                                    {
+                                      type: "lawn-mower-commands",
+                                      commands: ["start_pause", "dock"],
+                                    },
+                                  ],
+                                }),
+                                ...(this.selectedDomain === "update" && {
+                                  state_content: [
+                                    "state",
+                                    "latest_version",
+                                    "last_changed",
+                                  ],
+                                  features: [
+                                    { type: "update-actions", backup: "ask" },
+                                  ],
+                                }),
+                                ...(["switch", "input_boolean"].includes(
+                                  this.selectedDomain as string
+                                ) && {
+                                  state_content: ["state", "last_changed"],
+                                  features: [{ type: "toggle" }],
+                                }),
+                                ...(this.selectedDomain === "calendar" && {
+                                  state_content: "message",
+                                }),
+                                ...(this.selectedDomain === "timer" && {
+                                  state_content: ["state", "remaining_time"],
+                                }),
+                                ...([
+                                  "binary_sensor",
+                                  "device_tracker",
+                                  "remote",
+                                ].includes(this.selectedDomain as string) && {
+                                  state_content: ["state", "last_changed"],
+                                }),
+                              })}
+                            </div>
+                          `
+                        )}
+                      </div>
                     </div>
                   </div>
                 `;
@@ -1149,6 +1255,85 @@ export class StatusCard extends LitElement {
             `}
       </ha-dialog>
     `;
+  }
+
+  private toggleDomain(domain?: string, deviceClass?: string): void {
+    domain = domain ?? this.selectedDomain!;
+    deviceClass = deviceClass ?? this.selectedDeviceClass!;
+    let key: string;
+    if (deviceClass) {
+      key = `${this._formatDomain(domain)} - ${deviceClass}`;
+    } else {
+      key = domain;
+    }
+    const customization = this.getCustomizationForType(key);
+
+    const entities = this._isOn(domain, deviceClass);
+    const invert = customization?.invert === true;
+
+    if (entities.length === 0) {
+      console.warn(`Keine aktiven Entitäten für ${domain} gefunden.`);
+      return;
+    }
+
+    if (
+      [
+        "light",
+        "switch",
+        "fan",
+        "cover",
+        "siren",
+        "climate",
+        "humidifier",
+        "valve",
+        "remote",
+      ].includes(domain)
+    ) {
+      this.hass.callService(domain, "toggle", {
+        entity_id: entities.map((e) => e.entity_id),
+      });
+      return;
+    }
+
+    for (const entity of entities) {
+      let isOn = !STATES_OFF.includes(entity.state);
+      if (invert) {
+        isOn = !isOn;
+      }
+
+      if (domain === "media_player") {
+        this.hass.callService(domain, isOn ? "media_pause" : "media_play", {
+          entity_id: entity.entity_id,
+        });
+      } else if (domain === "lock") {
+        this.hass.callService(domain, isOn ? "lock" : "unlock", {
+          entity_id: entity.entity_id,
+        });
+      } else if (domain === "vacuum") {
+        this.hass.callService(domain, isOn ? "stop" : "start", {
+          entity_id: entity.entity_id,
+        });
+      } else if (domain === "alarm_control_panel") {
+        this.hass.callService(
+          domain,
+          isOn ? "alarm_arm_away" : "alarm_disarm",
+          { entity_id: entity.entity_id }
+        );
+      } else if (domain === "lawn_mower") {
+        this.hass.callService(domain, isOn ? "pause" : "start_mowing", {
+          entity_id: entity.entity_id,
+        });
+      } else if (domain === "water_heater") {
+        this.hass.callService(domain, isOn ? "turn_off" : "turn_on", {
+          entity_id: entity.entity_id,
+        });
+      } else if (domain === "update") {
+        this.hass.callService(domain, isOn ? "skip" : "install", {
+          entity_id: entity.entity_id,
+        });
+      }
+    }
+    return;
   }
 
   private _handleDomainAction(
@@ -1213,71 +1398,7 @@ export class StatusCard extends LitElement {
       }
 
       if (isToggle) {
-        const entities = this._isOn(domain, deviceClass);
-        const invert = customization?.invert === true;
-
-        if (entities.length === 0) {
-          console.warn(`Keine aktiven Entitäten für ${domain} gefunden.`);
-          return;
-        }
-
-        if (
-          [
-            "light",
-            "switch",
-            "fan",
-            "cover",
-            "siren",
-            "climate",
-            "humidifier",
-            "valve",
-            "remote",
-          ].includes(domain)
-        ) {
-          this.hass.callService(domain, "toggle", {
-            entity_id: entities.map((e) => e.entity_id),
-          });
-          return;
-        }
-
-        for (const entity of entities) {
-          let isOn = !STATES_OFF.includes(entity.state);
-          if (invert) {
-            isOn = !isOn;
-          }
-
-          if (domain === "media_player") {
-            this.hass.callService(domain, isOn ? "media_pause" : "media_play", {
-              entity_id: entity.entity_id,
-            });
-          } else if (domain === "lock") {
-            this.hass.callService(domain, isOn ? "lock" : "unlock", {
-              entity_id: entity.entity_id,
-            });
-          } else if (domain === "vacuum") {
-            this.hass.callService(domain, isOn ? "stop" : "start", {
-              entity_id: entity.entity_id,
-            });
-          } else if (domain === "alarm_control_panel") {
-            this.hass.callService(
-              domain,
-              isOn ? "alarm_arm_away" : "alarm_disarm",
-              { entity_id: entity.entity_id }
-            );
-          } else if (domain === "lawn_mower") {
-            this.hass.callService(domain, isOn ? "pause" : "start_mowing", {
-              entity_id: entity.entity_id,
-            });
-          } else if (domain === "water_heater") {
-            this.hass.callService(domain, isOn ? "turn_off" : "turn_on", {
-              entity_id: entity.entity_id,
-            });
-          } else if (domain === "update") {
-            this.hass.callService(domain, isOn ? "skip" : "install", {
-              entity_id: entity.entity_id,
-            });
-          }
-        }
+        this.toggleDomain(domain, deviceClass);
         return;
       }
 
@@ -1373,7 +1494,7 @@ export class StatusCard extends LitElement {
 
     return html`
       <ha-card>
-        <paper-tabs scrollable hide-scroll-buttons>
+        <sl-tab-group no-scroll-controls>
           ${this.renderPersonEntities()}
           ${sortedEntities.map((item: any) => {
             if (item.type === "extra") {
@@ -1393,7 +1514,11 @@ export class StatusCard extends LitElement {
               };
 
               return html`
-                <paper-tab @click="${() => this.showMoreInfo(entity)}">
+                <sl-tab
+                  @click="${() => this.showMoreInfo(entity)}"
+                  slot="nav"
+                  panel=${entity.entity_id}
+                >
                   <div class="extra-entity">
                     <div class="entity-icon" style=${styleMap(iconStyles)}>
                       ${icon &&
@@ -1432,7 +1557,7 @@ export class StatusCard extends LitElement {
                       <div class="entity-state">${translatedEntityState}</div>
                     </div>
                   </div>
-                </paper-tab>
+                </sl-tab>
               `;
             } else if (item.type === "domain") {
               const activeEntities = this._isOn(item.domain);
@@ -1447,7 +1572,9 @@ export class StatusCard extends LitElement {
               };
 
               return html`
-                <paper-tab
+                <sl-tab
+                  slot="nav"
+                  panel=${item.domain}
                   @action=${this._handleDomainAction(item.domain)}
                   .actionHandler=${actionHandler({
                     hasHold: hasAction(
@@ -1499,7 +1626,7 @@ export class StatusCard extends LitElement {
                       </div>
                     </div>
                   </div>
-                </paper-tab>
+                </sl-tab>
               `;
             } else if (item.type === "deviceClass") {
               const { domain, deviceClass } = item;
@@ -1519,7 +1646,9 @@ export class StatusCard extends LitElement {
                 ),
               };
               return html`
-                <paper-tab
+                <sl-tab
+                  slot="nav"
+                  panel=${deviceClass}
                   @action=${this._handleDomainAction(domain, deviceClass)}
                   .actionHandler=${actionHandler({
                     hasHold: hasAction(
@@ -1559,13 +1688,13 @@ export class StatusCard extends LitElement {
                       </div>
                     </div>
                   </div>
-                </paper-tab>
+                </sl-tab>
               `;
             }
             return null;
           })}
           ${this.selectedDomain ? this.renderPopup() : ""}
-        </paper-tabs>
+        </sl-tab-group>
       </ha-card>
     `;
   }
@@ -1578,12 +1707,10 @@ export class StatusCard extends LitElement {
         height: 100%;
         align-content: center;
       }
-      paper-tabs {
+      sl-tab-group {
         height: 110px;
-        padding: 4px 8px;
-      }
-      paper-tab {
-        padding: 0 5px;
+        padding: 2px 4px;
+        align-content: center;
       }
       .center {
         display: flex;
@@ -1624,11 +1751,17 @@ export class StatusCard extends LitElement {
         color: var(--secondary-text-color);
         font-size: 0.9em;
       }
-      paper-tab {
+      sl-tab {
         pointer-events: auto;
       }
-      paper-tab * {
+      sl-tab * {
         pointer-events: none;
+      }
+      sl-tab::part(base) {
+        padding: 0 8px !important;
+      }
+      sl-tab-group::part(tabs) {
+        border-bottom: none !important;
       }
     `;
   }

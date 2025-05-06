@@ -441,3 +441,5 @@ export const deepEqual = (a: any, b: any): boolean => {
   // eslint-disable-next-line no-self-compare
   return a !== a && b !== b;
 };
+
+export const stopPropagation = (ev: any) => ev.stopPropagation();

@@ -283,6 +283,14 @@ export class StatusCardEditor extends LitElement {
                   name: "show_total_number",
                   selector: { boolean: {} },
                 },
+                {
+                  name: "square",
+                  selector: { boolean: {} },
+                },
+                {
+                  name: "show_total_entities",
+                  selector: { boolean: {} },
+                },
               ],
             },
             {
@@ -296,10 +304,6 @@ export class StatusCardEditor extends LitElement {
                   selector: { number: { min: 1, max: 4, mode: "box" } },
                 },
               ],
-            },
-            {
-              name: "square",
-              selector: { boolean: {} },
             },
             {
               name: "color",
@@ -583,7 +587,6 @@ export class StatusCardEditor extends LitElement {
         const domain = match[1].toLowerCase().replace(" ", "_");
         const deviceClass = match[2].toLowerCase();
 
-        // Sonderfall für switch.switch
         if (domain === "switch" && deviceClass === "switch") {
           const translatedSwitch = this.hass!.localize(
             `component.switch.entity_component._.name`
@@ -745,7 +748,6 @@ export class StatusCardEditor extends LitElement {
       const domain = match[1].toLowerCase().replace(" ", "_");
       const deviceClass = match[2].toLowerCase();
 
-      // Sonderfall für switch.switch
       if (domain === "switch" && deviceClass === "switch") {
         const translatedSwitch = this.hass!.localize(
           `component.switch.entity_component._.name`

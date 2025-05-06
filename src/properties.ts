@@ -169,6 +169,8 @@ export function domainIcon(
       return state === "off" ? "mdi:numeric" : "mdi:counter";
     case "calendar":
       return state === "off" ? "mdi:calendar-off" : "mdi:calendar";
+    case "person":
+      return "mdi:account";
     default:
       console.warn(`Unable to find icon for domain ${domain} (${state})`);
       return "mdi:help-circle";
@@ -260,6 +262,14 @@ export const ALLOWED_DOMAINS = [
   "timer",
   "counter",
   "calendar",
+];
+
+export const TOGGLE_DOMAINS = [
+  "light",
+  "switch",
+  "fan",
+  "climate",
+  "humidifier",
 ];
 
 export const deviceClasses: DeviceClasses = {
