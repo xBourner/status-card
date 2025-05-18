@@ -13,12 +13,7 @@ import {
   STATES_OFF,
 } from "custom-card-helpers";
 import type { HassEntity } from "home-assistant-js-websocket";
-import {
-  domainIcon,
-  ALLOWED_DOMAINS,
-  DataStore,
-  TOGGLE_DOMAINS,
-} from "./properties";
+import { domainIcon, ALLOWED_DOMAINS, DataStore } from "./properties";
 import { computeLabelCallback, translateEntityState } from "./translations";
 import { actionHandler, stopPropagation } from "./helpers";
 import { styleMap } from "lit/directives/style-map.js";
@@ -116,6 +111,11 @@ export class StatusCard extends LitElement {
   @state() private list_mode: boolean = false;
   @state() private _isMobile: boolean = false;
   @state() private _showAll = false;
+  @state() private _confirmOpen = false;
+  @state() private _confirmParams: { domain: string; deviceClass?: string } = {
+    domain: "",
+    deviceClass: undefined,
+  };
 
   private computeLabel(
     schema: Schema,
@@ -447,12 +447,30 @@ export class StatusCard extends LitElement {
     if (!entities) {
       return [];
     }
+
     return entities.filter((entity) => {
-      const matchesDeviceClass =
-        !deviceClass || entity.attributes.device_class === deviceClass;
-      return (
-        matchesDeviceClass && !["unavailable", "unknown"].includes(entity.state)
-      );
+      // Zustand „unavailable“ oder „unknown“ immer rauswerfen:
+      if (["unavailable", "unknown"].includes(entity.state)) {
+        return false;
+      }
+
+      const entityDeviceClass = entity.attributes.device_class;
+
+      if (domain === "switch") {
+        // DeviceClass‑Filter für switch: Outlet vs. Switch
+        if (deviceClass === "outlet") {
+          return entityDeviceClass === "outlet";
+        } else if (deviceClass === "switch") {
+          return (
+            entityDeviceClass === "switch" || entityDeviceClass === undefined
+          );
+        }
+        // Keine DeviceClass vorgegeben: dann alle Switches anzeigen
+        return true;
+      }
+
+      // Für alle anderen Domains: DeviceClass prüfen (falls gesetzt)
+      return !deviceClass || entityDeviceClass === deviceClass;
     });
   }
 
@@ -716,7 +734,7 @@ export class StatusCard extends LitElement {
 
     return personEntities.map((entity) => {
       const entityState = this.hass!.states[entity.entity_id];
-      const isNotHome = entityState?.state === "not_home";
+      const isNotHome = entityState?.state !== "home";
 
       const iconStyles = {
         "border-radius": this._config?.square ? "20%" : "50%",
@@ -886,15 +904,74 @@ export class StatusCard extends LitElement {
     this._showAll = !this._showAll;
   }
 
+  private askToggleDomain(domain?: string, deviceClass?: string) {
+    this._confirmParams = {
+      domain: domain ?? this.selectedDomain!,
+      deviceClass: deviceClass ?? this.selectedDeviceClass!,
+    };
+    this._confirmOpen = true;
+  }
+
+  private confirmedToggleDomain() {
+    this._confirmOpen = false;
+    const { domain, deviceClass } = this._confirmParams;
+    this.toggleDomain(domain, deviceClass);
+  }
+
   private renderPopup(): TemplateResult {
     const columns = this.list_mode ? 1 : this._config.columns || 4;
     const styleBlock = this._isMobile ? this.mobileStyles : this.desktopStyles;
     const initialShowAll = !!this._config.show_total_entities;
     const effectiveShowAll = this._showAll ? !initialShowAll : initialShowAll;
-    const entities = effectiveShowAll
-      ? this._totalEntities(this.selectedDomain!, this.selectedDeviceClass!)
-      : this._isOn(this.selectedDomain!, this.selectedDeviceClass!);
 
+    // 1) Ermitteln, welche Entities wir anzeigen:
+    let entities: HassEntity[];
+    if (!effectiveShowAll) {
+      // Nur aktive Entities
+      entities = this._isOn(this.selectedDomain!, this.selectedDeviceClass!);
+    } else {
+      // Alle Entities
+      entities = this._totalEntities(
+        this.selectedDomain!,
+        this.selectedDeviceClass!
+      );
+    }
+
+    // 2) Off-Zustände definieren (wie in _isOn)
+    const offStates = [
+      "closed",
+      "locked",
+      "off",
+      "docked",
+      "idle",
+      "standby",
+      "paused",
+      "auto",
+      "not_home",
+      "disarmed",
+      "0",
+    ];
+
+    // 3) Sortierfunktion: im All-Modus zuerst on, dann off, sonst rein alphabetisch
+    const sortEntities = (ents: HassEntity[]) =>
+      ents.slice().sort((a, b) => {
+        if (effectiveShowAll) {
+          const aOn = !offStates.includes(a.state);
+          const bOn = !offStates.includes(b.state);
+          if (aOn !== bOn) {
+            return aOn ? -1 : 1;
+          }
+        }
+        const nameA = (
+          a.attributes?.friendly_name || a.entity_id
+        ).toLowerCase();
+        const nameB = (
+          b.attributes?.friendly_name || b.entity_id
+        ).toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+
+    // 4) Gruppieren nach Area
     const groups = new Map<string, HassEntity[]>();
     for (const entity of entities) {
       const areaId = this.getAreaForEntity(entity);
@@ -904,23 +981,11 @@ export class StatusCard extends LitElement {
       groups.get(areaId)!.push(entity);
     }
 
-    const sortEntities = (ents: HassEntity[]) => {
-      return ents.slice().sort((a, b) => {
-        const nameA = (
-          a.attributes?.friendly_name || a.entity_id
-        ).toLowerCase();
-        const nameB = (
-          b.attributes?.friendly_name || b.entity_id
-        ).toLowerCase();
-        return nameA.localeCompare(nameB);
-      });
-    };
-
+    // 5) Gruppen nach Area-Name sortieren
     const sortedGroups = Array.from(groups.entries()).sort(
       ([areaIdA], [areaIdB]) => {
         const areaObjA = this.areas?.find((a) => a.area_id === areaIdA);
         const areaObjB = this.areas?.find((a) => a.area_id === areaIdB);
-
         const nameA = areaObjA
           ? areaObjA.name.toLowerCase()
           : areaIdA === "unassigned"
@@ -931,16 +996,25 @@ export class StatusCard extends LitElement {
           : areaIdB === "unassigned"
           ? "Unassigned"
           : areaIdB;
-
         return nameA.localeCompare(nameB);
       }
     );
 
+    // 6) Spaltenzahl berechnen
     const totalCards = sortedGroups.reduce(
       (sum, [, ents]) => sum + ents.length,
       0
     );
     const displayColumns = Math.min(columns, totalCards);
+
+    // 7) Invert-Handling für den Toggle-Button-Text
+    const domain = this.selectedDomain!;
+    const deviceClass = this.selectedDeviceClass;
+    const key = deviceClass
+      ? `${this._formatDomain(domain)} - ${deviceClass}`
+      : domain;
+    const customization = this.getCustomizationForType(key);
+    const isInverted = customization?.invert === true;
 
     return html`
       <ha-dialog
@@ -990,12 +1064,12 @@ export class StatusCard extends LitElement {
               graphic="icon"
               @click=${(e: MouseEvent) => {
                 e.stopPropagation();
-                this.toggleDomain();
+                this.askToggleDomain();
               }}
             >
-              ${this.hass.localize("ui.card.common.turn_off") +
-              " " +
-              this.hass.localize("ui.panel.lovelace.editor.card.entities.name")}
+              ${isInverted
+                ? this.hass.localize("ui.card.common.turn_on")
+                : this.hass.localize("ui.card.common.turn_off")}
               <ha-svg-icon
                 slot="graphic"
                 .path=${mdiToggleSwitchOffOutline}
@@ -1254,6 +1328,31 @@ export class StatusCard extends LitElement {
               })}
             `}
       </ha-dialog>
+
+      <ha-dialog
+        heading="              ${isInverted
+          ? this.hass.localize("ui.card.common.turn_on") + "?"
+          : this.hass.localize("ui.card.common.turn_off") + "?"}"
+        ?open=${this._confirmOpen}
+        @closed=${() => (this._confirmOpen = false)}
+      >
+        <div>
+          ${this.hass.localize(
+            "ui.panel.lovelace.cards.actions.action_confirmation",
+            {
+              action: isInverted
+                ? this.hass.localize("ui.card.common.turn_on")
+                : this.hass.localize("ui.card.common.turn_off"),
+            }
+          )}
+        </div>
+        <mwc-button slot="secondaryAction" dialogAction="close"
+          >${this.hass.localize("ui.common.no")}</mwc-button
+        >
+        <mwc-button slot="primaryAction" @click=${this.confirmedToggleDomain}
+          >${this.hass.localize("ui.common.yes")}</mwc-button
+        >
+      </ha-dialog>
     `;
   }
 
@@ -1266,10 +1365,8 @@ export class StatusCard extends LitElement {
     } else {
       key = domain;
     }
-    const customization = this.getCustomizationForType(key);
 
     const entities = this._isOn(domain, deviceClass);
-    const invert = customization?.invert === true;
 
     if (entities.length === 0) {
       console.warn(`Keine aktiven Entitäten für ${domain} gefunden.`);
@@ -1297,9 +1394,6 @@ export class StatusCard extends LitElement {
 
     for (const entity of entities) {
       let isOn = !STATES_OFF.includes(entity.state);
-      if (invert) {
-        isOn = !isOn;
-      }
 
       if (domain === "media_player") {
         this.hass.callService(domain, isOn ? "media_pause" : "media_play", {

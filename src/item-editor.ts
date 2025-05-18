@@ -127,6 +127,9 @@ export class ItemEditor extends LitElement {
         ...this._config,
         invert_state: this.config.invert_state || "false",
         icon_color: this.config.icon_color || undefined,
+        tap_action: this.config.tap_action || undefined,
+        double_tap_action: this.config.double_tap_action || undefined,
+        hold_action: this.config.hold_action || undefined,
       };
     }
 
@@ -217,6 +220,13 @@ export class ItemEditor extends LitElement {
         detail: updatedConfig,
       })
     );
+  }
+
+  setConfig(config: CardConfig) {
+    this._config = {
+      ...config,
+      customization: config.customization ?? [],
+    };
   }
 
   static get styles(): CSSResult {

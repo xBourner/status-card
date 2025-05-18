@@ -28,6 +28,9 @@ export interface Settings {
   state?: string;
   invert_state?: "true" | "false";
   icon_color?: string;
+  tap_action?: string;
+  double_tap_action?: string;
+  hold_action?: string;
 }
 
 export interface HTMLElementValue extends HTMLElement {
@@ -105,24 +108,6 @@ export async function await_element(el: any, hard = false) {
         await new Promise((r) => setTimeout(r, 100));
     }
   }
-}
-
-async function _selectTree(root: any, path: any, all = false) {
-  let el = [root];
-  if (typeof path === "string") {
-    path = path.split(/(\$| )/);
-  }
-  while (path[path.length - 1] === "") path.pop();
-  for (const [i, p] of path.entries()) {
-    const e = el[0];
-    if (!e) return null;
-
-    if (!p.trim().length) continue;
-
-    await_element(e);
-    el = p === "$" ? [e.shadowRoot] : e.querySelectorAll(p);
-  }
-  return all ? el : el[0];
 }
 
 export type UiAction = Exclude<ActionConfig["action"], "fire-dom-event">;
