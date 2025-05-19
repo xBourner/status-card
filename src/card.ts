@@ -1,4 +1,11 @@
-import { LitElement, html, css, PropertyValues, TemplateResult } from "lit";
+import {
+  LitElement,
+  html,
+  css,
+  PropertyValues,
+  TemplateResult,
+  nothing,
+} from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import memoizeOne from "memoize-one";
 import {
@@ -449,7 +456,6 @@ export class StatusCard extends LitElement {
     }
 
     return entities.filter((entity) => {
-      // Zustand „unavailable“ oder „unknown“ immer rauswerfen:
       if (["unavailable", "unknown"].includes(entity.state)) {
         return false;
       }
@@ -457,7 +463,6 @@ export class StatusCard extends LitElement {
       const entityDeviceClass = entity.attributes.device_class;
 
       if (domain === "switch") {
-        // DeviceClass‑Filter für switch: Outlet vs. Switch
         if (deviceClass === "outlet") {
           return entityDeviceClass === "outlet";
         } else if (deviceClass === "switch") {
@@ -465,11 +470,9 @@ export class StatusCard extends LitElement {
             entityDeviceClass === "switch" || entityDeviceClass === undefined
           );
         }
-        // Keine DeviceClass vorgegeben: dann alle Switches anzeigen
         return true;
       }
 
-      // Für alle anderen Domains: DeviceClass prüfen (falls gesetzt)
       return !deviceClass || entityDeviceClass === deviceClass;
     });
   }
@@ -749,11 +752,17 @@ export class StatusCard extends LitElement {
         >
           <div class="entity">
             <div class="entity-icon" style=${styleMap(iconStyles)}>
-              <img
-                src="${entity.attributes.entity_picture || ""}"
-                style=${styleMap(iconStyles)}
-                alt="${entity.attributes.friendly_name || entity.entity_id}"
-              />
+              ${entity.attributes.entity_picture
+                ? html`<img
+                    src=${entity.attributes.entity_picture}
+                    alt=${entity.attributes.friendly_name || entity.entity_id}
+                    style=${styleMap(iconStyles)}
+                  />`
+                : html`<ha-icon
+                    class="center"
+                    icon=${entity.attributes.icon || "mdi:account"}
+                    style=${styleMap(iconStyles)}
+                  ></ha-icon>`}
             </div>
             <div class="entity-info">
               <div class="entity-name">
@@ -924,20 +933,16 @@ export class StatusCard extends LitElement {
     const initialShowAll = !!this._config.show_total_entities;
     const effectiveShowAll = this._showAll ? !initialShowAll : initialShowAll;
 
-    // 1) Ermitteln, welche Entities wir anzeigen:
     let entities: HassEntity[];
     if (!effectiveShowAll) {
-      // Nur aktive Entities
       entities = this._isOn(this.selectedDomain!, this.selectedDeviceClass!);
     } else {
-      // Alle Entities
       entities = this._totalEntities(
         this.selectedDomain!,
         this.selectedDeviceClass!
       );
     }
 
-    // 2) Off-Zustände definieren (wie in _isOn)
     const offStates = [
       "closed",
       "locked",
@@ -952,7 +957,6 @@ export class StatusCard extends LitElement {
       "0",
     ];
 
-    // 3) Sortierfunktion: im All-Modus zuerst on, dann off, sonst rein alphabetisch
     const sortEntities = (ents: HassEntity[]) =>
       ents.slice().sort((a, b) => {
         if (effectiveShowAll) {
@@ -971,7 +975,6 @@ export class StatusCard extends LitElement {
         return nameA.localeCompare(nameB);
       });
 
-    // 4) Gruppieren nach Area
     const groups = new Map<string, HassEntity[]>();
     for (const entity of entities) {
       const areaId = this.getAreaForEntity(entity);
@@ -981,7 +984,6 @@ export class StatusCard extends LitElement {
       groups.get(areaId)!.push(entity);
     }
 
-    // 5) Gruppen nach Area-Name sortieren
     const sortedGroups = Array.from(groups.entries()).sort(
       ([areaIdA], [areaIdB]) => {
         const areaObjA = this.areas?.find((a) => a.area_id === areaIdA);
@@ -1000,14 +1002,12 @@ export class StatusCard extends LitElement {
       }
     );
 
-    // 6) Spaltenzahl berechnen
     const totalCards = sortedGroups.reduce(
       (sum, [, ents]) => sum + ents.length,
       0
     );
     const displayColumns = Math.min(columns, totalCards);
 
-    // 7) Invert-Handling für den Toggle-Button-Text
     const domain = this.selectedDomain!;
     const deviceClass = this.selectedDeviceClass;
     const key = deviceClass
@@ -1648,7 +1648,12 @@ export class StatusCard extends LitElement {
                       ${this._config?.hide_content_name !== true
                         ? html`<div class="entity-name">${name}</div>`
                         : ""}
-                      <div class="entity-state">${translatedEntityState}</div>
+                      <div class="entity-state">
+                        ${translatedEntityState +
+                        (entity.attributes.unit_of_measurement
+                          ? ` ${entity.attributes.unit_of_measurement}`
+                          : ``)}
+                      </div>
                     </div>
                   </div>
                 </sl-tab>

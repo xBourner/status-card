@@ -28,6 +28,7 @@ export interface Settings {
   state?: string;
   invert_state?: "true" | "false";
   icon_color?: string;
+  background_color?: [number, number, number, number?];
   tap_action?: string;
   double_tap_action?: string;
   hold_action?: string;

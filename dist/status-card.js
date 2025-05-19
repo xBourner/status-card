@@ -7,11 +7,15 @@
         >
           <div class="entity">
             <div class="entity-icon" style=${qt(s)}>
-              <img
-                src="${t.attributes.entity_picture||""}"
-                style=${qt(s)}
-                alt="${t.attributes.friendly_name||t.entity_id}"
-              />
+              ${t.attributes.entity_picture?q`<img
+                    src=${t.attributes.entity_picture}
+                    alt=${t.attributes.friendly_name||t.entity_id}
+                    style=${qt(s)}
+                  />`:q`<ha-icon
+                    class="center"
+                    icon=${t.attributes.icon||"mdi:account"}
+                    style=${qt(s)}
+                  ></ha-icon>`}
             </div>
             <div class="entity-info">
               <div class="entity-name">
@@ -154,7 +158,9 @@
                     </div>
                     <div class="entity-info">
                       ${!0!==(null===(o=this._config)||void 0===o?void 0:o.hide_content_name)?q`<div class="entity-name">${a}</div>`:""}
-                      <div class="entity-state">${h}</div>
+                      <div class="entity-state">
+                        ${h+(n.attributes.unit_of_measurement?` ${n.attributes.unit_of_measurement}`:"")}
+                      </div>
                     </div>
                   </div>
                 </sl-tab>
