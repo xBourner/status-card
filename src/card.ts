@@ -1,11 +1,4 @@
-import {
-  LitElement,
-  html,
-  css,
-  PropertyValues,
-  TemplateResult,
-  nothing,
-} from "lit";
+import { LitElement, html, css, PropertyValues, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import memoizeOne from "memoize-one";
 import {
@@ -18,6 +11,7 @@ import {
   ActionHandlerEvent,
   ActionConfig,
   STATES_OFF,
+  formatNumber,
 } from "custom-card-helpers";
 import type { HassEntity } from "home-assistant-js-websocket";
 import { domainIcon, ALLOWED_DOMAINS, DataStore } from "./properties";
@@ -613,14 +607,17 @@ export class StatusCard extends LitElement {
       return entity.attributes.icon;
     }
 
-    const isInverted = customization?.invert === true;
-    const state = isInverted ? "off" : "on";
-    let fallbackDomain = domain;
-    if (!deviceClass && domain.includes(".")) {
-      fallbackDomain = domain.split(".")[0];
-    }
+    if (!entity) {
+      const isInverted = customization?.invert === true;
+      const state = isInverted ? "off" : "on";
+      let fallbackDomain = domain;
+      if (!deviceClass && domain.includes(".")) {
+        fallbackDomain = domain.split(".")[0];
+      }
 
-    return domainIcon(fallbackDomain, state, deviceClass);
+      return domainIcon(fallbackDomain, state, deviceClass);
+    }
+    return "";
   }
 
   private getBackgroundColor(
@@ -825,7 +822,7 @@ export class StatusCard extends LitElement {
         return {
           type: "extra",
           entities: [entity],
-          icon: entity.attributes.icon || domainIcon(domain),
+          //icon: entity.attributes.icon || domainIcon(domain),
         };
       })
       .filter(
@@ -1595,11 +1592,14 @@ export class StatusCard extends LitElement {
               const { entity, icon, name, color, icon_css, background_color } =
                 item;
               const domain = computeDomain(entity.entity_id);
-              const translatedEntityState = translateEntityState(
-                this.hass!,
-                entity.state,
-                domain
-              );
+              const stateObj = this.hass.states[entity.entity_id];
+              const entState = entity.state;
+              const unit = entity.attributes.unit_of_measurement;
+              const asNum = Number(entState);
+              const isNumber = entState !== "" && !Number.isNaN(asNum);
+              const displayState = isNumber
+                ? formatNumber(asNum, this.hass.locale)
+                : translateEntityState(this.hass!, entState, domain);
 
               const iconStyles = {
                 color: color ? `var(--${color}-color)` : "",
@@ -1626,8 +1626,12 @@ export class StatusCard extends LitElement {
                             />
                           `
                         : html`
-                            <ha-icon
-                              icon="${icon}"
+                            <ha-state-icon
+                              .stateObj=${stateObj}
+                              .hass=${this.hass}
+                              .icon=${icon}
+                              data-domain=${domain}
+                              data-state=${entState}
                               style="${icon_css
                                 ? icon_css
                                     .split("\n")
@@ -1641,7 +1645,8 @@ export class StatusCard extends LitElement {
                                     )
                                     .join(" ")
                                 : ""}"
-                            ></ha-icon>
+                              })}
+                            ></ha-state-icon>
                           `}
                     </div>
                     <div class="entity-info">
@@ -1649,10 +1654,7 @@ export class StatusCard extends LitElement {
                         ? html`<div class="entity-name">${name}</div>`
                         : ""}
                       <div class="entity-state">
-                        ${translatedEntityState +
-                        (entity.attributes.unit_of_measurement
-                          ? ` ${entity.attributes.unit_of_measurement}`
-                          : ``)}
+                        ${displayState}${unit ? ` ${unit}` : ""}
                       </div>
                     </div>
                   </div>
