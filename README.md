@@ -63,17 +63,18 @@ This card i highly influenced by [Dwains Dashboard](https://github.com/dwainsche
 
 ###  HACS Installation (Recommended)
 
+Click this link to add **Status Card** to your Home Assistant:
+
 [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xBourner&repository=status-card&category=plugin)
 
 #### Steps:
 
 1. Make sure **[HACS](https://hacs.xyz)** is installed.
-3. Go to **HACS → Custom Repositories**.
-4. Add this repository: `https://github.com/xBourner/status-card` as type `Dashboard`
-5. Install **Status Card**.
+3. Go to **HACS**.
+4. Search for **Status Card**.
+5. Download **Status Card**.
 6. **Clear your browser cache** and reload (F5) Home Assistant.
 
-For more info look at [How to add Custom Repositories](https://hacs.xyz/docs/faq/custom_repositories/)
 
 #### Usage:
 
