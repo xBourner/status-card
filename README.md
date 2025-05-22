@@ -2,6 +2,12 @@
 
 # Status Card
 
+
+
+
+[![(https://hacs.xyz)](https://img.shields.io/badge/hacs-default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/xBourner/status-card/total?style=for-the-badge)
+![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/xBourner/status-card/latest/total?style=for-the-badge)
 [![GitHub release](https://img.shields.io/github/release/xBourner/status-card?style=for-the-badge)](https://github.com/xBourner/status-card/releases/)
 [![stars - status-card](https://img.shields.io/github/stars/xBourner/status-card?style=for-the-badge)](https://github.com/xBourner/status-card)
 [![GitHub issues](https://img.shields.io/github/issues/xBourner/status-card?style=for-the-badge)](https://github.com/xBourner/status-card/issues)
