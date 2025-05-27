@@ -136,10 +136,6 @@ export class StatusCardEditor extends LitElement {
       const floorsChanged = !this.arraysEqual(previousFloor, currentFloor);
       const areasChanged = !this.arraysEqual(previousArea, currentArea);
 
-      console.log("previous area:", previousArea);
-      console.log("current area:", currentArea);
-      console.log("area changed:", areasChanged);
-
       if (areasChanged || floorsChanged || labelsChanged) {
         const possibleToggleDomains = this._memoizedClassesForArea(
           currentArea,
