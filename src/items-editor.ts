@@ -1,23 +1,27 @@
 import { LitElement, html } from "lit";
 import { HomeAssistant } from "custom-card-helpers";
-import { EditorTarget, Settings, HTMLElementValue } from "./helpers";
 import { customElement, property } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import { css, CSSResult, nothing } from "lit";
 import { mdiClose, mdiPencil } from "@mdi/js";
-import { fireEvent } from "./helpers";
-import { SelectOption } from "./editor";
+import {
+  fireEvent,
+  CustomizationConfig,
+  EditorTarget,
+  HTMLElementValue,
+  SelectOption,
+} from "./helpers";
 
 abstract class BaseItemsEditor extends LitElement {
   @property({ attribute: false }) hass?: HomeAssistant;
   @property({ type: Array }) SelectOptions: SelectOption[] = [];
 
-  protected abstract customizationkey: Settings[] | undefined;
+  protected abstract customizationkey: CustomizationConfig[] | undefined;
   protected abstract customizationChangedEvent: string;
 
-  private _entityKeys = new WeakMap<Settings, string>();
+  private _entityKeys = new WeakMap<CustomizationConfig, string>();
 
-  private _getKey(action: Settings) {
+  private _getKey(action: CustomizationConfig) {
     if (!this._entityKeys.has(action)) {
       this._entityKeys.set(action, Math.random().toString());
     }
@@ -125,7 +129,7 @@ abstract class BaseItemsEditor extends LitElement {
     if (index != undefined) {
       const customization = this.customizationkey!.concat();
       customization.splice(index, 1);
-      fireEvent<Settings[]>(
+      fireEvent<CustomizationConfig[]>(
         this,
         this.customizationChangedEvent,
         customization
@@ -153,8 +157,8 @@ abstract class BaseItemsEditor extends LitElement {
       return;
     }
     const preset = selectElement.value;
-    const newItem: Settings = { type: preset };
-    fireEvent<Settings[]>(this, this.customizationChangedEvent, [
+    const newItem: CustomizationConfig = { type: preset };
+    fireEvent<CustomizationConfig[]>(this, this.customizationChangedEvent, [
       ...this.customizationkey,
       newItem,
     ]);
@@ -188,7 +192,7 @@ abstract class BaseItemsEditor extends LitElement {
 
 @customElement("status-items-editor")
 export class StatusItemsEditor extends BaseItemsEditor {
-  @property({ attribute: false }) customization?: Settings[];
+  @property({ attribute: false }) customization?: CustomizationConfig[];
   protected customizationChangedEvent = "config-changed";
   protected get customizationkey() {
     return this.customization;

@@ -1,21 +1,12 @@
 import { LitElement, TemplateResult, html, css, CSSResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant } from "custom-card-helpers";
-import { Settings, UiAction } from "./helpers";
-import { CardConfig } from "./editor";
+import { CardConfig, CustomizationConfig, Schema, UiAction } from "./helpers";
 import memoizeOne from "memoize-one";
-
-interface Schema {
-  name: string;
-  selector?: any;
-  required?: boolean;
-  default?: any;
-  type?: string;
-}
 
 @customElement("status-item-editor")
 export class ItemEditor extends LitElement {
-  @property({ attribute: false }) config?: Settings;
+  @property({ attribute: false }) config?: CustomizationConfig;
   @property({ attribute: false }) hass?: HomeAssistant;
   @property({ type: Boolean }) useSensorSchema: boolean = false;
   @property({ type: Number }) index?: number;

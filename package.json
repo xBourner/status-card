@@ -1,6 +1,6 @@
 {
   "name": "status-card",
-  "version": "2.4.0",
+  "version": "2.11.0",
   "devDependencies": {
     "@types/sortablejs": "^1.15.8",
     "html-webpack-plugin": "^5.6.3",

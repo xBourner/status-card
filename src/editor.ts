@@ -6,57 +6,19 @@ import { ALLOWED_DOMAINS, sortOrder, DataStore } from "./properties";
 import memoizeOne from "memoize-one";
 import {
   caseInsensitiveStringCompare,
-  Settings,
   fireEvent,
+  _formatDomain,
+  CardConfig,
+  CustomizationConfig,
+  Schema,
   SubElementConfig,
   UiAction,
+  SelectOption,
+  SubElementEditor,
 } from "./helpers";
 import { mdiTextBoxEdit } from "@mdi/js";
 import "./items-editor";
 import "./item-editor";
-
-export interface CardConfig {
-  extra_entities?: string[];
-  columns?: number;
-  hide_person?: boolean;
-  list_mode?: boolean;
-  hide_content_name?: boolean;
-  customization?: any[];
-  filter?: string;
-  floor?: string[];
-  area?: string[];
-  label_filter?: boolean;
-  label?: string[];
-  content?: string[];
-  hide_filter?: string;
-  state?: string | string[];
-  multiple_areas?: boolean;
-  multiple_floors?: boolean;
-  invert_state?: "true" | "false";
-  icon_color?: string;
-  background_color?: [number, number, number, number?];
-  tap_action?: string;
-  double_tap_action?: string;
-  hold_action?: string;
-}
-
-interface Schema {
-  name: string;
-  selector?: any;
-  required?: boolean;
-  default?: any;
-  type?: string;
-}
-
-export interface SelectOption {
-  value: any;
-  label: string;
-  type?: "domain" | "entity";
-}
-
-interface SubElementEditor {
-  index?: number;
-}
 
 @customElement("status-card-editor")
 export class StatusCardEditor extends LitElement {
@@ -118,6 +80,8 @@ export class StatusCardEditor extends LitElement {
   ): Promise<void> {
     super.updated(changedProperties);
 
+    let updated = false;
+
     if (!this.hass || !this._config) {
       return;
     }
@@ -131,7 +95,7 @@ export class StatusCardEditor extends LitElement {
         (Array.isArray(this._config.label) && this._config.label.length === 0)
       ) {
         delete this._config.label;
-        fireEvent(this, "config-changed", { config: { ...this._config } });
+        updated = true;
       }
 
       const oldConfig = changedProperties.get("_config") as typeof this._config;
@@ -142,10 +106,16 @@ export class StatusCardEditor extends LitElement {
 
       const currentArea = Array.isArray(this._config.area)
         ? [...this._config.area]
+        : this._config.area
+        ? [this._config.area]
         : [];
+
       const currentFloor = Array.isArray(this._config.floor)
         ? [...this._config.floor]
+        : this._config.floor
+        ? [this._config.floor]
         : [];
+
       const currentLabel = Array.isArray(this._config.label)
         ? [...this._config.label]
         : [];
@@ -162,17 +132,16 @@ export class StatusCardEditor extends LitElement {
       const previousArea = this._lastFilter.area;
       const previousFloor = this._lastFilter.floor;
       const previousLabel = this._lastFilter.label;
-      const labelsChanged =
-        JSON.stringify(previousLabel) !== JSON.stringify(currentLabel);
-      const floorsChanged =
-        JSON.stringify(previousFloor) !== JSON.stringify(currentFloor);
-      const areasChanged =
-        JSON.stringify(previousArea) !== JSON.stringify(currentArea);
+      const labelsChanged = !this.arraysEqual(previousLabel, currentLabel);
+      const floorsChanged = !this.arraysEqual(previousFloor, currentFloor);
+      const areasChanged = !this.arraysEqual(previousArea, currentArea);
 
-      let updated = false;
+      console.log("previous area:", previousArea);
+      console.log("current area:", currentArea);
+      console.log("area changed:", areasChanged);
 
       if (areasChanged || floorsChanged || labelsChanged) {
-        const possibleToggleDomains = this._toggleDomainsForArea(
+        const possibleToggleDomains = this._memoizedClassesForArea(
           currentArea,
           currentFloor,
           currentLabel
@@ -192,14 +161,10 @@ export class StatusCardEditor extends LitElement {
           label: [...currentLabel],
         };
 
-        fireEvent(this, "config-changed", { config: { ...this._config } });
-        this.requestUpdate();
         updated = true;
       }
 
-      if (
-        JSON.stringify(oldExtraEntities) !== JSON.stringify(newExtraEntities)
-      ) {
+      if (!this.arraysEqual(oldExtraEntities, newExtraEntities)) {
         let content = [...newContent];
 
         newExtraEntities.forEach((ent) => {
@@ -213,7 +178,7 @@ export class StatusCardEditor extends LitElement {
             !content.includes(".") || newExtraEntities.includes(content)
         );
 
-        if (JSON.stringify(content) !== JSON.stringify(newContent)) {
+        if (!this.arraysEqual(content, newContent)) {
           this._config = {
             ...this._config,
             content,
@@ -222,13 +187,11 @@ export class StatusCardEditor extends LitElement {
         }
       }
 
-      if (JSON.stringify(oldContent) !== JSON.stringify(newContent)) {
+      if (!this.arraysEqual(oldContent, newContent)) {
         let extraEntities = [...newExtraEntities];
         extraEntities = extraEntities.filter((ent) => newContent.includes(ent));
 
-        if (
-          JSON.stringify(extraEntities) !== JSON.stringify(newExtraEntities)
-        ) {
+        if (!this.arraysEqual(extraEntities, newExtraEntities)) {
           this._config = {
             ...this._config,
             extra_entities: extraEntities,
@@ -448,17 +411,12 @@ export class StatusCardEditor extends LitElement {
 
   public get toggleSelectOptions(): SelectOption[] {
     return this._buildToggleOptions(
-      this._toggleDomainsForArea(
+      this._memoizedClassesForArea(
         this._config!.area || [],
         this._config!.floor || [],
         this._config!.label || []
       ),
-      this._config?.content ||
-        this._toggleDomainsForArea(
-          this._config!.area || [],
-          this._config!.floor || [],
-          this._config!.label || []
-        )
+      this._config?.content || []
     );
   }
 
@@ -472,17 +430,13 @@ export class StatusCardEditor extends LitElement {
       this._buildOptions("toggle", possibleClasses, currentClasses)
   );
 
-  private _toggleDomainsForArea = memoizeOne(
+  private arraysEqual<T>(a: T[], b: T[]): boolean {
+    return a.length === b.length && new Set(a).size === new Set(b).size;
+  }
+
+  private _memoizedClassesForArea = memoizeOne(
     (area: string[], floor: string[], label: string[]): string[] => {
-      const domains = this._classesForArea(area, floor, label);
-      return domains.sort((a, b) => {
-        const indexA = sortOrder.findIndex((item) => a.startsWith(item));
-        const indexB = sortOrder.findIndex((item) => b.startsWith(item));
-        return (
-          (indexA === -1 ? sortOrder.length : indexA) -
-          (indexB === -1 ? sortOrder.length : indexB)
-        );
-      });
+      return this._classesForArea(area, floor, label);
     }
   );
 
@@ -561,19 +515,19 @@ export class StatusCardEditor extends LitElement {
 
     const formattedDeviceClasses = [...deviceClassMap.entries()].map(
       ([deviceClass, doms]) =>
-        `${[...doms]
-          .map((d) => this._formatDomain(d))
-          .join(", ")} - ${deviceClass}`
+        `${[...doms].map((d) => _formatDomain(d)).join(", ")} - ${deviceClass}`
     );
 
-    return [...domains, ...formattedDeviceClasses, ...extraEntities];
-  }
-
-  private _formatDomain(domain: string): string {
-    return domain
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+    return [...domains, ...formattedDeviceClasses, ...extraEntities].sort(
+      (a, b) => {
+        const indexA = sortOrder.findIndex((item) => a.startsWith(item));
+        const indexB = sortOrder.findIndex((item) => b.startsWith(item));
+        return (
+          (indexA === -1 ? sortOrder.length : indexA) -
+          (indexB === -1 ? sortOrder.length : indexB)
+        );
+      }
+    );
   }
 
   private _buildOptions(
@@ -648,7 +602,7 @@ export class StatusCardEditor extends LitElement {
   }
 
   private _itemChanged(
-    ev: CustomEvent<Settings>,
+    ev: CustomEvent<CustomizationConfig>,
     editorTarget: { index?: number } | undefined,
     customizationKey: "customization"
   ): void {
@@ -698,11 +652,11 @@ export class StatusCardEditor extends LitElement {
     this._editItem(ev, editorKey);
   }
 
-  private _itemChangedDomain(ev: CustomEvent<Settings>): void {
+  private _itemChangedDomain(ev: CustomEvent<CustomizationConfig>): void {
     this._itemChanged(ev, this._subElementEditorDomain, "customization");
   }
 
-  private _itemChangedEntity(ev: CustomEvent<Settings>): void {
+  private _itemChangedEntity(ev: CustomEvent<CustomizationConfig>): void {
     this._itemChanged(ev, this._subElementEditorEntity, "customization");
   }
 
@@ -733,7 +687,7 @@ export class StatusCardEditor extends LitElement {
   private _renderSubElementEditor(
     editorKey: "domain" | "entity",
     goBackHandler: () => void,
-    itemChangedHandler: (ev: CustomEvent<Settings>) => void
+    itemChangedHandler: (ev: CustomEvent<CustomizationConfig>) => void
   ) {
     const editorName = `_subElementEditor${
       editorKey.charAt(0).toUpperCase() + editorKey.slice(1)
@@ -795,7 +749,7 @@ export class StatusCardEditor extends LitElement {
   }
 
   private _customizationChanged(
-    ev: CustomEvent<Settings[]>,
+    ev: CustomEvent<CustomizationConfig[]>,
     customizationKey: "domain"
   ): void {
     ev.stopPropagation();
@@ -810,7 +764,9 @@ export class StatusCardEditor extends LitElement {
     });
   }
 
-  private _customizationChangedDomain(ev: CustomEvent<Settings[]>): void {
+  private _customizationChangedDomain(
+    ev: CustomEvent<CustomizationConfig[]>
+  ): void {
     this._customizationChanged(ev, "domain");
   }
 
@@ -829,7 +785,7 @@ export class StatusCardEditor extends LitElement {
       this._config!.multiple_floors ?? false
     );
 
-    const possibleToggleDomains = this._toggleDomainsForArea(
+    const possibleToggleDomains = this._memoizedClassesForArea(
       this._config.area || [],
       this._config.floor || [],
       this._config.label || []

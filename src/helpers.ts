@@ -7,6 +7,122 @@ import {
   Directive,
   DirectiveParameters,
 } from "lit/directive.js";
+import type { HassEntity } from "home-assistant-js-websocket";
+
+export interface CustomizationConfig {
+  type: string;
+  invert?: boolean;
+  name?: string;
+  icon?: string;
+  icon_color?: string;
+  state?: string;
+  state_not?: string;
+  invert_state?: "true" | "false";
+  tap_action?: ActionConfig;
+  hold_action?: ActionConfig;
+  double_tap_action?: ActionConfig;
+  icon_css?: string;
+  background_color?: number[];
+}
+
+export interface CardConfig {
+  area?: string[];
+  extra_entities?: string[];
+  hide_person?: boolean;
+  list_mode?: boolean;
+  hide_content_name?: boolean;
+  floor?: string[];
+  label?: string[];
+  hidden_entities?: string[];
+  hidden_labels?: string[];
+  columns?: number;
+  invert?: Record<string, Record<string, boolean>>;
+  content?: string[];
+  customization?: CustomizationConfig[];
+  theme?: string;
+  color?: string;
+  background_color?: number[];
+  show_total_number?: boolean;
+  show_total_entities?: boolean;
+  tap_action?: ActionConfig;
+  hold_action?: ActionConfig;
+  double_tap_action?: ActionConfig;
+  square?: boolean;
+  filter?: string;
+  invert_state?: "true" | "false";
+  hide_filter?: string;
+  label_filter?: boolean;
+  multiple_areas?: boolean;
+  multiple_floors?: boolean;
+  icon_color?: string;
+}
+
+export interface EntityRegistryEntry {
+  entity_id: string;
+  device_id?: string;
+  area_id?: string;
+  hidden_by?: string;
+  disabled_by?: string;
+  labels?: string[];
+}
+
+export interface AreaRegistryEntry {
+  area_id: string;
+  floor_id?: string;
+  name: string;
+}
+
+export interface DeviceRegistryEntry {
+  area_id: string;
+  labels?: string[];
+  id: string;
+}
+
+export interface DomainItem {
+  type: "domain";
+  domain: string;
+  order: number;
+}
+export interface DeviceClassItem {
+  type: "deviceClass";
+  domain: string;
+  deviceClass: string;
+  order: number;
+}
+
+export interface ExtraItem {
+  type: "extra";
+  panel: string;
+  entity: HassEntity;
+  order: number;
+  icon: string;
+  name: string;
+  color?: string;
+  icon_css?: string;
+  background_color?: string;
+}
+
+export type AnyItem = DomainItem | DeviceClassItem | ExtraItem;
+
+export type UiAction = Exclude<ActionConfig["action"], "fire-dom-event">;
+
+export interface Schema {
+  name: string;
+  selector?: string;
+  required?: boolean;
+  default?: string;
+  type?: string;
+}
+
+export interface SelectOption {
+  value: string;
+  label: string;
+  type?: "domain" | "entity";
+}
+
+export interface SubElementEditor {
+  index?: number;
+}
 
 export interface SubElementConfig {
   index?: number;
@@ -21,17 +137,6 @@ export interface EditorTarget extends EventTarget {
   configValue?: string;
   type?: HTMLInputElement["type"];
   config: ActionConfig;
-}
-
-export interface Settings {
-  type: string;
-  state?: string;
-  invert_state?: "true" | "false";
-  icon_color?: string;
-  background_color?: [number, number, number, number?];
-  tap_action?: string;
-  double_tap_action?: string;
-  hold_action?: string;
 }
 
 export interface HTMLElementValue extends HTMLElement {
@@ -110,8 +215,6 @@ export async function await_element(el: any, hard = false) {
     }
   }
 }
-
-export type UiAction = Exclude<ActionConfig["action"], "fire-dom-event">;
 
 interface ActionHandlerType extends HTMLElement {
   holdTime: number;
@@ -429,3 +532,64 @@ export const deepEqual = (a: any, b: any): boolean => {
 };
 
 export const stopPropagation = (ev: any) => ev.stopPropagation();
+
+export const applyThemesOnElement = (
+  element: any,
+  themes: any,
+  localTheme: any
+) => {
+  const selected = localTheme || themes.theme;
+
+  if (!element.__themes) {
+    element.__themes = { cacheKey: null, keys: {} };
+  }
+
+  if (!selected || selected === "default") {
+    // Default-Theme → alle Inline-CSS entfernen
+    element.removeAttribute("style");
+    element.__themes.cacheKey = "default";
+    return;
+  }
+
+  const themeDef = themes.themes?.[selected];
+  if (!themeDef) {
+    console.warn(`Theme "${selected}" not found.`);
+    element.removeAttribute("style");
+    element.__themes.cacheKey = "default";
+    return;
+  }
+
+  // Nur neu anwenden, wenn sich das Theme geändert hat
+  if (element.__themes.cacheKey === selected) {
+    return;
+  }
+
+  // Setze CSS-Variablen
+  for (const [key, value] of Object.entries(themeDef)) {
+    element.style.setProperty(`--${key}`, String(value));
+  }
+
+  // Cache aktualisieren
+  element.__themes.cacheKey = selected;
+};
+
+export function _formatDomain(domain: string): string {
+  return domain
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+export const STATES_OFF = [
+  "closed",
+  "locked",
+  "off",
+  "docked",
+  "idle",
+  "standby",
+  "paused",
+  "auto",
+  "not_home",
+  "disarmed",
+  "0",
+];
