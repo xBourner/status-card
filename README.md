@@ -111,6 +111,8 @@ The card needs to work with your areas so you need to assign your relevant devic
 - **Turn on List Display Mode** - will show a list of entities instead of controllable cards
 - **Theme** - Choose a theme for the card
 - **More Info Columns** - Specify the amount of columns you will see in the popup
+- **Wrap Content** - Get a multine view instead of a single line view. You don't need to scroll anymore.
+- **Content Layout** - Change between horizontal or vertical layout. 
 - **Color** - Change all icon colors for all domains & device_classes at once
 - **Icon Background Color** - Change the background color of all icons at once. Default is an rgba value so it has some opactiy.
 - **Enable Total Entities** - Shows all entities instead of "on" state entities at default
@@ -140,6 +142,38 @@ The card needs to work with your areas so you need to assign your relevant devic
 
 - **Extra Entities** - choose which entities you want to show next to domains & device_classes
 - **Hide Entities** - you can hide/exclude entities from the card. you can specify them per entity itself or per label
+
+### Smart Groups
+
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/smart_groups.png" alt="Status Card Header" width="50%">
+
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/low_batteries.png" alt="Status Card Header" width="20%">
+
+Smart Groups are groups based on filters. You can add one or more entities that will only be shown if all filters are 'true'.
+This allows you to create groups that are not defined by the default domains. For example, you can create a group for low batteries only.
+The filters that are included are:
+
+- Area
+- Floor
+- Label
+- Domain
+- Entity ID
+- State
+- Name
+- Attributes
+- Device
+- Integration
+- Entity category
+- Hidden by
+- Device Manufacturer
+- Device Model
+- Group
+- last_changed
+- last_updated
+- last_triggered
+
+Some of these work with wildcards (*). You can enter a * before and/or after the string to get all matching entities.
+Comparisons such as <, <=, > and => also work. For example, entering <10 in the state filter will return all entities with a state below 10.
 
 ### Content
 
