@@ -26,6 +26,11 @@ export function computeLabelCallback(
   domain?: string,
   deviceClass?: string
 ): string {
+  if (/^key_\d+$/.test(schema.name)) {
+    return (
+      hass.localize("ui.components.related-filter-menu.filter") || "Filter"
+    );
+  }
   switch (schema.name) {
     case "header": {
       if (domain && deviceClass) {
@@ -182,6 +187,49 @@ export function computeLabelCallback(
       return hass!.localize(
         `ui.panel.lovelace.editor.card.generic.${schema.name}`
       );
+    case "group_id":
+      return (
+        hass!.localize("component.group.entity_component._.name") +
+        " " +
+        hass!.localize("ui.common.name")
+      );
+    case "group_icon":
+      return (
+        hass!.localize("component.group.entity_component._.name") +
+        " " +
+        hass!.localize("ui.panel.lovelace.editor.card.generic.icon")
+      );
+    case "group_status":
+      return (
+        hass!.localize("component.group.entity_component._.name") +
+        " " +
+        hass!.localize("ui.components.selectors.selector.types.state") +
+        " (" +
+        hass!.localize("ui.panel.lovelace.editor.card.config.optional") +
+        ")"
+      );
+    case "hide":
+      return hass!.localize("ui.common.hide");
+    case "state":
+      return hass!.localize("ui.components.entity.entity-state-picker.state");
+    case "invert":
+    case "invert_state":
+      return hass!.localize("ui.dialogs.entity_registry.editor.invert.label");
+    case "show_entity_picture":
+      return hass!.localize(
+        "ui.panel.lovelace.editor.card.tile.show_entity_picture"
+      );
+    case "name":
+      return hass!.localize("ui.common.name");
+    case "no_scroll":
+      return (
+        hass!.localize(
+          "ui.panel.lovelace.editor.edit_view_header.settings.badges_wrap_options.wrap"
+        ) +
+        " " +
+        hass!.localize("ui.panel.lovelace.editor.card.generic.content")
+      );
+
     default:
       if (ALLOWED_DOMAINS.includes(schema.name)) {
         return (

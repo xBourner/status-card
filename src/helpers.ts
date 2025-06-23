@@ -23,6 +23,9 @@ export interface CustomizationConfig {
   double_tap_action?: ActionConfig;
   icon_css?: string;
   background_color?: number[];
+  show_total_entities?: boolean;
+  show_total_number?: boolean;
+  show_entity_picture?: boolean;
 }
 
 export interface CardConfig {
@@ -35,6 +38,7 @@ export interface CardConfig {
   label?: string[];
   hidden_entities?: string[];
   hidden_labels?: string[];
+  hidden_areas?: string[];
   columns?: number;
   invert?: Record<string, Record<string, boolean>>;
   content?: string[];
@@ -55,6 +59,9 @@ export interface CardConfig {
   multiple_areas?: boolean;
   multiple_floors?: boolean;
   icon_color?: string;
+  rulesets?: any;
+  content_layout?: "horizontal" | "vertical";
+  no_scroll?: boolean;
 }
 
 export interface EntityRegistryEntry {
@@ -64,6 +71,9 @@ export interface EntityRegistryEntry {
   hidden_by?: string;
   disabled_by?: string;
   labels?: string[];
+  entity_category?: string;
+  platform?: string;
+  config_entry_id?: string;
 }
 
 export interface AreaRegistryEntry {
@@ -76,6 +86,8 @@ export interface DeviceRegistryEntry {
   area_id: string;
   labels?: string[];
   id: string;
+  model?: string;
+  manufacturer?: string;
 }
 
 export interface DomainItem {
@@ -83,6 +95,7 @@ export interface DomainItem {
   domain: string;
   order: number;
 }
+
 export interface DeviceClassItem {
   type: "deviceClass";
   domain: string;
@@ -102,9 +115,32 @@ export interface ExtraItem {
   background_color?: string;
 }
 
-export type AnyItem = DomainItem | DeviceClassItem | ExtraItem;
+export interface GroupItem {
+  type: "group";
+  group_id: string;
+  order: number;
+  ruleset: any;
+}
+
+export interface SmartGroupItem {
+  group_id: string;
+  group_icon: string;
+  group_status?: string;
+  rules: Array<{ key: string; value: any }>;
+}
+
+export type AnyItem = DomainItem | DeviceClassItem | ExtraItem | GroupItem;
 
 export type UiAction = Exclude<ActionConfig["action"], "fire-dom-event">;
+
+export type EntityFilter = (
+  entity: HassEntity,
+  helpers: {
+    areas?: AreaRegistryEntry[];
+    devices?: DeviceRegistryEntry[];
+    entities?: EntityRegistryEntry[];
+  }
+) => boolean;
 
 export interface Schema {
   name: string;

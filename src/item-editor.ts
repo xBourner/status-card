@@ -3,6 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant } from "custom-card-helpers";
 import { CardConfig, CustomizationConfig, Schema, UiAction } from "./helpers";
 import memoizeOne from "memoize-one";
+import { computeLabelCallback } from "./translations";
 
 @customElement("status-item-editor")
 export class ItemEditor extends LitElement {
@@ -24,6 +25,8 @@ export class ItemEditor extends LitElement {
     ];
     return [
       { name: "invert", selector: { boolean: {} } },
+      { name: "show_total_number", selector: { boolean: {} } },
+      { name: "show_total_entities", selector: { boolean: {} } },
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
       {
@@ -143,55 +146,12 @@ export class ItemEditor extends LitElement {
         .hass=${this.hass}
         .data=${data}
         .schema=${schema}
-        .computeLabel=${this._computeLabelCallback}
+        .computeLabel=${(schema: any) =>
+          computeLabelCallback(this.hass!, schema)}
         @value-changed=${this._valueChangedSchema}
       ></ha-form>
     `;
   }
-
-  private _computeLabelCallback = (schema: Schema): string => {
-    switch (schema.name) {
-      case "hide":
-        return this.hass!.localize("ui.common.hide");
-      case "state":
-        return this.hass!.localize(
-          "ui.components.entity.entity-state-picker.state"
-        );
-      case "invert":
-      case "invert_state":
-        return this.hass!.localize(
-          "ui.dialogs.entity_registry.editor.invert.label"
-        );
-      case "color":
-        return this.hass!.localize("ui.panel.lovelace.editor.card.tile.color");
-      case "background_color":
-        return (
-          this.hass!.localize("ui.panel.lovelace.editor.card.generic.icon") +
-          " " +
-          this.hass!.localize(
-            "ui.panel.lovelace.editor.edit_view.tab_background"
-          ) +
-          " " +
-          this.hass!.localize("ui.panel.lovelace.editor.card.tile.color")
-        );
-      case "show_entity_picture":
-        return this.hass!.localize(
-          "ui.panel.lovelace.editor.card.tile.show_entity_picture"
-        );
-      case "name":
-      case "icon":
-      case "tap_action":
-      case "hold_action":
-      case "double_tap_action":
-        return this.hass!.localize(
-          `ui.panel.lovelace.editor.card.generic.${schema.name}`
-        );
-      default:
-        return this.hass!.localize(
-          `ui.panel.lovelace.editor.card.area.${schema.name}`
-        );
-    }
-  };
 
   private _valueChangedSchema(event: CustomEvent): void {
     if (!this.config) {

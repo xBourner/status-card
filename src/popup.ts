@@ -1,17 +1,26 @@
 import { StatusCard } from "./card";
+import { filterEntitiesByRuleset } from "./smart_groups";
 import type { HassEntity } from "home-assistant-js-websocket";
-import { stopPropagation, _formatDomain, STATES_OFF } from "./helpers";
+import {
+  stopPropagation,
+  _formatDomain,
+  STATES_OFF,
+  AreaRegistryEntry,
+} from "./helpers";
 import { html, TemplateResult } from "lit";
 import {
+  mdiClose,
   mdiDotsVertical,
   mdiSwapHorizontal,
   mdiToggleSwitchOffOutline,
 } from "@mdi/js";
 import { LovelaceCard } from "custom-card-helpers";
+import memoizeOne from "memoize-one";
 
 function _closeDialog(this: StatusCard): void {
   this.selectedDomain = null;
   this.selectedDeviceClass = null;
+  this.selectedGroup = null;
 
   const container = document.querySelector("home-assistant")?.shadowRoot;
   const dialog = container?.querySelector("ha-dialog");
@@ -234,6 +243,45 @@ const DOMAIN_FEATURES: Record<string, any> = {
   },
 };
 
+const groupAndSortEntities = memoizeOne(
+  (
+    entities: HassEntity[],
+    areas: AreaRegistryEntry[] | undefined,
+    areaMap: Map<string, string>,
+    sortEntities: (ents: HassEntity[]) => HassEntity[],
+    card: StatusCard
+  ): Array<[string, HassEntity[]]> => {
+    const groups = new Map<string, HassEntity[]>();
+    for (const entity of entities) {
+      const areaId = getAreaForEntity(card, entity);
+      if (!groups.has(areaId)) {
+        groups.set(areaId, []);
+      }
+      groups.get(areaId)!.push(entity);
+    }
+
+    const sortedGroups = Array.from(groups.entries()).sort(
+      ([areaIdA], [areaIdB]) => {
+        const areaObjA = areas?.find((a) => a.area_id === areaIdA);
+        const areaObjB = areas?.find((a) => a.area_id === areaIdB);
+        const nameA = areaObjA
+          ? areaObjA.name.toLowerCase()
+          : areaIdA === "unassigned"
+          ? "Unassigned"
+          : areaIdA;
+        const nameB = areaObjB
+          ? areaObjB.name.toLowerCase()
+          : areaIdB === "unassigned"
+          ? "Unassigned"
+          : areaIdB;
+        return nameA.localeCompare(nameB);
+      }
+    );
+
+    return sortedGroups.map(([areaId, ents]) => [areaId, sortEntities(ents)]);
+  }
+);
+
 export function renderPopup(card: StatusCard): TemplateResult {
   const columns = card.list_mode ? 1 : card._config.columns || 4;
   const styleBlock = card._isMobile ? mobileStyles : desktopStyles;
@@ -241,14 +289,37 @@ export function renderPopup(card: StatusCard): TemplateResult {
   const effectiveShowAll = card._showAll ? !initialShowAll : initialShowAll;
   const areaMap = new Map(card.areas?.map((a) => [a.area_id, a.name]));
 
-  let entities: HassEntity[];
-  if (!effectiveShowAll) {
-    entities = card._isOn(card.selectedDomain!, card.selectedDeviceClass!);
-  } else {
-    entities = card._totalEntities(
-      card.selectedDomain!,
-      card.selectedDeviceClass!
+  let entities: HassEntity[] | undefined;
+  let isNoGroup = false;
+
+  if (
+    card.selectedGroup !== null &&
+    card._config.content?.[card.selectedGroup]
+  ) {
+    const groupId = card._config.content[card.selectedGroup];
+    const ruleset = card._config.rulesets?.find(
+      (g: any) => g.group_id === groupId
     );
+    entities = ruleset ? filterEntitiesByRuleset(card, ruleset) : [];
+  } else {
+    // 1. show_total_entities hat höchste Priorität
+    if (
+      card._shouldShowTotalEntities(
+        card.selectedDomain!,
+        card.selectedDeviceClass!
+      )
+    ) {
+      entities = card._totalEntities(
+        card.selectedDomain!,
+        card.selectedDeviceClass!
+      );
+    } else {
+      // 2. Sonst entscheidet der Toggle
+      entities = card._showAll
+        ? card._totalEntities(card.selectedDomain!, card.selectedDeviceClass!)
+        : card._isOn(card.selectedDomain!, card.selectedDeviceClass!);
+    }
+    isNoGroup = true;
   }
 
   const sortEntities = (ents: HassEntity[]) =>
@@ -265,31 +336,12 @@ export function renderPopup(card: StatusCard): TemplateResult {
       return nameA.localeCompare(nameB);
     });
 
-  const groups = new Map<string, HassEntity[]>();
-  for (const entity of entities) {
-    const areaId = getAreaForEntity(card, entity);
-    if (!groups.has(areaId)) {
-      groups.set(areaId, []);
-    }
-    groups.get(areaId)!.push(entity);
-  }
-
-  const sortedGroups = Array.from(groups.entries()).sort(
-    ([areaIdA], [areaIdB]) => {
-      const areaObjA = card.areas?.find((a) => a.area_id === areaIdA);
-      const areaObjB = card.areas?.find((a) => a.area_id === areaIdB);
-      const nameA = areaObjA
-        ? areaObjA.name.toLowerCase()
-        : areaIdA === "unassigned"
-        ? "Unassigned"
-        : areaIdA;
-      const nameB = areaObjB
-        ? areaObjB.name.toLowerCase()
-        : areaIdB === "unassigned"
-        ? "Unassigned"
-        : areaIdB;
-      return nameA.localeCompare(nameB);
-    }
+  const sortedGroups = groupAndSortEntities(
+    entities,
+    card.areas,
+    areaMap,
+    sortEntities,
+    card
   );
 
   const maxCardsPerArea = Math.max(
@@ -316,13 +368,11 @@ export function renderPopup(card: StatusCard): TemplateResult {
       </style>
       <div class="dialog-header">
         <ha-icon-button
-          slot="navigationIcon"
-          dialogaction="cancel"
-          @click=${() => _closeDialog}
-          title="${card.computeLabel({ name: "close" })}"
-        >
-          <ha-icon class="center" icon="mdi:close"></ha-icon>
-        </ha-icon-button>
+          slot="trigger"
+          .label=${card.hass.localize("ui.common.close")}
+          .path=${mdiClose}
+          @click=${() => _closeDialog.call(card)}
+        ></ha-icon-button>
         <h3>
           ${card.selectedDomain && card.selectedDeviceClass
             ? card.computeLabel(
@@ -335,54 +385,60 @@ export function renderPopup(card: StatusCard): TemplateResult {
                 card.selectedDomain || undefined
               )}
         </h3>
-        <ha-button-menu
-          class="menu-button"
-          slot="actionItems"
-          fixed
-          corner="BOTTOM_END"
-          menu-corner="END"
-          @closed=${stopPropagation}
-        >
-          <ha-icon-button
-            slot="trigger"
-            .label=${card.hass.localize("ui.common.menu")}
-            .path=${mdiDotsVertical}
-          ></ha-icon-button>
+        ${isNoGroup
+          ? html`
+              <ha-button-menu
+                class="menu-button"
+                slot="actionItems"
+                fixed
+                corner="BOTTOM_END"
+                menu-corner="END"
+                @closed=${stopPropagation}
+              >
+                <ha-icon-button
+                  slot="trigger"
+                  .label=${card.hass.localize("ui.common.menu")}
+                  .path=${mdiDotsVertical}
+                ></ha-icon-button>
 
-          <ha-list-item
-            graphic="icon"
-            @closed=${stopPropagation}
-            .card=${card}
-            @click=${handleAskToggleDomain}
-          >
-            ${isInverted
-              ? card.hass.localize("ui.card.common.turn_on")
-              : card.hass.localize("ui.card.common.turn_off")}
-            <ha-svg-icon
-              slot="graphic"
-              .path=${mdiToggleSwitchOffOutline}
-            ></ha-svg-icon>
-          </ha-list-item>
+                <ha-list-item
+                  graphic="icon"
+                  @closed=${stopPropagation}
+                  .card=${card}
+                  @click=${handleAskToggleDomain}
+                >
+                  ${isInverted
+                    ? card.hass.localize("ui.card.common.turn_on")
+                    : card.hass.localize("ui.card.common.turn_off")}
+                  <ha-svg-icon
+                    slot="graphic"
+                    .path=${mdiToggleSwitchOffOutline}
+                  ></ha-svg-icon>
+                </ha-list-item>
 
-          <ha-list-item
-            graphic="icon"
-            @closed=${stopPropagation}
-            .card=${card}
-            @click=${handleAskToggleAll}
-          >
-            ${card.hass.localize("ui.card.common.toggle") +
-            " " +
-            card.hass.localize(
-              "component.sensor.entity_component._.state_attributes.state_class.state.total"
-            ) +
-            " " +
-            card.hass.localize("ui.panel.lovelace.editor.card.entities.name")}
-            <ha-svg-icon
-              slot="graphic"
-              .path=${mdiSwapHorizontal}
-            ></ha-svg-icon>
-          </ha-list-item>
-        </ha-button-menu>
+                <ha-list-item
+                  graphic="icon"
+                  @closed=${stopPropagation}
+                  .card=${card}
+                  @click=${handleAskToggleAll}
+                >
+                  ${card.hass.localize("ui.card.common.toggle") +
+                  " " +
+                  card.hass.localize(
+                    "component.sensor.entity_component._.state_attributes.state_class.state.total"
+                  ) +
+                  " " +
+                  card.hass.localize(
+                    "ui.panel.lovelace.editor.card.entities.name"
+                  )}
+                  <ha-svg-icon
+                    slot="graphic"
+                    .path=${mdiSwapHorizontal}
+                  ></ha-svg-icon>
+                </ha-list-item>
+              </ha-button-menu>
+            `
+          : ""}
       </div>
       ${card.list_mode
         ? html`
@@ -424,7 +480,11 @@ export function renderPopup(card: StatusCard): TemplateResult {
                             ${createCard(card, {
                               type: "tile",
                               entity: entity.entity_id,
-                              ...(DOMAIN_FEATURES[card.selectedDomain!] ?? {}),
+                              ...(card.selectedGroup !== null
+                                ? DOMAIN_FEATURES[
+                                    entity.entity_id.split(".")[0]
+                                  ] ?? {}
+                                : DOMAIN_FEATURES[card.selectedDomain!] ?? {}),
                             })}
                           </div>
                         `

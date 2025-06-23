@@ -15,8 +15,14 @@ import {
   UiAction,
   SelectOption,
   SubElementEditor,
+  SmartGroupItem,
 } from "./helpers";
-import { mdiTextBoxEdit } from "@mdi/js";
+import {
+  mdiFormatListGroupPlus,
+  mdiTextBoxEdit,
+  mdiClose,
+  mdiChevronLeft,
+} from "@mdi/js";
 import "./items-editor";
 import "./item-editor";
 
@@ -28,6 +34,19 @@ export class StatusCardEditor extends LitElement {
     undefined;
   @state() private _subElementEditorEntity: SubElementConfig | undefined =
     undefined;
+  @state() private rulesets: Array<{
+    group_id: string;
+    group_icon: string;
+    group_status?: string;
+    rules: Array<{ key: string; value: any }>;
+  }> = [
+    {
+      group_id: "",
+      group_icon: "",
+      group_status: "",
+      rules: [{ key: "", value: "" }],
+    },
+  ];
 
   private computeLabel = memoizeOne(
     (schema: Schema, domain?: string, deviceClass?: string): string => {
@@ -48,13 +67,14 @@ export class StatusCardEditor extends LitElement {
       hide_content_name: config.hide_content_name ?? false,
       customization: config.customization ?? [],
     };
+    this._loadRulesetsFromConfig();
   }
 
   private _updateAreaFloorInConfig(): void {
     if (!this._config || !this._config.filter) return;
 
-    const area = this.computeLabel({ name: "area" });
-    const floor = this.computeLabel({ name: "floor" });
+    const area = "area";
+    const floor = "floor";
 
     if (this._config.filter === area && this._config.floor !== undefined) {
       delete this._config.floor;
@@ -158,6 +178,52 @@ export class StatusCardEditor extends LitElement {
         };
 
         updated = true;
+      }
+
+      if (this._config.rulesets && Array.isArray(this._config.rulesets)) {
+        const validGroupIds = this._config.rulesets
+          .filter((g) =>
+            Object.keys(g).some(
+              (key) =>
+                key !== "group_id" &&
+                key !== "group_icon" &&
+                key !== "group_status" &&
+                g[key] !== undefined &&
+                g[key] !== ""
+            )
+          )
+          .map((g) => g.group_id)
+          .filter((id) => id && id.length > 1);
+
+        let content = Array.isArray(this._config.content)
+          ? [...this._config.content]
+          : [];
+
+        content = content.filter((entry) => !validGroupIds.includes(entry));
+
+        const extraEntities = this._config.extra_entities ?? [];
+        let insertPos = 0;
+        for (let i = 0; i < content.length; i++) {
+          if (!extraEntities.includes(content[i])) {
+            insertPos = i;
+            break;
+          }
+          insertPos = i + 1;
+        }
+
+        content = [
+          ...content.slice(0, insertPos),
+          ...validGroupIds.filter((id) => !content.includes(id)),
+          ...content.slice(insertPos),
+        ];
+
+        if (!this.arraysEqual(content, this._config.content ?? [])) {
+          this._config = {
+            ...this._config,
+            content,
+          };
+          updated = true;
+        }
       }
 
       if (!this.arraysEqual(oldExtraEntities, newExtraEntities)) {
@@ -268,6 +334,30 @@ export class StatusCardEditor extends LitElement {
               ],
             },
             {
+              name: "no_scroll",
+              selector: { boolean: {} },
+            },
+            {
+              name: "content_layout",
+              required: true,
+              selector: {
+                select: {
+                  mode: "box",
+                  options: ["vertical", "horizontal"].map((value) => ({
+                    label: this.hass!.localize(
+                      `ui.panel.lovelace.editor.card.tile.content_layout_options.${value}`
+                    ),
+                    value,
+                    image: {
+                      src: `/static/images/form/tile_content_layout_${value}.svg`,
+                      src_dark: `/static/images/form/tile_content_layout_${value}_dark.svg`,
+                      flip_rtl: true,
+                    },
+                  })),
+                },
+              },
+            },
+            {
               name: "color",
               selector: {
                 ui_color: { default_color: "state", include_state: true },
@@ -296,7 +386,14 @@ export class StatusCardEditor extends LitElement {
               schema: [
                 {
                   name: "filter",
-                  selector: { select: { options: [area, floor] } },
+                  selector: {
+                    select: {
+                      options: [
+                        { value: "area", label: area },
+                        { value: "floor", label: floor },
+                      ],
+                    },
+                  },
                 },
                 { name: "label_filter", selector: { boolean: {} } },
               ],
@@ -352,7 +449,7 @@ export class StatusCardEditor extends LitElement {
               schema: [
                 {
                   name: "hide_filter",
-                  selector: { select: { options: [entity, label] } },
+                  selector: { select: { options: [entity, label, area] } },
                 },
               ],
             },
@@ -371,6 +468,14 @@ export class StatusCardEditor extends LitElement {
                   {
                     name: "hidden_labels",
                     selector: { label: { multiple: true } },
+                  },
+                ] as const)
+              : []),
+            ...(HideFilter === area
+              ? ([
+                  {
+                    name: "hidden_areas",
+                    selector: { area: { multiple: true } },
                   },
                 ] as const)
               : []),
@@ -727,9 +832,12 @@ export class StatusCardEditor extends LitElement {
     return html`
       <div class="header">
         <div class="back-title">
-          <mwc-icon-button @click=${goBackHandler}>
-            <ha-icon icon="mdi:chevron-left"></ha-icon>
-          </mwc-icon-button>
+          <ha-icon-button
+            slot="trigger"
+            .label=${this.hass.localize("ui.common.back")}
+            .path=${mdiChevronLeft}
+            @click=${goBackHandler}
+          ></ha-icon-button>
           <span slot="title">${localizedType}</span>
         </div>
       </div>
@@ -765,6 +873,242 @@ export class StatusCardEditor extends LitElement {
   ): void {
     this._customizationChanged(ev, "domain");
   }
+
+  private _loadRulesetsFromConfig(): void {
+    this.rulesets = (this._config.rulesets ?? []).map((group: any) => {
+      const rules = Object.keys(group)
+        .filter(
+          (key) =>
+            key !== "group_id" &&
+            key !== "group_icon" &&
+            key !== "group_status" &&
+            group[key] !== undefined
+        )
+        .map((key) => ({
+          key,
+          value: group[key] ?? "",
+        }));
+
+      if (rules.length === 0 || rules[rules.length - 1]?.key !== "") {
+        rules.push({ key: "", value: "" });
+      }
+
+      return {
+        group_id: group.group_id ?? "",
+        group_icon: group.group_icon ?? "",
+        group_status: group.group_status ?? "",
+        rules,
+      };
+    });
+  }
+
+  private _saveRulesetsToConfig(): void {
+    const rulesetsConfig = this.rulesets.map((group) => {
+      const rules = group.rules.reduce((acc, rule) => {
+        if (rule.key && rule.key !== "") {
+          acc[rule.key] = rule.value ?? "";
+        }
+        return acc;
+      }, {} as Record<string, any>);
+
+      return {
+        group_id: group.group_id ?? "",
+        group_icon: group.group_icon ?? "",
+        group_status: group.group_status ?? "",
+        ...rules,
+      };
+    });
+
+    this._config = {
+      ...this._config,
+      rulesets: rulesetsConfig,
+    };
+
+    fireEvent(this, "config-changed", { config: this._config });
+  }
+
+  private _updateConfigFromRulesets(): void {
+    this._saveRulesetsToConfig();
+  }
+
+  private get ruleKeySelector() {
+    const options: [string, string][] = [
+      [
+        "area",
+        this.hass.localize("ui.components.selectors.selector.types.area"),
+      ],
+      [
+        "attributes",
+        this.hass.localize("ui.components.selectors.selector.types.attribute"),
+      ],
+      [
+        "device",
+        this.hass.localize("ui.components.selectors.selector.types.device"),
+      ],
+      [
+        "domain",
+        this.hass.localize("ui.panel.lovelace.editor.cardpicker.domain"),
+      ],
+      [
+        "entity_category",
+        this.hass.localize("ui.components.category-picker.category"),
+      ],
+      [
+        "entity_id",
+        this.hass.localize("ui.dialogs.entity_registry.editor.entity_id"),
+      ],
+      ["floor", this.hass.localize("ui.components.floor-picker.floor")],
+      ["group", this.hass.localize("component.group.entity_component._.name")],
+      ["hidden_by", "Hidden by"],
+      [
+        "integration",
+        this.hass.localize("ui.components.related-items.integration"),
+      ],
+      ["label", this.hass.localize("ui.components.label-picker.label")],
+      [
+        "last_changed",
+        this.hass.localize("ui.components.state-content-picker.last_changed"),
+      ],
+      [
+        "last_triggered",
+        this.hass.localize(
+          "component.automation.entity_component._.state_attributes.last_triggered.name"
+        ),
+      ],
+      [
+        "last_updated",
+        this.hass.localize("ui.components.state-content-picker.last_updated"),
+      ],
+      ["device_manufacturer", "Manufacturer"],
+      ["device_model", "Model"],
+      ["name", this.hass.localize("ui.common.name")],
+      [
+        "state",
+        this.hass.localize("ui.components.selectors.selector.types.state"),
+      ],
+    ];
+
+    options.sort((a, b) => a[1].localeCompare(b[1], this.hass.locale.language));
+
+    return {
+      type: "select",
+      options,
+    };
+  }
+
+  private filterValueSelector: { [key: string]: any } = {
+    attributes: { object: {} },
+    area: { area: {} },
+    device: { device: {} },
+    entity_id: { entity: {} },
+    entity_category: {
+      select: { options: ["config", "diagnostic"], mode: "dropdown" },
+    },
+    floor: { floor: {} },
+    group: { entity: { filter: { domain: "group" } } },
+    hidden_by: {
+      select: { options: ["user", "integration"], mode: "dropdown" },
+    },
+    integration: { config_entry: {} },
+    label: { label: {} },
+  };
+
+  private getGroupSchema(group: SmartGroupItem) {
+    return [
+      {
+        name: "group_id",
+        selector: { text: {} },
+      },
+      {
+        name: "group_icon",
+        selector: { icon: {} },
+      },
+      {
+        name: "group_status",
+        selector: { text: {} },
+      },
+      ...group.rules.map((rule, idx) => {
+        const usedKeys = group.rules
+          .map((r, i) => (i !== idx ? r.key : null))
+          .filter((k) => k);
+
+        const availableOptions = this.ruleKeySelector.options.filter(
+          ([key]) => !usedKeys.includes(key) || key === rule.key
+        );
+
+        return {
+          type: "grid",
+          schema: [
+            {
+              type: "select",
+              name: `key_${idx}`,
+              options: availableOptions,
+            },
+            {
+              name: `value_${idx}`,
+              selector: this.filterValueSelector[rule.key] ?? { text: {} },
+            },
+          ],
+        };
+      }),
+    ];
+  }
+
+  private _groupFormData(group: SmartGroupItem) {
+    const data: Record<string, any> = {
+      group_id: group.group_id,
+      group_icon: group.group_icon,
+      group_status: group.group_status ?? "",
+    };
+    group.rules.forEach((rule, idx) => {
+      data[`key_${idx}`] = rule.key;
+      data[`value_${idx}`] = rule.value;
+    });
+    return data;
+  }
+
+  private _groupValueChanged(ev: CustomEvent, idx: number): void {
+    const { value } = ev.detail;
+
+    const rules = Object.keys(value)
+      .filter((key) => key.startsWith("key_"))
+      .map((key) => {
+        const index = key.split("_")[1];
+        return {
+          key: value[`key_${index}`] ?? "",
+          value: value[`value_${index}`] ?? "",
+        };
+      });
+
+    if (rules.length === 0 || rules[rules.length - 1]?.key !== "") {
+      rules.push({ key: "", value: "" });
+    }
+
+    this.rulesets = this.rulesets.map((group, groupIndex) =>
+      groupIndex === idx
+        ? {
+            group_id: value.group_id ?? "",
+            group_icon: value.group_icon ?? "",
+            group_status: value.group_status ?? "",
+            rules,
+          }
+        : group
+    );
+
+    this._updateConfigFromRulesets();
+  }
+
+  private _addRuleset = () => {
+    this.rulesets = [
+      ...this.rulesets,
+      { group_id: "", group_icon: "", rules: [{ key: "", value: "" }] },
+    ];
+  };
+
+  private _removeRuleset = (idx: number) => {
+    this.rulesets = this.rulesets.filter((_, i) => i !== idx);
+    this._updateConfigFromRulesets();
+  };
 
   render() {
     if (!this.hass || !this._config) {
@@ -805,6 +1149,57 @@ export class StatusCardEditor extends LitElement {
         .computeLabel=${this.computeLabel}
         @value-changed=${this._valueChanged}
       ></ha-form>
+
+      <ha-expansion-panel outlined class="main">
+        <div slot="header" role="heading" aria-level="3">
+          <ha-svg-icon
+            class="secondary"
+            .path=${mdiFormatListGroupPlus}
+          ></ha-svg-icon>
+          Smart Groups
+        </div>
+        <div class="content">
+          ${this.rulesets.map(
+            (group, i) => html`
+              <ha-expansion-panel class="group-panel main" outlined>
+                <div slot="header" class="group-header">
+                  ${group.group_id
+                    ? group.group_id
+                    : `${this.hass.localize(
+                        "component.group.entity_component._.name"
+                      )} ${i + 1}`}
+                  <span class="group-actions">
+                    <ha-icon-button
+                      slot="trigger"
+                      .label=${this.hass.localize("ui.common.remove")}
+                      .path=${mdiClose}
+                      @click=${() => this._removeRuleset(i)}
+                    ></ha-icon-button>
+                  </span>
+                </div>
+                <div class="content">
+                  <ha-form
+                    .hass=${this.hass}
+                    .data=${this._groupFormData(group)}
+                    .schema=${this.getGroupSchema(group)}
+                    .computeLabel=${this.computeLabel}
+                    @value-changed=${(ev: CustomEvent) =>
+                      this._groupValueChanged(ev, i)}
+                  ></ha-form>
+                </div>
+              </ha-expansion-panel>
+            `
+          )}
+          <div class="add-group-row">
+            <ha-button
+              slot="trigger"
+              .label=${this.hass.localize("ui.common.add")}
+              raised
+              @click=${this._addRuleset}
+            ></ha-button>
+          </div>
+        </div>
+      </ha-expansion-panel>
 
       <ha-expansion-panel outlined class="main">
         <div slot="header" role="heading" aria-level="3">
@@ -859,6 +1254,21 @@ export class StatusCardEditor extends LitElement {
       }
       .header {
         margin-bottom: 0.5em;
+      }
+      .group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .group-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .add-group-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 8px;
       }
     `;
   }

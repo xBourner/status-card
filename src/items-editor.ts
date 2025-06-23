@@ -64,21 +64,19 @@ abstract class BaseItemsEditor extends LitElement {
                     >`
                 )}
               </ha-select>
-
               <ha-icon-button
-                .label="Remove"
+                .label=${this.hass!.localize("ui.common.remove")}
                 .path=${mdiClose}
                 class="remove-icon"
                 .index=${index}
                 @click=${this._removeRow}
               ></ha-icon-button>
-
               <ha-icon-button
-                .label="Edit"
+                .label=${this.hass!.localize("ui.common.edit")}
                 .path=${mdiPencil}
                 class="edit-icon"
                 .index=${index}
-                @click="${this._editRow}"
+                @click=${this._editRow}
               ></ha-icon-button>
             </div>
           `
