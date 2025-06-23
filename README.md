@@ -141,7 +141,7 @@ The card needs to work with your areas so you need to assign your relevant devic
 <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/entities.png" alt="Status Card Header" width="50%">
 
 - **Extra Entities** - choose which entities you want to show next to domains & device_classes
-- **Hide Entities** - you can hide/exclude entities from the card. you can specify them per entity itself or per label
+- **Hide Entities** - you can hide/exclude entities from the card. you can specify them per entity itself, per label or per area
 
 ### Smart Groups
 
