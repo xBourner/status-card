@@ -398,28 +398,28 @@ export class StatusCardEditor extends LitElement {
                 { name: "label_filter", selector: { boolean: {} } },
               ],
             },
-            ...(Filter === area && MultipleAreas === false
+            ...(Filter === "area" && MultipleAreas === false
               ? ([
                   { name: "multiple_areas", selector: { boolean: {} } },
                   { name: "area", selector: { area: {} } },
                 ] as const)
               : []),
 
-            ...(Filter === area && MultipleAreas === true
+            ...(Filter === "area" && MultipleAreas === true
               ? ([
                   { name: "multiple_areas", selector: { boolean: {} } },
                   { name: "area", selector: { area: { multiple: true } } },
                 ] as const)
               : []),
 
-            ...(Filter === floor && MultipleFloors === false
+            ...(Filter === "floor" && MultipleFloors === false
               ? ([
                   { name: "multiple_floors", selector: { boolean: {} } },
                   { name: "floor", selector: { floor: {} } },
                 ] as const)
               : []),
 
-            ...(Filter === floor && MultipleFloors === true
+            ...(Filter === "floor" && MultipleFloors === true
               ? ([
                   { name: "multiple_floors", selector: { boolean: {} } },
                   { name: "floor", selector: { floor: { multiple: true } } },
