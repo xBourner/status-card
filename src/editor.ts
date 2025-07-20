@@ -595,7 +595,7 @@ export class StatusCardEditor extends LitElement {
         .filter((d) => d !== "binary_sensor" && d !== "cover" && d !== "switch")
     );
 
-    const deviceClassMap = new Map<string, Set<string>>();
+   const deviceClassDomainPairs = new Set<string>();
     entities
       .filter((e) =>
         ["binary_sensor", "cover", "switch"].includes(
@@ -607,17 +607,11 @@ export class StatusCardEditor extends LitElement {
         const deviceClass =
           this.hass!.states[e.entity_id]?.attributes.device_class || "";
         if (deviceClass) {
-          if (!deviceClassMap.has(deviceClass)) {
-            deviceClassMap.set(deviceClass, new Set());
-          }
-          deviceClassMap.get(deviceClass)!.add(dom);
+          deviceClassDomainPairs.add(`${_formatDomain(dom)} - ${deviceClass}`);
         }
       });
 
-    const formattedDeviceClasses = [...deviceClassMap.entries()].map(
-      ([deviceClass, doms]) =>
-        `${[...doms].map((d) => _formatDomain(d)).join(", ")} - ${deviceClass}`
-    );
+    const formattedDeviceClasses = [...deviceClassDomainPairs];
 
     return [...domains, ...formattedDeviceClasses, ...extraEntities].sort(
       (a, b) => {
