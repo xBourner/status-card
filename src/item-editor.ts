@@ -1,7 +1,7 @@
 import { LitElement, TemplateResult, html, css, CSSResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant } from "custom-card-helpers";
-import { CardConfig, CustomizationConfig, Schema, UiAction } from "./helpers";
+import { CardConfig, CustomizationConfig, UiAction } from "./helpers";
 import memoizeOne from "memoize-one";
 import { computeLabelCallback } from "./translations";
 
@@ -9,6 +9,7 @@ import { computeLabelCallback } from "./translations";
 export class ItemEditor extends LitElement {
   @property({ attribute: false }) config?: CustomizationConfig;
   @property({ attribute: false }) hass?: HomeAssistant;
+  @property({ attribute: false }) lovelace?: any;
   @property({ type: Boolean }) useSensorSchema: boolean = false;
   @property({ type: Number }) index?: number;
   @state() private getSchema?: string;
@@ -44,6 +45,7 @@ export class ItemEditor extends LitElement {
       { name: "tap_action", selector: { ui_action: { actions } } },
       { name: "double_tap_action", selector: { ui_action: { actions } } },
       { name: "hold_action", selector: { ui_action: { actions } } },
+      { name: "popup_card", selector: { object: {} } },
     ];
   });
 

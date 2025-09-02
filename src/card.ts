@@ -5,7 +5,7 @@ import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
 import memoizeOne from "memoize-one";
 import type { HassEntity } from "home-assistant-js-websocket";
-import { renderPopup } from "./popup";
+import "./popup-dialog"; // registriert popup-dialog für show-dialog
 import { domainIcon, ALLOWED_DOMAINS, DataStore } from "./properties";
 import { computeLabelCallback, translateEntityState } from "./translations";
 import {
@@ -59,7 +59,6 @@ export class StatusCard extends LitElement {
     domain: "",
     deviceClass: undefined,
   };
-  @state() public _isMobile: boolean = false;
   @state() public selectedGroup: number | null = null;
 
   protected firstUpdated(_changedProperties: PropertyValues): void {
@@ -345,23 +344,131 @@ export class StatusCard extends LitElement {
     this.hiddenAreas = config.hidden_areas || [];
   }
 
+  /*
+  private _openDomainPopup(domain: string | number) {
+    openDomainPopup(this, domain);
+  }
+
+  */
+
+  // Helper zum Öffnen eines Dialogs über die HA-Dialog-API
+  private _showBrowserModPopup(
+    element: HTMLElement,
+    dialogTag: string,
+    dialogParams: any
+  ): void {
+    element.dispatchEvent(
+      new CustomEvent("show-dialog", {
+        detail: {
+          dialogTag,
+          dialogImport: () => customElements.whenDefined(dialogTag),
+          dialogParams,
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private _openDomainPopup(domain: string | number) {
+    // Titel bestimmen
+    let title = "Details";
+    if (typeof domain === "string") {
+      title = this.getCustomName(domain) || this.computeLabel({ name: domain });
+    } else if (typeof domain === "number" && this._config.content?.[domain]) {
+      title = this._config.content[domain];
+    }
+
+    // Entitäten bestimmen
+    let entities: HassEntity[] = [];
+    if (typeof domain === "number") {
+      const groupId = this._config.content?.[domain];
+      const ruleset = this._config.rulesets?.find(
+        (g: any) => g.group_id === groupId
+      );
+      entities = ruleset ? filterEntitiesByRuleset(this, ruleset) : [];
+    } else {
+      const deviceClass = this.selectedDeviceClass || undefined;
+      const showAll = this._shouldShowTotalEntities(domain, deviceClass);
+      entities = showAll
+        ? this._totalEntities(domain, deviceClass)
+        : this._isOn(domain, deviceClass);
+    }
+
+    const dialogTag = "popup-dialog";
+    this._showBrowserModPopup(this, dialogTag, {
+      title,
+      hass: this.hass,
+      entities,
+      selectedDomain: typeof domain === "string" ? domain : undefined,
+      selectedDeviceClass: this.selectedDeviceClass || undefined,
+      selectedGroup: this.selectedGroup || undefined,
+      card: this,
+      content: entities.length ? undefined : `Keine Entitäten`,
+    });
+  }
+
   protected updated(changedProps: PropertyValues): void {
     super.updated(changedProps);
 
-    if (!this._config || !this.hass) {
-      return;
-    }
-
-    const dialog = this.renderRoot?.querySelector("ha-dialog");
-    const container = document.querySelector("home-assistant")?.shadowRoot;
-
-    if (dialog && dialog.parentElement !== container) {
-      container?.appendChild(dialog);
-    }
+    if (!this._config || !this.hass) return;
 
     const oldHass = changedProps.get("hass") as HomeAssistant | undefined;
     const oldConfig = changedProps.get("_config") as CardConfig | undefined;
 
+    // Fire entity-states-updated if states changed
+    if (
+      changedProps.has("hass") &&
+      oldHass &&
+      oldHass.states !== this.hass.states
+    ) {
+      this.dispatchEvent(
+        new CustomEvent("entity-states-updated", {
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+
+    // Popup(s) mit aktueller hass-Instanz versorgen
+    if (changedProps.has("hass")) {
+      const popups = document.querySelectorAll(
+        "popup-dialog"
+      ) as NodeListOf<any>;
+      popups.forEach((p) => {
+        try {
+          p.hass = this.hass;
+        } catch (_) {
+          /* ignore */
+        }
+      });
+    }
+
+    if (changedProps.has("selectedDomain") && this.selectedDomain) {
+      const domain = this.selectedDomain;
+      if (domain.includes(".")) {
+        const entityId = domain;
+        const stateObj = this.hass.states[entityId];
+        if (stateObj) {
+          this.showMoreInfo(stateObj);
+        }
+      } else {
+        this._openDomainPopup(domain);
+      }
+      setTimeout(() => {
+        this.selectedDomain = null;
+      }, 0);
+    }
+
+    if (changedProps.has("selectedGroup") && this.selectedGroup !== null) {
+      const group = this.selectedGroup;
+      this._openDomainPopup(group);
+      setTimeout(() => {
+        this.selectedGroup = null;
+      }, 0);
+    }
+
+    // Themes anwenden
     if (
       (changedProps.has("hass") &&
         (!oldHass || oldHass.themes !== this.hass.themes)) ||
@@ -370,21 +477,6 @@ export class StatusCard extends LitElement {
     ) {
       applyThemesOnElement(this, this.hass.themes, this._config.theme);
     }
-  }
-
-  connectedCallback(): void {
-    super.connectedCallback();
-    this._updateIsMobile();
-    window.addEventListener("resize", this._updateIsMobile.bind(this));
-  }
-
-  disconnectedCallback(): void {
-    window.removeEventListener("resize", this._updateIsMobile.bind(this));
-    super.disconnectedCallback();
-  }
-
-  private _updateIsMobile(): void {
-    this._isMobile = window.innerWidth <= 768;
   }
 
   public computeLabel = memoizeOne(
@@ -1316,6 +1408,7 @@ export class StatusCard extends LitElement {
         return this.renderDeviceClassTab(item);
     }
   }
+  /*
 
   protected render() {
     const extra = this.getExtraItems();
@@ -1353,6 +1446,46 @@ export class StatusCard extends LitElement {
           ${this.selectedDomain !== null || this.selectedGroup !== null
             ? renderPopup(this)
             : ""}
+        </sl-tab-group>
+      </ha-card>
+    `;
+  }
+
+  */
+
+  protected render() {
+    const extra = this.getExtraItems();
+    const group = this.getGroupItems();
+    const domain = this.getDomainItems();
+    const deviceClass = this.getDeviceClassItems();
+    const sorted = this._computeSortedEntities(
+      extra,
+      group,
+      domain,
+      deviceClass
+    );
+    const noScroll = {
+      "no-scroll": !!this._config.no_scroll,
+    };
+
+    return html`
+      <ha-card>
+        <sl-tab-group no-scroll-controls class=${classMap(noScroll)}>
+          ${this.renderPersonEntities()}
+          ${repeat(
+            sorted,
+            (i) =>
+              i.type === "extra"
+                ? i.panel
+                : i.type === "domain"
+                ? i.domain
+                : i.type === "deviceClass"
+                ? `${i.domain}-${i.deviceClass}`
+                : i.type === "group"
+                ? `group-${i.group_id}`
+                : "",
+            (i) => this.renderTab(i)
+          )}
         </sl-tab-group>
       </ha-card>
     `;
@@ -1417,7 +1550,7 @@ export class StatusCard extends LitElement {
       .entity.horizontal .entity-info,
       .extra-entity.horizontal .entity-info {
         text-align: left;
-        margin-top: 7px;
+        margin-top: 3px;
         padding-left: 8px;
       }
       .entity-info {
@@ -1439,6 +1572,7 @@ export class StatusCard extends LitElement {
       }
       sl-tab::part(base) {
         padding: 0 8px !important;
+        display: flex;
       }
       sl-tab-group::part(tabs) {
         border-bottom: none !important;

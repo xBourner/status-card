@@ -187,6 +187,8 @@ export function computeLabelCallback(
       return hass!.localize(
         `ui.panel.lovelace.editor.card.generic.${schema.name}`
       );
+    case "popup_card":
+      return "Change Popup Card Type";
     case "group_id":
       return (
         hass!.localize("component.group.entity_component._.name") +
@@ -229,7 +231,18 @@ export function computeLabelCallback(
         " " +
         hass!.localize("ui.panel.lovelace.editor.card.generic.content")
       );
-
+    case "popup":
+      return "Popup";
+    case "ungroup_areas":
+      return (
+        hass!.localize("ui.common.disable") +
+        " " +
+        hass!.localize("ui.panel.lovelace.editor.card.area.name") +
+        " " +
+        hass!.localize("component.group.entity_component._.name")
+      );
+    case "popup_sort":
+      return "Popup Sort";
     default:
       if (ALLOWED_DOMAINS.includes(schema.name)) {
         return (

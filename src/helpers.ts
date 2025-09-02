@@ -8,6 +8,16 @@ import {
   DirectiveParameters,
 } from "lit/directive.js";
 import type { HassEntity } from "home-assistant-js-websocket";
+import "custom-card-helpers";
+
+declare module "custom-card-helpers" {
+  interface HomeAssistant {
+    // die zusätzlichen Properties
+    entities: { [id: string]: EntityRegistryEntry };
+    devices: { [id: string]: DeviceRegistryEntry };
+    areas: { [id: string]: AreaRegistryEntry };
+  }
+}
 
 export interface CustomizationConfig {
   type: string;
@@ -26,6 +36,11 @@ export interface CustomizationConfig {
   show_total_entities?: boolean;
   show_total_number?: boolean;
   show_entity_picture?: boolean;
+  // Popup-specific overrides
+  popup_card_type?: string;
+  // Free-form options merged into the card config for the popup card
+  popup_card_options?: any;
+  card?: any;
 }
 
 export interface CardConfig {
@@ -62,6 +77,7 @@ export interface CardConfig {
   rulesets?: any;
   content_layout?: "horizontal" | "vertical";
   no_scroll?: boolean;
+  card?: any;
 }
 
 export interface EntityRegistryEntry {
@@ -69,6 +85,7 @@ export interface EntityRegistryEntry {
   device_id?: string;
   area_id?: string;
   hidden_by?: string;
+  hidden?: boolean;
   disabled_by?: string;
   labels?: string[];
   entity_category?: string;
@@ -131,7 +148,9 @@ export interface SmartGroupItem {
 
 export type AnyItem = DomainItem | DeviceClassItem | ExtraItem | GroupItem;
 
-export type UiAction = Exclude<ActionConfig["action"], "fire-dom-event">;
+export type UiAction =
+  | Exclude<ActionConfig["action"], "fire-dom-event">
+  | "perform-action";
 
 export type EntityFilter = (
   entity: HassEntity,

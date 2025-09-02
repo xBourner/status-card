@@ -29,6 +29,7 @@ import "./item-editor";
 @customElement("status-card-editor")
 export class StatusCardEditor extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
+  @property({ attribute: false }) public lovelace?: any;
   @property({ type: Object }) public _config!: CardConfig;
   @state() private _subElementEditorDomain: SubElementConfig | undefined =
     undefined;
@@ -281,6 +282,8 @@ export class StatusCardEditor extends LitElement {
       const floor = this.computeLabel({ name: "floor" });
       const label = this.computeLabel({ name: "label" });
       const entity = this.computeLabel({ name: "entity" });
+      const name = this.computeLabel({ name: "name" });
+      const state = this.computeLabel({ name: "state" });
 
       const allEntities = this.getAllEntities();
 
@@ -305,7 +308,7 @@ export class StatusCardEditor extends LitElement {
               type: "grid",
               schema: [
                 { name: "hide_person", selector: { boolean: {} } },
-                { name: "list_mode", selector: { boolean: {} } },
+
                 { name: "hide_content_name", selector: { boolean: {} } },
                 {
                   name: "show_total_number",
@@ -319,6 +322,10 @@ export class StatusCardEditor extends LitElement {
                   name: "show_total_entities",
                   selector: { boolean: {} },
                 },
+                {
+                  name: "no_scroll",
+                  selector: { boolean: {} },
+                },
               ],
             },
             {
@@ -326,17 +333,9 @@ export class StatusCardEditor extends LitElement {
               type: "grid",
               schema: [
                 { name: "theme", required: false, selector: { theme: {} } },
-                {
-                  name: "columns",
-                  required: false,
-                  selector: { number: { min: 1, max: 4, mode: "box" } },
-                },
               ],
             },
-            {
-              name: "no_scroll",
-              selector: { boolean: {} },
-            },
+
             {
               name: "content_layout",
               required: true,
@@ -481,9 +480,79 @@ export class StatusCardEditor extends LitElement {
               : []),
           ],
         },
+        {
+          name: "popup",
+          flatten: true,
+          type: "expandable",
+          icon: "mdi:arrange-bring-forward",
+          schema: [
+            {
+              name: "ungroup_areas",
+              selector: { boolean: {} },
+            },
+            {
+              name: "popup_sort",
+              selector: {
+                select: {
+                  options: [
+                    { value: "name", label: name },
+                    { value: "state", label: state },
+                  ],
+                },
+              },
+            },
+            { name: "list_mode", selector: { boolean: {} } },
+            {
+              name: "columns",
+              required: false,
+              selector: { number: { min: 1, max: 4, mode: "box" } },
+            },
+          ],
+        },
       ];
     }
   );
+
+  private getGroupSchema(group: SmartGroupItem) {
+    return [
+      {
+        name: "group_id",
+        selector: { text: {} },
+      },
+      {
+        name: "group_icon",
+        selector: { icon: {} },
+      },
+      {
+        name: "group_status",
+        selector: { text: {} },
+      },
+      ...group.rules.map((rule, idx) => {
+        const usedKeys = group.rules
+          .map((r, i) => (i !== idx ? r.key : null))
+          .filter((k) => k);
+
+        const availableOptions = this.ruleKeySelector.options.filter(
+          ([key]) => !usedKeys.includes(key) || key === rule.key
+        );
+
+        return {
+          type: "grid",
+          schema: [
+            {
+              type: "select",
+              name: `key_${idx}`,
+              options: availableOptions,
+            },
+            {
+              name: `value_${idx}`,
+              selector: this.filterValueSelector[rule.key] ?? { text: {} },
+            },
+          ],
+        };
+      }),
+    ];
+  }
 
   private _toggleschema = memoizeOne((toggleDomains: SelectOption[]) => {
     return [
@@ -580,10 +649,10 @@ export class StatusCardEditor extends LitElement {
     if (label && label.length > 0) {
       entities = entities.filter(
         (e) =>
-          (e.labels && e.labels.some((l) => label.includes(l))) ||
+          e.labels?.some((l) => label.includes(l)) ||
           (e.device_id &&
-            this.hass!.devices[e.device_id]?.labels &&
-            this.hass!.devices[e.device_id]?.labels.some((l) =>
+            Array.isArray(this.hass!.devices[e.device_id]?.labels) &&
+            this.hass!.devices[e.device_id]!.labels!.some((l) =>
               label.includes(l)
             ))
       );
@@ -595,7 +664,7 @@ export class StatusCardEditor extends LitElement {
         .filter((d) => d !== "binary_sensor" && d !== "cover" && d !== "switch")
     );
 
-   const deviceClassDomainPairs = new Set<string>();
+    const deviceClassDomainPairs = new Set<string>();
     entities
       .filter((e) =>
         ["binary_sensor", "cover", "switch"].includes(
@@ -837,6 +906,7 @@ export class StatusCardEditor extends LitElement {
       </div>
       <status-item-editor
         .hass=${this.hass}
+        .lovelace=${this.lovelace}
         .config=${this._config?.customization?.[editor?.index ?? 0] ?? {}}
         .getSchema=${editorKey}
         .index=${editor?.index ?? 0}
@@ -1006,47 +1076,6 @@ export class StatusCardEditor extends LitElement {
     integration: { config_entry: {} },
     label: { label: {} },
   };
-
-  private getGroupSchema(group: SmartGroupItem) {
-    return [
-      {
-        name: "group_id",
-        selector: { text: {} },
-      },
-      {
-        name: "group_icon",
-        selector: { icon: {} },
-      },
-      {
-        name: "group_status",
-        selector: { text: {} },
-      },
-      ...group.rules.map((rule, idx) => {
-        const usedKeys = group.rules
-          .map((r, i) => (i !== idx ? r.key : null))
-          .filter((k) => k);
-
-        const availableOptions = this.ruleKeySelector.options.filter(
-          ([key]) => !usedKeys.includes(key) || key === rule.key
-        );
-
-        return {
-          type: "grid",
-          schema: [
-            {
-              type: "select",
-              name: `key_${idx}`,
-              options: availableOptions,
-            },
-            {
-              name: `value_${idx}`,
-              selector: this.filterValueSelector[rule.key] ?? { text: {} },
-            },
-          ],
-        };
-      }),
-    ];
-  }
 
   private _groupFormData(group: SmartGroupItem) {
     const data: Record<string, any> = {
