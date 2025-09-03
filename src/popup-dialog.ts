@@ -1,7 +1,3 @@
-// popup-dialog.ts
-
-// mobile css prüfen
-
 import { LitElement, html, css, PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 import { LovelaceCard, HomeAssistant } from "custom-card-helpers";
@@ -17,7 +13,19 @@ import { computeLabelCallback, translateEntityState } from "./translations";
 import memoizeOne from "memoize-one";
 import { _formatDomain } from "./helpers";
 import { filterEntitiesByRuleset } from "./smart_groups";
-import { AreaRegistryEntry } from "./helpers"; // Assuming helpers contains this import
+import { AreaRegistryEntry } from "./helpers";
+
+const OFF_STATES = new Set([
+  "off",
+  "idle",
+  "not_home",
+  "closed",
+  "locked",
+  "standby",
+  "disarmed",
+  "unknown",
+  "unavailable",
+]);
 
 export class PopupDialog extends LitElement {
   @property({ type: Boolean }) public open = false;
@@ -40,15 +48,11 @@ export class PopupDialog extends LitElement {
     _shouldShowTotalEntities?: (...args: any[]) => boolean;
     list_mode?: boolean;
   };
-  @state() public _confirmParams: { domain: string; deviceClass?: string } = {
-    domain: "",
-    deviceClass: undefined,
-  };
   @state() public _showAll = false;
-  @state() public _confirmOpen = false;
   @state() public selectedGroup?: number;
+  private _cardEls: Map<string, HTMLElement> = new Map();
+  private _lastEntityIds: string[] = [];
 
-  // HA Dialog API: wird von show-dialog aufgerufen
   public showDialog(params: {
     title?: string;
     hass: HomeAssistant;
@@ -67,12 +71,14 @@ export class PopupDialog extends LitElement {
     this.selectedDeviceClass = params.selectedDeviceClass;
     this.selectedGroup = params.selectedGroup;
     this.card = params.card as LovelaceCard & { areas?: AreaRegistryEntry[] };
+    this._cardEls.clear();
     this.open = true;
     this.requestUpdate();
   }
 
   private _onClosed = (_ev: Event) => {
     this.open = false;
+    this._cardEls.clear();
     this.dispatchEvent(
       new CustomEvent("dialog-closed", {
         bubbles: true,
@@ -89,11 +95,11 @@ export class PopupDialog extends LitElement {
     );
   };
 
-  // Ersetze die bisherige Cache-/Build-Logik (_cardCache, _cacheKeyForConfig, _buildCardElement)
-  // und die alte createCard() Methode durch die folgenden, schlankeren Varianten
-  // innerhalb der PopupDialog-Klasse:
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._cardEls.clear();
+  }
 
-  // Minimaler Fallback: immer auf eine Tile-Card zurückfallen
   private _toTileConfig(cardConfig: {
     type: string;
     entity?: string;
@@ -105,27 +111,21 @@ export class PopupDialog extends LitElement {
     };
   }
 
-  // Baut das Card-Element. Bei jedem Fehler wird auf Tile-Card gefallbackt.
   private async _createCardElement(
     hass: HomeAssistant,
     cardConfig: { type: string; entity?: string; [key: string]: any },
     isFallback = false
   ): Promise<LovelaceCard | HTMLElement> {
-    // 1) Bevorzugt: Offizielle Card Helpers
     try {
       const helpers = await (window as any)?.loadCardHelpers?.();
       if (helpers?.createCardElement) {
         const el = helpers.createCardElement(cardConfig) as LovelaceCard;
-        // createCardElement bekommt bereits das config-Objekt; setConfig hier NICHT erneut aufrufen
         (el as any).hass = hass;
         (el as any).setAttribute?.("data-hui-card", "");
         return el;
       }
-    } catch {
-      // Ignorieren, wir versuchen den manuellen Weg
-    }
+    } catch {}
 
-    // 2) Fallback: Manuelle Erstellung
     try {
       const type = cardConfig.type || "tile";
       const isCustom = typeof type === "string" && type.startsWith("custom:");
@@ -137,7 +137,6 @@ export class PopupDialog extends LitElement {
 
       const el = document.createElement(tag) as LovelaceCard;
 
-      // setConfig nur beim manuellen Weg aufrufen
       if (typeof el.setConfig === "function") {
         el.setConfig(cardConfig);
       }
@@ -146,7 +145,6 @@ export class PopupDialog extends LitElement {
       (el as any).setAttribute?.("data-hui-card", "");
       return el;
     } catch {
-      // 3) Letzter Versuch: stiller Fallback auf Tile
       if (!isFallback) {
         return this._createCardElement(
           hass,
@@ -154,43 +152,20 @@ export class PopupDialog extends LitElement {
           true
         );
       }
-      // Als absoluter Notnagel ein leerer Container (sollte aber mit Tile nie nötig sein)
       const empty = document.createElement("div");
       empty.setAttribute("data-hui-card", "");
       return empty;
     }
   }
 
-  // Schlanke createCard: liefert sofort einen Placeholder und ersetzt ihn asynchron
-  private createCard(
-    hass: HomeAssistant,
-    cardConfig: { type: string; entity?: string; [key: string]: any }
-  ) {
-    const placeholder = document.createElement("div");
-    placeholder.classList.add("card-placeholder");
-    placeholder.setAttribute("data-hui-card", "");
-
-    this._createCardElement(hass, cardConfig).then((el) => {
-      try {
-        placeholder.replaceWith(el);
-      } catch {
-        // stiller Fehler: kein error-card, kein Throw
-      }
-    });
-
-    return placeholder;
-  }
-  // Build the popup card config for an entity, allowing per-domain/device class overrides
   private _getPopupCardConfig(entity: HassEntity) {
     const card: any = this.card;
     const domainFromEntity = entity.entity_id.split(".")[0];
 
-    // Prefer the selected domain/deviceClass of this dialog; fallback to the entity's attributes
     const domain = this.selectedDomain || domainFromEntity;
     const deviceClass = this.selectedDomain
       ? this.selectedDeviceClass
-      : (this.hass?.states?.[entity.entity_id]?.attributes as any)
-          ?.device_class;
+      : (this.hass?.states?.[entity.entity_id]?.attributes as any)?.device_class;
 
     const key = deviceClass
       ? `${_formatDomain(domain)} - ${deviceClass}`
@@ -208,7 +183,6 @@ export class PopupDialog extends LitElement {
       customization?.popup_card_type ||
       "tile";
 
-    // Only apply DOMAIN_FEATURES when using the tile card; other core cards may not support these props
     const baseOptions =
       resolvedType === "tile"
         ? (this.DOMAIN_FEATURES as any)[domainFromEntity] ?? {}
@@ -222,7 +196,6 @@ export class PopupDialog extends LitElement {
       overrideOptions = customization?.popup_card_options ?? {};
     }
 
-    // Ensure entity and type are set correctly, then merge: baseOptions first, then user overrides
     const finalConfig = {
       type: resolvedType,
       entity: entity.entity_id,
@@ -233,21 +206,91 @@ export class PopupDialog extends LitElement {
     return finalConfig;
   }
 
-  protected updated(changedProps: PropertyValues) {
-    super.updated(changedProps);
-    if (changedProps.has("hass") && this.hass) {
-      // Aktuelle hass-Instanz an alle erzeugten Lovelace-Karten weiterreichen
-      const cards = this.renderRoot.querySelectorAll(
-        "[data-hui-card]"
-      ) as NodeListOf<any>;
-      cards.forEach((el) => {
-        try {
-          el.hass = this.hass;
-        } catch (_) {
-          /* ignore */
-        }
-      });
+  protected shouldUpdate(changedProps: PropertyValues): boolean {
+    if (!this.open) {
+      return changedProps.has("open");
     }
+    if (changedProps.size === 1 && changedProps.has("hass")) {
+      const currentIds = this._getCurrentEntities()
+        .map((e) => e.entity_id)
+        .sort();
+      const lastIds = (this._lastEntityIds || []).slice().sort();
+      const same =
+        currentIds.length === lastIds.length &&
+        currentIds.every((id, i) => id === lastIds[i]);
+      this._updateCardsHass();
+      return !same;
+    }
+    return true;
+  }
+
+  private _updateCardsHass(): void {
+    if (!this.hass) return;
+    this._cardEls.forEach((el) => {
+      try {
+        (el as any).hass = this.hass;
+      } catch (_) {}
+    });
+  }
+
+  private _getOrCreateCard(entity: HassEntity): HTMLElement {
+    const id = entity.entity_id;
+    const existing = this._cardEls.get(id);
+    if (existing) {
+      try {
+        (existing as any).hass = this.hass;
+      } catch (_) {}
+      return existing;
+    }
+    const placeholder = document.createElement("div");
+    placeholder.classList.add("card-placeholder");
+    placeholder.setAttribute("data-hui-card", "");
+    this._cardEls.set(id, placeholder);
+
+    const cfg = this._getPopupCardConfig(entity);
+    this._createCardElement(this.hass!, cfg).then((el) => {
+      try {
+        const current = this._cardEls.get(id);
+        if (current === placeholder) {
+          placeholder.replaceWith(el as any);
+          this._cardEls.set(id, el as any);
+        }
+        (el as any).hass = this.hass;
+      } catch (_) {}
+    });
+    return placeholder;
+  }
+
+  private _getCurrentEntities(): HassEntity[] {
+    const card = this.card as any;
+    const domain = this.selectedDomain!;
+    const deviceClass = this.selectedDeviceClass;
+    const group = this.selectedGroup;
+
+    let ents: HassEntity[] = [];
+
+    if (group !== undefined && card._config?.content?.[group]) {
+      const groupId = card._config.content[group];
+      const ruleset = card._config.rulesets?.find(
+        (g: any) => g.group_id === groupId
+      );
+      ents = ruleset ? filterEntitiesByRuleset(card, ruleset) : [];
+    } else {
+      if (domain) {
+        const shouldShowTotal =
+          typeof card?._shouldShowTotalEntities === "function"
+            ? card._shouldShowTotalEntities(domain, deviceClass)
+            : false;
+        const showAllEntities = shouldShowTotal ? true : this._showAll;
+
+        ents = showAllEntities
+          ? card._totalEntities(domain, deviceClass)
+          : card._isOn(domain, deviceClass);
+      } else {
+        ents = Array.isArray(this.entities) ? this.entities : [];
+      }
+    }
+    return ents;
   }
 
   private toggleAllOrOn(): void {
@@ -319,17 +362,6 @@ export class PopupDialog extends LitElement {
   }
 
   private _isActive(e: HassEntity): boolean {
-    const OFF_STATES = new Set([
-      "off",
-      "idle",
-      "not_home",
-      "closed",
-      "locked",
-      "standby",
-      "disarmed",
-      "unknown",
-      "unavailable",
-    ]);
     return !OFF_STATES.has(e.state);
   }
 
@@ -356,7 +388,6 @@ export class PopupDialog extends LitElement {
           .localeCompare(this._getEntityName(b).toLowerCase());
       });
     }
-    // default: by name
     return arr.sort((a, b) =>
       this._getEntityName(a)
         .toLowerCase()
@@ -382,18 +413,12 @@ export class PopupDialog extends LitElement {
 
       const sortedGroups = Array.from(groups.entries()).sort(
         ([areaIdA], [areaIdB]) => {
-          const areaObjA = areas?.find((a) => a.area_id === areaIdA);
-          const areaObjB = areas?.find((a) => a.area_id === areaIdB);
-          const nameA = areaObjA
-            ? areaObjA.name.toLowerCase()
-            : areaIdA === "unassigned"
-            ? "unassigned"
-            : areaIdA;
-          const nameB = areaObjB
-            ? areaObjB.name.toLowerCase()
-            : areaIdB === "unassigned"
-            ? "unassigned"
-            : areaIdB;
+          const nameA =
+            areaMap.get(areaIdA)?.toLowerCase() ??
+            (areaIdA === "unassigned" ? "unassigned" : areaIdA);
+          const nameB =
+            areaMap.get(areaIdB)?.toLowerCase() ??
+            (areaIdB === "unassigned" ? "unassigned" : areaIdB);
           return nameA.localeCompare(nameB);
         }
       );
@@ -431,19 +456,22 @@ export class PopupDialog extends LitElement {
       );
       ents = ruleset ? filterEntitiesByRuleset(card, ruleset) : [];
     } else {
-      // Use dialog's selected domain/deviceClass so updates in the parent card don't clear our state
       if (domain) {
         ents = showAllEntities
           ? card._totalEntities(domain, deviceClass)
           : card._isOn(domain, deviceClass);
       } else {
-        // Fallback if no domain/deviceClass was provided
         ents = Array.isArray(this.entities) ? this.entities : [];
       }
       isNoGroup = true;
     }
 
     const flatSorted = this.sortEntitiesForPopup(ents);
+    const currentIdsSet = new Set(ents.map((e) => e.entity_id));
+    Array.from(this._cardEls.keys()).forEach((key) => {
+      if (!currentIdsSet.has(key)) this._cardEls.delete(key);
+    });
+    this._lastEntityIds = ents.map((e) => e.entity_id);
 
     const sortedGroups = this.groupAndSortEntities(
       ents,
@@ -617,10 +645,7 @@ export class PopupDialog extends LitElement {
                       ${groupEntities.map(
                         (entity) => html`
                           <div class="entity-card">
-                            ${this.createCard(
-                              this.hass!,
-                              this._getPopupCardConfig(entity)
-                            )}
+                            ${this._getOrCreateCard(entity)}
                           </div>
                         `
                       )}
@@ -632,10 +657,7 @@ export class PopupDialog extends LitElement {
                 <div class="entity-cards">
                   ${flatSorted.map(
                     (entity) => html` <div class="entity-card">
-                      ${this.createCard(
-                        this.hass!,
-                        this._getPopupCardConfig(entity)
-                      )}
+                      ${this._getOrCreateCard(entity)}
                     </div>`
                   )}
                 </div>
@@ -782,6 +804,10 @@ export class PopupDialog extends LitElement {
     remote: {
       state_content: ["state", "last_changed"],
     },
+    valve: {
+      state_content: ["state", "last_changed"],
+      features: [{ type: "valve-open-close" }],
+    },
   };
 
   static styles = css`
@@ -792,7 +818,6 @@ export class PopupDialog extends LitElement {
       display: none;
     }
 
-    /* Desktop styles */
     ha-dialog {
       --dialog-content-padding: 12px;
       --mdc-dialog-min-width: calc((var(--columns, 4) * 22.5vw) + 3vw);
@@ -857,7 +882,6 @@ export class PopupDialog extends LitElement {
       box-sizing: border-box;
     }
 
-    /* Tablet */
     @media (max-width: 1200px) {
       ha-dialog {
         --mdc-dialog-min-width: 96vw;
@@ -875,7 +899,6 @@ export class PopupDialog extends LitElement {
       }
     }
 
-    /* Mobile */
     @media (max-width: 700px) {
       ha-dialog {
         --dialog-content-padding: 8px;
@@ -906,7 +929,6 @@ export class PopupDialog extends LitElement {
 
 customElements.define("popup-dialog", PopupDialog);
 
-// popup-dialog-confirmation: separates the confirmation into its own dialog component
 class PopupDialogConfirmation extends LitElement {
   @property({ type: Boolean }) public open = false;
   @property({ attribute: false }) public hass?: HomeAssistant;
@@ -938,9 +960,7 @@ class PopupDialogConfirmation extends LitElement {
   private _confirm = () => {
     try {
       this.card?.toggleDomain?.(this.selectedDomain, this.selectedDeviceClass);
-    } catch (_) {
-      /* ignore */
-    }
+    } catch (_) {}
     this._onClosed();
   };
 

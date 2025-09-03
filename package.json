@@ -1,6 +1,6 @@
 {
   "name": "status-card",
-  "version": "b2.13.0",
+  "version": "b2.13.2",
   "devDependencies": {
     "typescript": "^4.0.0",
     "vite": "^6.3.5"

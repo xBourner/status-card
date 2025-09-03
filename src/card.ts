@@ -5,7 +5,7 @@ import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
 import memoizeOne from "memoize-one";
 import type { HassEntity } from "home-assistant-js-websocket";
-import "./popup-dialog"; // registriert popup-dialog für show-dialog
+import "./popup-dialog";
 import { domainIcon, ALLOWED_DOMAINS, DataStore } from "./properties";
 import { computeLabelCallback, translateEntityState } from "./translations";
 import {
@@ -344,14 +344,6 @@ export class StatusCard extends LitElement {
     this.hiddenAreas = config.hidden_areas || [];
   }
 
-  /*
-  private _openDomainPopup(domain: string | number) {
-    openDomainPopup(this, domain);
-  }
-
-  */
-
-  // Helper zum Öffnen eines Dialogs über die HA-Dialog-API
   private _showPopup(
     element: HTMLElement,
     dialogTag: string,
@@ -371,7 +363,6 @@ export class StatusCard extends LitElement {
   }
 
   private _openDomainPopup(domain: string | number) {
-    // Titel bestimmen
     let title = "Details";
     if (typeof domain === "string") {
       title = this.getCustomName(domain) || this.computeLabel({ name: domain });
@@ -379,7 +370,6 @@ export class StatusCard extends LitElement {
       title = this._config.content[domain];
     }
 
-    // Entitäten bestimmen
     let entities: HassEntity[] = [];
     if (typeof domain === "number") {
       const groupId = this._config.content?.[domain];
@@ -416,34 +406,6 @@ export class StatusCard extends LitElement {
     const oldHass = changedProps.get("hass") as HomeAssistant | undefined;
     const oldConfig = changedProps.get("_config") as CardConfig | undefined;
 
-    // Fire entity-states-updated if states changed
-    if (
-      changedProps.has("hass") &&
-      oldHass &&
-      oldHass.states !== this.hass.states
-    ) {
-      this.dispatchEvent(
-        new CustomEvent("entity-states-updated", {
-          bubbles: true,
-          composed: true,
-        })
-      );
-    }
-
-    // Popup(s) mit aktueller hass-Instanz versorgen
-    if (changedProps.has("hass")) {
-      const popups = document.querySelectorAll(
-        "popup-dialog"
-      ) as NodeListOf<any>;
-      popups.forEach((p) => {
-        try {
-          p.hass = this.hass;
-        } catch (_) {
-          /* ignore */
-        }
-      });
-    }
-
     if (changedProps.has("selectedDomain") && this.selectedDomain) {
       const domain = this.selectedDomain;
       if (domain.includes(".")) {
@@ -468,7 +430,6 @@ export class StatusCard extends LitElement {
       }, 0);
     }
 
-    // Themes anwenden
     if (
       (changedProps.has("hass") &&
         (!oldHass || oldHass.themes !== this.hass.themes)) ||
@@ -885,7 +846,7 @@ export class StatusCard extends LitElement {
               !entity.hidden_by &&
               !entity.disabled_by
           )
-          .reverse() // Reverse to show the most recent first
+          .reverse()
           .map((entry) => (this.hass as HomeAssistant).states[entry.entity_id])
           .filter((stateObj): stateObj is HassEntity => !!stateObj)
       : [];
@@ -1408,50 +1369,6 @@ export class StatusCard extends LitElement {
         return this.renderDeviceClassTab(item);
     }
   }
-  /*
-
-  protected render() {
-    const extra = this.getExtraItems();
-    const group = this.getGroupItems();
-    const domain = this.getDomainItems();
-    const deviceClass = this.getDeviceClassItems();
-    const sorted = this._computeSortedEntities(
-      extra,
-      group,
-      domain,
-      deviceClass
-    );
-    const noScroll = {
-      "no-scroll": !!this._config.no_scroll, // true, wenn tabs_wrap aktiviert ist
-    };
-
-    return html`
-      <ha-card>
-        <sl-tab-group no-scroll-controls class=${classMap(noScroll)}>
-          ${this.renderPersonEntities()}
-          ${repeat(
-            sorted,
-            (i) =>
-              i.type === "extra"
-                ? i.panel
-                : i.type === "domain"
-                ? i.domain
-                : i.type === "deviceClass"
-                ? `${i.domain}-${i.deviceClass}`
-                : i.type === "group"
-                ? `group-${i.group_id}`
-                : "",
-            (i) => this.renderTab(i)
-          )}
-          ${this.selectedDomain !== null || this.selectedGroup !== null
-            ? renderPopup(this)
-            : ""}
-        </sl-tab-group>
-      </ha-card>
-    `;
-  }
-
-  */
 
   protected render() {
     const extra = this.getExtraItems();
