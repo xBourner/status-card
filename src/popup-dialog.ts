@@ -89,23 +89,97 @@ export class PopupDialog extends LitElement {
     );
   };
 
-  private createCard(
-    hass: HomeAssistant,
-    cardConfig: { type: string; entity: string; [key: string]: any }
-  ) {
-    const type = cardConfig.type || "tile";
-    const tag = type.startsWith("custom:") ? type.slice(7) : `hui-${type}-card`;
-    const cardElement = document.createElement(tag) as LovelaceCard;
-    if (cardElement) {
-      (cardElement as any).hass = hass;
-      cardElement.setConfig(cardConfig);
-      // Markiere, damit wir bei hass-Änderungen gezielt updaten können
-      (cardElement as any).setAttribute?.("data-hui-card", "");
-      return cardElement;
-    }
-    return html`<p>Invalid Configuration for card type: ${cardConfig.type}</p>`;
+  // Ersetze die bisherige Cache-/Build-Logik (_cardCache, _cacheKeyForConfig, _buildCardElement)
+  // und die alte createCard() Methode durch die folgenden, schlankeren Varianten
+  // innerhalb der PopupDialog-Klasse:
+
+  // Minimaler Fallback: immer auf eine Tile-Card zurückfallen
+  private _toTileConfig(cardConfig: {
+    type: string;
+    entity?: string;
+    [k: string]: any;
+  }) {
+    return {
+      type: "tile",
+      entity: cardConfig.entity,
+    };
   }
 
+  // Baut das Card-Element. Bei jedem Fehler wird auf Tile-Card gefallbackt.
+  private async _createCardElement(
+    hass: HomeAssistant,
+    cardConfig: { type: string; entity?: string; [key: string]: any },
+    isFallback = false
+  ): Promise<LovelaceCard | HTMLElement> {
+    // 1) Bevorzugt: Offizielle Card Helpers
+    try {
+      const helpers = await (window as any)?.loadCardHelpers?.();
+      if (helpers?.createCardElement) {
+        const el = helpers.createCardElement(cardConfig) as LovelaceCard;
+        // createCardElement bekommt bereits das config-Objekt; setConfig hier NICHT erneut aufrufen
+        (el as any).hass = hass;
+        (el as any).setAttribute?.("data-hui-card", "");
+        return el;
+      }
+    } catch {
+      // Ignorieren, wir versuchen den manuellen Weg
+    }
+
+    // 2) Fallback: Manuelle Erstellung
+    try {
+      const type = cardConfig.type || "tile";
+      const isCustom = typeof type === "string" && type.startsWith("custom:");
+      const tag = isCustom ? type.slice(7) : `hui-${type}-card`;
+
+      if (isCustom && !(customElements as any).get(tag)) {
+        await customElements.whenDefined(tag).catch(() => {});
+      }
+
+      const el = document.createElement(tag) as LovelaceCard;
+
+      // setConfig nur beim manuellen Weg aufrufen
+      if (typeof el.setConfig === "function") {
+        el.setConfig(cardConfig);
+      }
+
+      (el as any).hass = hass;
+      (el as any).setAttribute?.("data-hui-card", "");
+      return el;
+    } catch {
+      // 3) Letzter Versuch: stiller Fallback auf Tile
+      if (!isFallback) {
+        return this._createCardElement(
+          hass,
+          this._toTileConfig(cardConfig),
+          true
+        );
+      }
+      // Als absoluter Notnagel ein leerer Container (sollte aber mit Tile nie nötig sein)
+      const empty = document.createElement("div");
+      empty.setAttribute("data-hui-card", "");
+      return empty;
+    }
+  }
+
+  // Schlanke createCard: liefert sofort einen Placeholder und ersetzt ihn asynchron
+  private createCard(
+    hass: HomeAssistant,
+    cardConfig: { type: string; entity?: string; [key: string]: any }
+  ) {
+    const placeholder = document.createElement("div");
+    placeholder.classList.add("card-placeholder");
+    placeholder.setAttribute("data-hui-card", "");
+
+    this._createCardElement(hass, cardConfig).then((el) => {
+      try {
+        placeholder.replaceWith(el);
+      } catch {
+        // stiller Fehler: kein error-card, kein Throw
+      }
+    });
+
+    return placeholder;
+  }
   // Build the popup card config for an entity, allowing per-domain/device class overrides
   private _getPopupCardConfig(entity: HassEntity) {
     const card: any = this.card;

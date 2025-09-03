@@ -352,7 +352,7 @@ export class StatusCard extends LitElement {
   */
 
   // Helper zum Öffnen eines Dialogs über die HA-Dialog-API
-  private _showBrowserModPopup(
+  private _showPopup(
     element: HTMLElement,
     dialogTag: string,
     dialogParams: any
@@ -396,7 +396,7 @@ export class StatusCard extends LitElement {
     }
 
     const dialogTag = "popup-dialog";
-    this._showBrowserModPopup(this, dialogTag, {
+    this._showPopup(this, dialogTag, {
       title,
       hass: this.hass,
       entities,

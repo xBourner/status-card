@@ -1214,12 +1214,9 @@ export class StatusCardEditor extends LitElement {
             `
           )}
           <div class="add-group-row">
-            <ha-button
-              slot="trigger"
-              .label=${this.hass.localize("ui.common.add")}
-              raised
-              @click=${this._addRuleset}
-            ></ha-button>
+            <ha-button raised @click=${this._addRuleset}>
+              ${this.hass.localize("ui.common.add")}
+            </ha-button>
           </div>
         </div>
       </ha-expansion-panel>
