@@ -2,7 +2,7 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, computeDomain } from "custom-card-helpers";
 import { computeLabelCallback } from "./translations";
-import { ALLOWED_DOMAINS, sortOrder, DataStore } from "./properties";
+import { ALLOWED_DOMAINS, sortOrder, DataStore, domainIcon } from "./properties";
 import memoizeOne from "memoize-one";
 import {
   caseInsensitiveStringCompare,
@@ -22,6 +22,8 @@ import {
   mdiTextBoxEdit,
   mdiClose,
   mdiChevronLeft,
+  mdiEyeOff,
+  mdiEye,
 } from "@mdi/js";
 import "./items-editor";
 import "./item-editor";
@@ -432,55 +434,7 @@ export class StatusCardEditor extends LitElement {
               : []),
           ],
         },
-        {
-          name: "entities",
-          flatten: true,
-          type: "expandable",
-          icon: "mdi:invoice-text-edit",
-          schema: [
-            {
-              name: "extra_entities",
-              selector: { entity: { multiple: true } },
-            },
-            {
-              name: "",
-              type: "grid",
-              schema: [
                 {
-                  name: "hide_filter",
-                  selector: { select: { options: [entity, label, area] } },
-                },
-              ],
-            },
-            ...(HideFilter === entity
-              ? ([
-                  {
-                    name: "hidden_entities",
-                    selector: {
-                      entity: { multiple: true, include_entities: allEntities },
-                    },
-                  },
-                ] as const)
-              : []),
-            ...(HideFilter === label
-              ? ([
-                  {
-                    name: "hidden_labels",
-                    selector: { label: { multiple: true } },
-                  },
-                ] as const)
-              : []),
-            ...(HideFilter === area
-              ? ([
-                  {
-                    name: "hidden_areas",
-                    selector: { area: { multiple: true } },
-                  },
-                ] as const)
-              : []),
-          ],
-        },
-        {
           name: "popup",
           flatten: true,
           type: "expandable",
@@ -567,6 +521,44 @@ export class StatusCardEditor extends LitElement {
           },
         },
       },
+    ];
+  });
+
+  private _entitiesSchema = memoizeOne((HideFilter: string) => {
+    const area = this.computeLabel({ name: "area" });
+    const label = this.computeLabel({ name: "label" });
+    const entity = this.computeLabel({ name: "entity" });
+    return [
+      {
+        name: "extra_entities",
+        selector: { entity: { multiple: true } },
+      },
+      {
+        name: "",
+        type: "grid",
+        schema: [
+          {
+            name: "hide_filter",
+            selector: { select: { options: [entity, label, area] } },
+          },
+        ],
+      },
+      ...(HideFilter === label
+        ? ([
+            {
+              name: "hidden_labels",
+              selector: { label: { multiple: true } },
+            },
+          ] as const)
+        : []),
+      ...(HideFilter === area
+        ? ([
+            {
+              name: "hidden_areas",
+              selector: { area: { multiple: true } },
+            },
+          ] as const)
+        : []),
     ];
   });
 
@@ -1133,6 +1125,154 @@ export class StatusCardEditor extends LitElement {
     this._updateConfigFromRulesets();
   };
 
+  private _groupAllEntitiesByDomain(): Array<{ domain: string; entities: string[] }> {
+    // Visible entities from the card (already filtered by area/label/etc.)
+    const visible = DataStore.getEntitiesByDomain();
+    // Hidden entities that still match current filters (area/floor/label), except for the hidden flag
+    const hidden = this._hiddenEntitiesByDomain();
+    const states = this.hass?.states || {};
+
+    const domains = Array.from(
+      new Set([...Object.keys(visible), ...Object.keys(hidden)])
+    ).filter((d) => ALLOWED_DOMAINS.includes(d));
+
+    const sortByName = (a: string, b: string) => {
+      const an = (states[a]?.attributes?.friendly_name || a).toLowerCase();
+      const bn = (states[b]?.attributes?.friendly_name || b).toLowerCase();
+      return an.localeCompare(bn);
+    };
+
+    return domains
+      .sort((a, b) => a.localeCompare(b))
+      .map((domain) => {
+        const merged = new Set<string>([...(visible[domain] || []), ...(hidden[domain] || [])]);
+        return { domain, entities: Array.from(merged).sort(sortByName) };
+      });
+  }
+
+  private _domainLabel(domain: string): string {
+    return this.hass?.localize?.(`component.${domain}.entity_component._.name`) || domain;
+  }
+
+  private _isHiddenEntity(entity_id: string): boolean {
+    const list = this._config?.hidden_entities ?? [];
+    return Array.isArray(list) && list.includes(entity_id);
+  }
+
+
+  private _toggleEntityHidden = (entity_id: string) => {
+    const current = new Set(this._config?.hidden_entities ?? []);
+    if (current.has(entity_id)) current.delete(entity_id);
+    else current.add(entity_id);
+    const hidden_entities = Array.from(current);
+    this._config = { ...(this._config || ({} as any)), hidden_entities } as CardConfig;
+    fireEvent(this, "config-changed", { config: { ...this._config } });
+  };
+
+  private _getDeviceClassLabel(domain: string, deviceClass: string): string {
+    if (!deviceClass || deviceClass === "other") return this.hass.localize("ui.dialogs.helper_settings.generic.other") ?? "Other";
+    const key = `ui.dialogs.entity_registry.editor.device_classes.${domain}.${deviceClass}`;
+    return this.hass.localize(key) || deviceClass;
+  }
+
+  private _groupByDeviceClass(domain: string, entities: string[]): Array<{ deviceClass: string; label: string; entities: string[] }> {
+    const states = this.hass?.states || {};
+    const map: Record<string, string[]> = {};
+    for (const id of entities) {
+      const dc = (states[id]?.attributes?.device_class as string) || "";
+      if (!dc) continue;
+      if (!map[dc]) map[dc] = [];
+      map[dc].push(id);
+    }
+    const sortByName = (a: string, b: string) => {
+      const an = (states[a]?.attributes?.friendly_name || a).toLowerCase();
+      const bn = (states[b]?.attributes?.friendly_name || b).toLowerCase();
+      return an.localeCompare(bn);
+    };
+    const deviceClasses = Object.keys(map).sort((a, b) => a.localeCompare(b));
+    return deviceClasses.map((dc) => ({
+      deviceClass: dc,
+      label: this._getDeviceClassLabel(domain, dc),
+      entities: map[dc].slice().sort(sortByName),
+    }));
+  }
+
+  private _hiddenEntitiesByDomain(): Record<string, string[]> {
+    const res: Record<string, string[]> = {};
+    const hidden = Array.isArray(this._config?.hidden_entities)
+      ? (this._config!.hidden_entities as string[])
+      : [];
+    if (hidden.length === 0) return res;
+
+    const entitiesReg = (this.hass as any)?.entities || {};
+    const devices = (this.hass as any)?.devices || {};
+    const areasArrAll = this.hass?.areas ? Object.values(this.hass.areas) : [];
+
+    const areaFilter = this._config?.area;
+    const floorFilter = this._config?.floor;
+    const labelFilter = this._config?.label;
+
+    const areasSel = areaFilter
+      ? Array.isArray(areaFilter)
+        ? areaFilter
+        : [areaFilter]
+      : [];
+    const floorsSel = floorFilter
+      ? Array.isArray(floorFilter)
+        ? floorFilter
+        : [floorFilter]
+      : [];
+    const labelsSel = labelFilter
+      ? Array.isArray(labelFilter)
+        ? labelFilter
+        : [labelFilter]
+      : [];
+
+    for (const id of hidden) {
+      const domain = computeDomain(id);
+      if (!ALLOWED_DOMAINS.includes(domain)) continue;
+
+      const reg = (entitiesReg as any)[id];
+      const dev = reg?.device_id ? (devices as any)[reg.device_id] : undefined;
+
+      const hasAnyArea = reg?.area_id != null || dev?.area_id != null;
+      if (!hasAnyArea) continue;
+
+      if (labelsSel.length) {
+        const ok =
+          (Array.isArray(reg?.labels) && reg.labels.some((l: string) => labelsSel.includes(l))) ||
+          (Array.isArray(dev?.labels) && dev.labels.some((l: string) => labelsSel.includes(l)));
+        if (!ok) continue;
+      }
+
+      if (areasSel.length) {
+        const ok =
+          (reg?.area_id && areasSel.includes(reg.area_id)) ||
+          (dev?.area_id && areasSel.includes(dev.area_id));
+        if (!ok) continue;
+      }
+
+      if (floorsSel.length) {
+        const regAreaOk =
+          reg?.area_id &&
+          areasArrAll.some(
+            (a) => a.area_id === reg.area_id && a.floor_id && floorsSel.includes(a.floor_id as any)
+          );
+        const devAreaOk =
+          dev?.area_id &&
+          areasArrAll.some(
+            (a) => a.area_id === dev.area_id && a.floor_id && floorsSel.includes(a.floor_id as any)
+          );
+        if (!regAreaOk && !devAreaOk) continue;
+      }
+
+      if (!res[domain]) res[domain] = [];
+      res[domain].push(id);
+    }
+
+    return res;
+  }
+
   render() {
     if (!this.hass || !this._config) {
       return html`<div>Loading...</div>`;
@@ -1173,6 +1313,83 @@ export class StatusCardEditor extends LitElement {
         @value-changed=${this._valueChanged}
       ></ha-form>
 
+            <ha-expansion-panel outlined class="main">
+        <div slot="header" role="heading" aria-level="3">
+          <ha-svg-icon class="secondary" .path=${mdiTextBoxEdit}></ha-svg-icon>
+          ${this.hass.localize("ui.panel.lovelace.editor.card.entities.name") ?? "Entities"}
+        </div>
+        <div class="content">
+          <ha-form
+            .hass=${this.hass}
+            .data=${data}
+            .schema=${this._entitiesSchema(this._config?.hide_filter ?? "")}
+            .computeLabel=${this.computeLabel}
+            @value-changed=${this._valueChanged}
+          ></ha-form>
+
+          ${((this._config?.hide_filter ?? "") === this.computeLabel({ name: "entity" }))
+            ? html`
+          ${this._groupAllEntitiesByDomain().map(
+            (group) => html`
+              <ha-expansion-panel outlined class="domain-panel">
+                <div slot="header" class="domain-header">
+                  <ha-icon icon=${domainIcon(group.domain, "on")}></ha-icon>
+                  <span class="domain-title">${this._domainLabel(group.domain)}</span>
+                </div>
+                <div class="content">
+                  ${["binary_sensor", "cover"].includes(group.domain)
+                    ? this._groupByDeviceClass(group.domain, group.entities).map(
+                        (sub) => html`
+                          <ha-expansion-panel outlined class="domain-panel">
+                            <div slot="header" class="dc-header">
+                              <ha-icon icon=${domainIcon(group.domain, "on", sub.deviceClass)}></ha-icon>
+                              <span class="dc-title">${sub.label}</span>
+                            </div>
+                            <div class="content">
+                              ${sub.entities.map(
+                                (id) => html`
+                                  <div class="entity-row">
+                                    <span class="entity-name">
+                                      ${this.hass.states[id]?.attributes?.friendly_name || id}
+                                    </span>
+                                    <ha-icon-button
+                                      .path=${this._isHiddenEntity(id) ? mdiEye : mdiEyeOff}
+                                      .label=${this._isHiddenEntity(id)
+                                        ? (this.hass.localize("ui.common.show") ?? "Show")
+                                        : (this.hass.localize("ui.common.hide") ?? "Hide")}
+                                      @click=${() => this._toggleEntityHidden(id)}
+                                    ></ha-icon-button>
+                                  </div>
+                                `
+                              )}
+                            </div>
+                          </ha-expansion-panel>
+                        `
+                      )
+                    : group.entities.map(
+                        (id) => html`
+                          <div class="entity-row">
+                            <span class="entity-name">
+                              ${this.hass.states[id]?.attributes?.friendly_name || id}
+                            </span>
+                            <ha-icon-button
+                              .path=${this._isHiddenEntity(id) ? mdiEye : mdiEyeOff}
+                              .label=${this._isHiddenEntity(id)
+                                ? (this.hass.localize("ui.common.show") ?? "Show")
+                                : (this.hass.localize("ui.common.hide") ?? "Hide")}
+                              @click=${() => this._toggleEntityHidden(id)}
+                            ></ha-icon-button>
+                          </div>
+                        `
+                      )}
+                </div>
+              </ha-expansion-panel>
+            `
+          )}
+          ` : html``}
+        </div>
+      </ha-expansion-panel>
+      
       <ha-expansion-panel outlined class="main">
         <div slot="header" role="heading" aria-level="3">
           <ha-svg-icon
@@ -1244,7 +1461,10 @@ export class StatusCardEditor extends LitElement {
           </status-items-editor>
         </div>
       </ha-expansion-panel>
-    `;
+
+
+
+          `;
   }
 
   static get styles() {
@@ -1289,6 +1509,38 @@ export class StatusCardEditor extends LitElement {
         display: flex;
         justify-content: flex-end;
         margin-top: 8px;
+      }
+      .entity-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 4px 0;
+      }
+      .entity-name {
+        flex: 1 1 auto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .domain-panel {
+        margin: 12px 0;
+      }
+      .domain-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .domain-header ha-icon {
+        --mdc-icon-size: 20px;
+      }
+      .dc-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dc-header ha-icon {
+        --mdc-icon-size: 20px;
       }
     `;
   }

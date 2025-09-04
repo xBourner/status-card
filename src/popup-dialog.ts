@@ -749,7 +749,7 @@ export class PopupDialog extends LitElement {
     media_player: {
       show_entity_picture: true,
       state_content: ["state", "volume_level", "last_changed"],
-      features: [{ type: "media-player-volume-slider" }],
+      features: [{ type: "media-player-playback" }],
     },
     lock: {
       state_content: ["state", "last_changed"],

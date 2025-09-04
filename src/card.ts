@@ -279,7 +279,9 @@ export class StatusCard extends LitElement {
   ): boolean {
     if (this._config.show_total_entities) return true;
 
-const key = this._typeKey(domain, deviceClass);
+    const key = deviceClass
+      ? `${_formatDomain(domain)} - ${deviceClass}`
+      : domain;
     const customization = this.getCustomizationForType(key);
     return customization?.show_total_entities === true;
   }
@@ -555,16 +557,18 @@ const key = this._typeKey(domain, deviceClass);
     );
   }
 
-    private _typeKey(domain: string, deviceClass?: string): string {
-    return deviceClass ? `${_formatDomain(domain)} - ${deviceClass}` : domain;
-  }
-
   private getCustomIcon(
     domain: string,
     deviceClass?: string,
     entity?: HassEntity
   ): string {
-    const key = this._typeKey(domain, deviceClass);
+    let key: string;
+    if (deviceClass) {
+      key = `${_formatDomain(domain)} - ${deviceClass}`;
+    } else {
+      key = domain;
+    }
+
     const customization = this.getCustomizationForType(key);
 
     if (
