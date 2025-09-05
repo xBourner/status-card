@@ -1,6 +1,10 @@
 import { LitElement, html, css, PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
-import { LovelaceCard, HomeAssistant } from "custom-card-helpers";
+import {
+  LovelaceCard,
+  HomeAssistant,
+  computeDomain,
+} from "custom-card-helpers";
 import { HassEntity } from "home-assistant-js-websocket";
 import { Schema } from "./helpers";
 import {
@@ -11,7 +15,7 @@ import {
 } from "@mdi/js";
 import { computeLabelCallback, translateEntityState } from "./translations";
 import memoizeOne from "memoize-one";
-import { _formatDomain } from "./helpers";
+import { _formatDomain, typeKey, compareByFriendlyName } from "./helpers";
 import { filterEntitiesByRuleset } from "./smart_groups";
 import { AreaRegistryEntry } from "./helpers";
 
@@ -160,16 +164,15 @@ export class PopupDialog extends LitElement {
 
   private _getPopupCardConfig(entity: HassEntity) {
     const card: any = this.card;
-    const domainFromEntity = entity.entity_id.split(".")[0];
+    const domainFromEntity = computeDomain(entity.entity_id);
 
     const domain = this.selectedDomain || domainFromEntity;
     const deviceClass = this.selectedDomain
       ? this.selectedDeviceClass
-      : (this.hass?.states?.[entity.entity_id]?.attributes as any)?.device_class;
+      : (this.hass?.states?.[entity.entity_id]?.attributes as any)
+          ?.device_class;
 
-    const key = deviceClass
-      ? `${_formatDomain(domain)} - ${deviceClass}`
-      : domain;
+    const key = typeKey(domain, deviceClass);
 
     const customization =
       typeof card?.getCustomizationForType === "function"
@@ -354,13 +357,6 @@ export class PopupDialog extends LitElement {
     return "unassigned";
   }
 
-  private _getEntityName(e: HassEntity): string {
-    return (
-      (e.attributes && (e.attributes as any).friendly_name) ||
-      e.entity_id
-    ).toString();
-  }
-
   private _isActive(e: HassEntity): boolean {
     return !OFF_STATES.has(e.state);
   }
@@ -369,12 +365,16 @@ export class PopupDialog extends LitElement {
     const mode = (this.card as any)?._config?.popup_sort || "name";
     const arr = entities.slice();
     if (mode === "state") {
+      const cmp = compareByFriendlyName(
+        this.hass!.states,
+        this.hass!.locale.language
+      );
       return arr.sort((a, b) => {
         const aActive = this._isActive(a) ? 0 : 1;
         const bActive = this._isActive(b) ? 0 : 1;
         if (aActive !== bActive) return aActive - bActive;
-        const aDom = a.entity_id.split(".")[0];
-        const bDom = b.entity_id.split(".")[0];
+        const aDom = computeDomain(a.entity_id);
+        const bDom = computeDomain(b.entity_id);
         const aState = this.hass
           ? translateEntityState(this.hass, a.state, aDom)
           : a.state;
@@ -383,22 +383,19 @@ export class PopupDialog extends LitElement {
           : b.state;
         const s = (aState || "").localeCompare(bState || "");
         if (s !== 0) return s;
-        return this._getEntityName(a)
-          .toLowerCase()
-          .localeCompare(this._getEntityName(b).toLowerCase());
+        return cmp(a.entity_id, b.entity_id);
       });
     }
-    return arr.sort((a, b) =>
-      this._getEntityName(a)
-        .toLowerCase()
-        .localeCompare(this._getEntityName(b).toLowerCase())
+    const cmp = compareByFriendlyName(
+      this.hass!.states,
+      this.hass!.locale.language
     );
+    return arr.sort((a, b) => cmp(a.entity_id, b.entity_id));
   }
 
   private groupAndSortEntities = memoizeOne(
     (
       entities: HassEntity[],
-      areas: AreaRegistryEntry[] | undefined,
       areaMap: Map<string, string>,
       sortEntities: (ents: HassEntity[]) => HassEntity[]
     ): Array<[string, HassEntity[]]> => {
@@ -475,7 +472,6 @@ export class PopupDialog extends LitElement {
 
     const sortedGroups = this.groupAndSortEntities(
       ents,
-      card.areas,
       areaMap,
       this.sortEntitiesForPopup.bind(this)
     );
@@ -493,9 +489,7 @@ export class PopupDialog extends LitElement {
       ? Math.min(columns, Math.max(1, maxCardsPerArea))
       : Math.min(columns, Math.max(1, ents.length));
 
-    const key = deviceClass
-      ? `${_formatDomain(domain)} - ${deviceClass}`
-      : domain;
+    const key = typeKey(domain, deviceClass);
     const customization =
       typeof card?.getCustomizationForType === "function"
         ? card.getCustomizationForType(key)
@@ -969,9 +963,7 @@ class PopupDialogConfirmation extends LitElement {
 
     const domain = this.selectedDomain || "";
     const deviceClass = this.selectedDeviceClass;
-    const key = deviceClass
-      ? `${_formatDomain(domain)} - ${deviceClass}`
-      : domain;
+    const key = typeKey(domain, deviceClass);
     const customization = this.card?.getCustomizationForType?.(key);
     const isInverted = customization?.invert === true;
 

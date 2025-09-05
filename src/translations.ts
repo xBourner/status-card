@@ -1,13 +1,5 @@
 import { HomeAssistant } from "custom-card-helpers";
-import { ALLOWED_DOMAINS, deviceClasses } from "./properties";
-
-interface Schema {
-  name: string;
-  selector?: any;
-  required?: boolean;
-  default?: any;
-  type?: string;
-}
+import { Schema, ALLOWED_DOMAINS, deviceClasses } from "./helpers";
 
 export function translateEntityState(
   hass: HomeAssistant,

@@ -6,7 +6,6 @@ import { styleMap } from "lit/directives/style-map.js";
 import memoizeOne from "memoize-one";
 import type { HassEntity } from "home-assistant-js-websocket";
 import "./popup-dialog";
-import { domainIcon, ALLOWED_DOMAINS, DataStore } from "./properties";
 import { computeLabelCallback, translateEntityState } from "./translations";
 import {
   actionHandler,
@@ -24,6 +23,10 @@ import {
   Schema,
   CustomizationConfig,
   GroupItem,
+  computeEntitiesByDomain,
+  typeKey,
+  domainIcon,
+  ALLOWED_DOMAINS,
 } from "./helpers";
 import {
   HomeAssistant,
@@ -53,12 +56,6 @@ export class StatusCard extends LitElement {
   @state() private hide_person: boolean = false;
   @state() private hide_content_name: boolean = true;
   @state() public list_mode: boolean = false;
-  @state() public _showAll = false;
-  @state() public _confirmOpen = false;
-  @state() public _confirmParams: { domain: string; deviceClass?: string } = {
-    domain: "",
-    deviceClass: undefined,
-  };
   @state() public selectedGroup: number | null = null;
 
   protected firstUpdated(_changedProperties: PropertyValues): void {
@@ -111,134 +108,63 @@ export class StatusCard extends LitElement {
       (this.hass as HomeAssistant).states
     );
 
-    DataStore.setEntitiesByDomain(
-      Object.fromEntries(
-        Object.entries(entitiesByDomain).map(([domain, entities]) => [
-          domain,
-          entities.map((entity) => entity.entity_id),
-        ])
-      )
-    );
-
     this.entitiesByDomain = entitiesByDomain;
   }
 
-  private _entitiesByDomain = memoizeOne(
+  private _entitiesByDomainMemo = memoizeOne(
     (
       registryEntities: EntityRegistryEntry[],
       deviceRegistry: DeviceRegistryEntry[],
       areas: AreaRegistryEntry[],
-      states: HomeAssistant["states"]
+      states: HomeAssistant["states"],
+      area: CardConfig["area"] | null,
+      floor: CardConfig["floor"] | null,
+      label: CardConfig["label"] | null,
+      hiddenAreas: string[],
+      hiddenLabels: string[],
+      hiddenEntities: string[]
     ): { [domain: string]: HassEntity[] } => {
-      const area = this._config.area || null;
-      const floor = this._config.floor || null;
-      const label = this._config.label || null;
-
-      const deviceMap = new Map(
-        deviceRegistry.map((device) => [device.id, device])
+      return computeEntitiesByDomain(
+        registryEntities,
+        deviceRegistry,
+        areas,
+        states,
+        {
+          area: (area as any) || null,
+          floor: (floor as any) || null,
+          label: (label as any) || null,
+          hiddenAreas,
+          hiddenLabels,
+          hiddenEntities,
+        },
+        ALLOWED_DOMAINS
       );
-
-      const areaList = areas ?? [];
-
-      const entitiesInArea = registryEntities
-        .filter((entry) => {
-          const domain = computeDomain(entry.entity_id);
-
-          if (domain === "update") {
-            return !entry.hidden_by && !entry.disabled_by;
-          }
-
-          const device = entry.device_id
-            ? deviceMap.get(entry.device_id)
-            : null;
-          const isInAnyArea =
-            entry.area_id !== null || (device && device.area_id !== null);
-
-          if (!isInAnyArea) {
-            return false;
-          }
-
-          const matchesLabel = label
-            ? entry.labels?.some((l) => label.includes(l)) ||
-              (device?.labels?.some((l) => label.includes(l)) ?? false)
-            : true;
-          if (!matchesLabel) {
-            return false;
-          }
-
-          const areasArr = area ? (Array.isArray(area) ? area : [area]) : null;
-          const floorsArr = floor
-            ? Array.isArray(floor)
-              ? floor
-              : [floor]
-            : null;
-
-          const matchesArea = areasArr
-            ? (entry.area_id !== undefined &&
-                areasArr.includes(entry.area_id)) ||
-              (device &&
-                device.area_id !== undefined &&
-                areasArr.includes(device.area_id))
-            : true;
-
-          const matchesFloor = floorsArr
-            ? (entry.area_id !== undefined &&
-                areaList.some(
-                  (a) =>
-                    a.area_id === entry.area_id &&
-                    a.floor_id !== undefined &&
-                    floorsArr.includes(a.floor_id)
-                )) ||
-              (device?.area_id &&
-                areaList.some(
-                  (a) =>
-                    a.area_id === device.area_id &&
-                    a.floor_id !== undefined &&
-                    floorsArr.includes(a.floor_id)
-                ))
-            : true;
-
-          const matchesHiddenAreas =
-            this.hiddenAreas && this.hiddenAreas.length > 0
-              ? !(
-                  (entry.area_id && this.hiddenAreas.includes(entry.area_id)) ||
-                  (device &&
-                    device.area_id &&
-                    this.hiddenAreas.includes(device.area_id))
-                )
-              : true;
-
-          return (
-            !entry.hidden_by &&
-            !entry.disabled_by &&
-            matchesArea &&
-            matchesFloor &&
-            matchesHiddenAreas &&
-            !entry.labels?.some((l) => this.hiddenLabels.includes(l)) &&
-            !this.hiddenEntities.includes(entry.entity_id)
-          );
-        })
-        .map((entry) => entry.entity_id);
-
-      const entitiesByDomain: { [domain: string]: HassEntity[] } = {};
-
-      for (const entity of entitiesInArea) {
-        const domain = computeDomain(entity);
-        if (!ALLOWED_DOMAINS.includes(domain)) {
-          continue;
-        }
-        const stateObj = states[entity];
-        if (!stateObj) continue;
-
-        if (!(domain in entitiesByDomain)) {
-          entitiesByDomain[domain] = [];
-        }
-        entitiesByDomain[domain].push(stateObj);
-      }
-
-      return entitiesByDomain;
     }
   );
+
+  private _entitiesByDomain(
+    registryEntities: EntityRegistryEntry[],
+    deviceRegistry: DeviceRegistryEntry[],
+    areas: AreaRegistryEntry[],
+    states: HomeAssistant["states"]
+  ): { [domain: string]: HassEntity[] } {
+    const area = this._config.area || null;
+    const floor = this._config.floor || null;
+    const label = this._config.label || null;
+
+    return this._entitiesByDomainMemo(
+      registryEntities,
+      deviceRegistry,
+      areas,
+      states,
+      area,
+      floor,
+      label,
+      this.hiddenAreas,
+      this.hiddenLabels,
+      this.hiddenEntities
+    );
+  }
 
   private _baseEntities(domain: string, deviceClass?: string): HassEntity[] {
     const all =
@@ -279,9 +205,7 @@ export class StatusCard extends LitElement {
   ): boolean {
     if (this._config.show_total_entities) return true;
 
-    const key = deviceClass
-      ? `${_formatDomain(domain)} - ${deviceClass}`
-      : domain;
+    const key = typeKey(domain, deviceClass);
     const customization = this.getCustomizationForType(key);
     return customization?.show_total_entities === true;
   }
@@ -291,9 +215,7 @@ export class StatusCard extends LitElement {
   ): boolean {
     if (this._config.show_total_number) return true;
 
-    const key = deviceClass
-      ? `${_formatDomain(domain)} - ${deviceClass}`
-      : domain;
+    const key = typeKey(domain, deviceClass);
     const customization = this.getCustomizationForType(key);
     return customization?.show_total_number === true;
   }
@@ -301,9 +223,7 @@ export class StatusCard extends LitElement {
   public _isOn(domain: string, deviceClass?: string): HassEntity[] {
     const ents = this._baseEntities(domain, deviceClass);
 
-    const key = deviceClass
-      ? `${_formatDomain(domain)} - ${deviceClass}`
-      : domain;
+    const key = typeKey(domain, deviceClass);
     const isInverted = this.getCustomizationForType(key)?.invert === true;
 
     return ents.filter((entity) => {
@@ -436,7 +356,32 @@ export class StatusCard extends LitElement {
       (changedProps.has("_config") &&
         (!oldConfig || oldConfig.theme !== this._config.theme))
     ) {
-      applyThemesOnElement(this, this.hass.themes, this._config.theme);
+      applyThemesOnElement(
+        this,
+        this.hass.themes,
+        this._config.theme,
+        undefined,
+        true
+      );
+    }
+
+    if (
+      changedProps.has("hass") ||
+      changedProps.has("_config") ||
+      changedProps.has("hiddenEntities") ||
+      changedProps.has("hiddenLabels") ||
+      changedProps.has("hiddenAreas")
+    ) {
+      const statesChanged = !oldHass || oldHass.states !== this.hass.states;
+      if (
+        statesChanged ||
+        changedProps.has("_config") ||
+        changedProps.has("hiddenEntities") ||
+        changedProps.has("hiddenLabels") ||
+        changedProps.has("hiddenAreas")
+      ) {
+        this._processEntities();
+      }
     }
   }
 
@@ -481,12 +426,7 @@ export class StatusCard extends LitElement {
       "shutter",
     ];
 
-    let key: string;
-    if (deviceClass) {
-      key = `${_formatDomain(domain)} - ${deviceClass}`;
-    } else {
-      key = domain;
-    }
+    const key = typeKey(domain, deviceClass);
     const customization = this.getCustomizationForType(key);
     const isInverted = customization?.invert === true;
 
@@ -548,13 +488,20 @@ export class StatusCard extends LitElement {
     }
   }
 
+  private _customizationIndex = memoizeOne((list?: CustomizationConfig[]) => {
+    const map = new Map<string, CustomizationConfig>();
+    (list ?? []).forEach((c) => {
+      if (c.type) map.set(c.type.toLowerCase(), c);
+    });
+    return map;
+  });
+
   public getCustomizationForType(
     type: string
   ): CustomizationConfig | undefined {
     if (!type) return undefined;
-    return this._config.customization?.find(
-      (entry) => entry.type?.toLowerCase() === type.toLowerCase()
-    );
+    const map = this._customizationIndex(this._config.customization);
+    return map.get(type.toLowerCase());
   }
 
   private getCustomIcon(
@@ -562,14 +509,9 @@ export class StatusCard extends LitElement {
     deviceClass?: string,
     entity?: HassEntity
   ): string {
-    let key: string;
-    if (deviceClass) {
-      key = `${_formatDomain(domain)} - ${deviceClass}`;
-    } else {
-      key = domain;
-    }
-
-    const customization = this.getCustomizationForType(key);
+    const customization = this.getCustomizationForType(
+      typeKey(domain, deviceClass)
+    );
 
     if (
       customization?.show_entity_picture === true &&
@@ -602,19 +544,24 @@ export class StatusCard extends LitElement {
   }
 
   private getBackgroundColor(domain: string, deviceClass?: string): string {
-    const key = deviceClass
-      ? `${_formatDomain(domain)} - ${deviceClass}`
-      : domain;
+    const customization = this.getCustomizationForType(
+      typeKey(domain, deviceClass)
+    );
 
-    const customization = this.getCustomizationForType(key);
+    const toColor = (arr: number[]): string => {
+      if (arr.length === 4)
+        return `rgba(${arr[0]},${arr[1]},${arr[2]},${arr[3]})`;
+      return `rgb(${arr[0]},${arr[1]},${arr[2]})`;
+    };
 
     if (customization && Array.isArray(customization.background_color)) {
       const arr = customization.background_color as number[];
-      return `rgb(${arr.join(",")})`;
+      if (arr.length >= 3) return toColor(arr);
     }
 
     if (Array.isArray(this._config?.background_color)) {
-      return `rgb(${this._config.background_color.join(",")})`;
+      const arr = this._config.background_color as number[];
+      if (arr.length >= 3) return toColor(arr);
     }
 
     return "rgba(var(--rgb-primary-text-color), 0.15)";
@@ -624,13 +571,9 @@ export class StatusCard extends LitElement {
     domain: string,
     deviceClass?: string
   ): string | undefined {
-    let key: string;
-    if (deviceClass) {
-      key = `${_formatDomain(domain)} - ${deviceClass}`;
-    } else {
-      key = domain;
-    }
-    const customization = this.getCustomizationForType(key);
+    const customization = this.getCustomizationForType(
+      typeKey(domain, deviceClass)
+    );
     if (customization && customization.icon_color) {
       return customization.icon_color;
     }
@@ -645,13 +588,9 @@ export class StatusCard extends LitElement {
     deviceClass?: string,
     entity?: HassEntity
   ): string | undefined {
-    let key: string;
-    if (deviceClass) {
-      key = `${_formatDomain(domain)} - ${deviceClass}`;
-    } else {
-      key = domain;
-    }
-    const customization = this.getCustomizationForType(key);
+    const customization = this.getCustomizationForType(
+      typeKey(domain, deviceClass)
+    );
     if (customization && customization.name) {
       return customization.name;
     }
@@ -665,13 +604,9 @@ export class StatusCard extends LitElement {
     domain: string,
     deviceClass?: string
   ): string | undefined {
-    let key: string;
-    if (deviceClass) {
-      key = `${_formatDomain(domain)} - ${deviceClass}`;
-    } else {
-      key = domain;
-    }
-    const customization = this.getCustomizationForType(key);
+    const customization = this.getCustomizationForType(
+      typeKey(domain, deviceClass)
+    );
     if (customization && customization.icon_css) {
       return customization.icon_css;
     }
@@ -681,12 +616,6 @@ export class StatusCard extends LitElement {
   public toggleDomain(domain?: string, deviceClass?: string): void {
     domain = domain ?? this.selectedDomain!;
     deviceClass = deviceClass ?? this.selectedDeviceClass!;
-    let key: string;
-    if (deviceClass) {
-      key = `${_formatDomain(domain)} - ${deviceClass}`;
-    } else {
-      key = domain;
-    }
 
     const entities = this._isOn(domain, deviceClass);
 
@@ -759,10 +688,9 @@ export class StatusCard extends LitElement {
     return (ev: ActionHandlerEvent) => {
       ev.stopPropagation();
 
-      let key = deviceClass
-        ? `${_formatDomain(domain)} - ${deviceClass}`
-        : domain;
-      const customization = this.getCustomizationForType(key);
+      const customization = this.getCustomizationForType(
+        typeKey(domain, deviceClass)
+      );
 
       let actionFromCustomization: ActionConfig | undefined;
       let actionFromConfig: ActionConfig | undefined;
@@ -956,32 +884,29 @@ export class StatusCard extends LitElement {
   );
 
   private _computeDomainItems = memoizeOne((content: string[]): DomainItem[] =>
-    content.reduce<DomainItem[]>((acc, c) => {
-      if (!c.includes(" - ")) {
-        acc.push({
-          type: "domain" as const,
-          domain: c,
-          order: content.indexOf(c),
-        });
-      }
-      return acc;
-    }, [])
+    content
+      .map((c, idx) =>
+        !c.includes(" - ")
+          ? ({ type: "domain" as const, domain: c, order: idx } as DomainItem)
+          : null
+      )
+      .filter((v): v is DomainItem => v !== null)
   );
 
   private _computeDeviceClassItems = memoizeOne(
     (content: string[]): DeviceClassItem[] =>
-      content.reduce<DeviceClassItem[]>((acc, c) => {
-        if (c.includes(" - ")) {
+      content
+        .map((c, idx) => {
+          if (!c.includes(" - ")) return null;
           const [rawDomain, rawClass] = c.split(" - ");
-          acc.push({
+          return {
             type: "deviceClass" as const,
             domain: rawDomain.trim().toLowerCase().replace(/\s+/g, "_"),
             deviceClass: rawClass.trim().toLowerCase(),
-            order: content.indexOf(c),
-          });
-        }
-        return acc;
-      }, [])
+            order: idx,
+          } as DeviceClassItem;
+        })
+        .filter((v): v is DeviceClassItem => v !== null)
   );
 
   private getGroupItems(): GroupItem[] {
@@ -1158,9 +1083,9 @@ export class StatusCard extends LitElement {
 
     const groupId =
       ruleset.group_id ||
-      this.hass!.localize(
-        "component.group.entity_component._.name ${index + 1}"
-      );
+      `${this.hass!.localize("component.group.entity_component._.name")} ${
+        index + 1
+      }`;
     const groupIcon = ruleset.group_icon || "mdi:format-list-group";
     const color = this.getCustomColor(groupId);
     const background_color = this.getBackgroundColor(groupId);
@@ -1285,8 +1210,9 @@ export class StatusCard extends LitElement {
     if (!entities.length) return html``;
 
     const color = this.getCustomColor(domain, deviceClass);
-    const key = `${_formatDomain(domain)} - ${deviceClass}`;
-    const customization = this.getCustomizationForType(key);
+    const customization = this.getCustomizationForType(
+      typeKey(domain, deviceClass)
+    );
 
     const handler = this._handleDomainAction(domain, deviceClass);
     const ah = actionHandler({

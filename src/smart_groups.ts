@@ -42,6 +42,10 @@ export function filterEntitiesByRuleset(
     });
   }
 
+  const entityMap = new Map((card.entities || []).map((e) => [e.entity_id, e]));
+  const deviceMap = new Map((card.devices || []).map((d) => [d.id, d]));
+  const areaMap = new Map((card.areas || []).map((a) => [a.area_id, a]));
+
   return Object.values(card.hass.states).filter((entity) => {
     if (card.hiddenEntities.includes(entity.entity_id)) return false;
     if (!filters.length) return true;
@@ -50,34 +54,13 @@ export function filterEntitiesByRuleset(
         areas: card.areas,
         devices: card.devices,
         entities: card.entities,
+        entityMap,
+        deviceMap,
+        areaMap,
       })
     );
   });
 }
-function compareMinutesAgo(dateStr: string, filter: string): boolean {
-  if (!dateStr) return false;
-  const match = filter.match(/^([<>]=?)?\s*(\d+)$/);
-  if (!match) return false;
-  const [, op, numStr] = match;
-  const num = parseInt(numStr, 10);
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMinutes = (now.getTime() - date.getTime()) / 60000;
-
-  switch (op) {
-    case ">":
-      return diffMinutes > num;
-    case ">=":
-      return diffMinutes >= num;
-    case "<":
-      return diffMinutes < num;
-    case "<=":
-      return diffMinutes <= num;
-    default:
-      return Math.round(diffMinutes) === num;
-  }
-}
-
 function match(actual: any, expected: any): boolean {
   if (Array.isArray(expected)) {
     return expected.some((v) => match(actual, v));
@@ -107,6 +90,27 @@ function match(actual: any, expected: any): boolean {
         return diff < num;
       case "<=":
         return diff <= num;
+    }
+  }
+
+  if (typeof expected === "string" && /^([<>]=?)?\s*\d+$/.test(expected)) {
+    const [, op, numStr] = expected.match(/^([<>]=?)?\s*(\d+)$/) || [];
+    const num = parseFloat(numStr);
+    const actualTime = new Date(actual).getTime();
+    if (!isNaN(actualTime)) {
+      const diffMinutes = (Date.now() - actualTime) / 60000;
+      switch (op) {
+        case ">":
+          return diffMinutes > num;
+        case ">=":
+          return diffMinutes >= num;
+        case "<":
+          return diffMinutes < num;
+        case "<=":
+          return diffMinutes <= num;
+        default:
+          return Math.round(diffMinutes) === num;
+      }
     }
   }
   if (
@@ -162,15 +166,24 @@ function matchesRule(
     areas?: AreaRegistryEntry[];
     devices?: DeviceRegistryEntry[];
     entities?: EntityRegistryEntry[];
+    entityMap?: Map<string, EntityRegistryEntry>;
+    deviceMap?: Map<string, DeviceRegistryEntry>;
+    areaMap?: Map<string, AreaRegistryEntry>;
   }
 ): boolean {
-  const entry = helpers.entities?.find((e) => e.entity_id === entity.entity_id);
+  const entry =
+    helpers.entityMap?.get(entity.entity_id) ||
+    helpers.entities?.find((e) => e.entity_id === entity.entity_id);
 
   switch (rule.key) {
     case "area": {
       let areaId = entry?.area_id;
       if (!areaId && entry?.device_id) {
-        const device = helpers.devices?.find((d) => d.id === entry.device_id);
+        const device =
+          (helpers.deviceMap && entry?.device_id
+            ? helpers.deviceMap.get(entry.device_id)
+            : undefined) ||
+          helpers.devices?.find((d) => d.id === entry.device_id);
         areaId = device?.area_id;
       }
       return match(areaId, rule.value);
@@ -232,7 +245,11 @@ function matchesRule(
       if (entry?.labels && entry.labels.some(match_label)) return true;
 
       if (entry?.device_id) {
-        const device = helpers.devices?.find((d) => d.id === entry.device_id);
+        const device =
+          (helpers.deviceMap && entry?.device_id
+            ? helpers.deviceMap.get(entry.device_id)
+            : undefined) ||
+          helpers.devices?.find((d) => d.id === entry.device_id);
         if (device?.labels && device.labels.some(match_label)) return true;
       }
       return false;
@@ -241,11 +258,17 @@ function matchesRule(
     case "floor": {
       let areaId = entry?.area_id;
       if (!areaId && entry?.device_id) {
-        const device = helpers.devices?.find((d) => d.id === entry.device_id);
+        const device =
+          (helpers.deviceMap && entry?.device_id
+            ? helpers.deviceMap.get(entry.device_id)
+            : undefined) ||
+          helpers.devices?.find((d) => d.id === entry.device_id);
         areaId = device?.area_id;
       }
       if (!areaId) return false;
-      const areaObj = helpers.areas?.find((a) => a.area_id === areaId);
+      const areaObj =
+        (helpers.areaMap ? helpers.areaMap.get(areaId) : undefined) ||
+        helpers.areas?.find((a) => a.area_id === areaId);
       return match(areaObj?.floor_id, rule.value);
     }
 
@@ -254,7 +277,11 @@ function matchesRule(
 
     case "device_manufacturer": {
       if (entry?.device_id) {
-        const device = helpers.devices?.find((d) => d.id === entry.device_id);
+        const device =
+          (helpers.deviceMap && entry?.device_id
+            ? helpers.deviceMap.get(entry.device_id)
+            : undefined) ||
+          helpers.devices?.find((d) => d.id === entry.device_id);
         return match(device?.manufacturer, rule.value);
       }
       return false;
@@ -262,28 +289,23 @@ function matchesRule(
 
     case "device_model": {
       if (entry?.device_id) {
-        const device = helpers.devices?.find((d) => d.id === entry.device_id);
+        const device =
+          (helpers.deviceMap && entry?.device_id
+            ? helpers.deviceMap.get(entry.device_id)
+            : undefined) ||
+          helpers.devices?.find((d) => d.id === entry.device_id);
         return match(device?.model, rule.value);
       }
       return false;
     }
 
     case "last_changed":
-      if (typeof rule.value === "string" && /^[<>]=?\s*\d+$/.test(rule.value)) {
-        return compareMinutesAgo(entity.last_changed, rule.value);
-      }
       return match(entity.last_changed, rule.value);
 
     case "last_updated":
-      if (typeof rule.value === "string" && /^[<>]=?\s*\d+$/.test(rule.value)) {
-        return compareMinutesAgo(entity.last_updated, rule.value);
-      }
       return match(entity.last_updated, rule.value);
 
     case "last_triggered":
-      if (typeof rule.value === "string" && /^[<>]=?\s*\d+$/.test(rule.value)) {
-        return compareMinutesAgo(entity.attributes.last_triggered, rule.value);
-      }
       return match(entity.attributes.last_triggered, rule.value);
 
     case "group": {
