@@ -61,6 +61,30 @@ export function filterEntitiesByRuleset(
     );
   });
 }
+function compareMinutesAgo(dateStr: string, filter: string): boolean {
+  if (!dateStr) return false;
+  const match = filter.match(/^([<>]=?)?\s*(\d+)$/);
+  if (!match) return false;
+  const [, op, numStr] = match;
+  const num = parseInt(numStr, 10);
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMinutes = (now.getTime() - date.getTime()) / 60000;
+
+  switch (op) {
+    case ">":
+      return diffMinutes > num;
+    case ">=":
+      return diffMinutes >= num;
+    case "<":
+      return diffMinutes < num;
+    case "<=":
+      return diffMinutes <= num;
+    default:
+      return Math.round(diffMinutes) === num;
+  }
+}
+
 function match(actual: any, expected: any): boolean {
   if (Array.isArray(expected)) {
     return expected.some((v) => match(actual, v));
@@ -93,26 +117,6 @@ function match(actual: any, expected: any): boolean {
     }
   }
 
-  if (typeof expected === "string" && /^([<>]=?)?\s*\d+$/.test(expected)) {
-    const [, op, numStr] = expected.match(/^([<>]=?)?\s*(\d+)$/) || [];
-    const num = parseFloat(numStr);
-    const actualTime = new Date(actual).getTime();
-    if (!isNaN(actualTime)) {
-      const diffMinutes = (Date.now() - actualTime) / 60000;
-      switch (op) {
-        case ">":
-          return diffMinutes > num;
-        case ">=":
-          return diffMinutes >= num;
-        case "<":
-          return diffMinutes < num;
-        case "<=":
-          return diffMinutes <= num;
-        default:
-          return Math.round(diffMinutes) === num;
-      }
-    }
-  }
   if (
     typeof expected === "string" &&
     /^([<>]=?)\s*(-?\d+(\.\d+)?)$/.test(expected)
@@ -300,12 +304,21 @@ function matchesRule(
     }
 
     case "last_changed":
+      if (typeof rule.value === "string" && /^[<>]=?\s*\d+$/.test(rule.value)) {
+        return compareMinutesAgo(entity.last_changed, rule.value);
+      }
       return match(entity.last_changed, rule.value);
 
     case "last_updated":
+      if (typeof rule.value === "string" && /^[<>]=?\s*\d+$/.test(rule.value)) {
+        return compareMinutesAgo(entity.last_updated, rule.value);
+      }
       return match(entity.last_updated, rule.value);
 
     case "last_triggered":
+      if (typeof rule.value === "string" && /^[<>]=?\s*\d+$/.test(rule.value)) {
+        return compareMinutesAgo(entity.attributes.last_triggered, rule.value);
+      }
       return match(entity.attributes.last_triggered, rule.value);
 
     case "group": {
