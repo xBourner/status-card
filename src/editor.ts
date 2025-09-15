@@ -1558,7 +1558,7 @@ export class StatusCardEditor extends LitElement {
       .main {
         margin: 5px 0;
         --ha-card-border-radius: 6px;
-        margin-top: 24px;
+        margin-top: 16px;
       }
       .content {
         margin: 10px 0px;
@@ -1607,7 +1607,7 @@ export class StatusCardEditor extends LitElement {
         white-space: nowrap;
       }
       .domain-panel {
-        margin: 12px 0;
+        margin-top: 6px;
       }
       .domain-header {
         display: flex;

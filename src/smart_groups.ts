@@ -1,3 +1,75 @@
+import memoizeOne from "memoize-one";
+// Memoized Map-Erstellung
+const memoEntityMap = memoizeOne(
+  (entities: any[] = []) => new Map(entities.map((e) => [e.entity_id, e]))
+);
+const memoDeviceMap = memoizeOne(
+  (devices: any[] = []) => new Map(devices.map((d) => [d.id, d]))
+);
+const memoAreaMap = memoizeOne(
+  (areas: any[] = []) => new Map(areas.map((a) => [a.area_id, a]))
+);
+
+// Memoized Filterfunktion
+const memoFilterEntitiesByRuleset = memoizeOne(
+  (
+    card: StatusCard,
+    ruleset: any,
+    entities: any[],
+    devices: any[],
+    areas: any[],
+    hiddenEntities: string[],
+    states: any
+  ) => {
+    let filters: { key: string; value: any }[] = [];
+    if (Array.isArray(ruleset.filters)) {
+      filters = ruleset.filters;
+    } else {
+      [
+        "area",
+        "floor",
+        "label",
+        "domain",
+        "entity_id",
+        "state",
+        "name",
+        "attributes",
+        "device",
+        "integration",
+        "entity_category",
+        "hidden_by",
+        "device_manufacturer",
+        "device_model",
+        "last_changed",
+        "last_updated",
+        "last_triggered",
+        "level",
+        "group",
+      ].forEach((key) => {
+        if (ruleset[key] !== undefined) {
+          filters.push({ key, value: ruleset[key] });
+        }
+      });
+    }
+    const entityMap = memoEntityMap(entities);
+    const deviceMap = memoDeviceMap(devices);
+    const areaMap = memoAreaMap(areas);
+    return (Object.values(states) as HassEntity[]).filter((entity) => {
+      if (hiddenEntities.includes(entity.entity_id)) return false;
+      if (!filters.length) return true;
+      return filters.every((rule) =>
+        matchesRule(card, entity, rule, {
+          areas,
+          devices,
+          entities,
+          entityMap,
+          deviceMap,
+          areaMap,
+        })
+      );
+    });
+  }
+);
 import type { HassEntity } from "home-assistant-js-websocket";
 import { computeDomain } from "custom-card-helpers";
 import {
@@ -11,55 +83,16 @@ export function filterEntitiesByRuleset(
   card: StatusCard,
   ruleset: any
 ): HassEntity[] {
-  let filters: { key: string; value: any }[] = [];
-  if (Array.isArray(ruleset.filters)) {
-    filters = ruleset.filters;
-  } else {
-    [
-      "area",
-      "floor",
-      "label",
-      "domain",
-      "entity_id",
-      "state",
-      "name",
-      "attributes",
-      "device",
-      "integration",
-      "entity_category",
-      "hidden_by",
-      "device_manufacturer",
-      "device_model",
-      "last_changed",
-      "last_updated",
-      "last_triggered",
-      "level",
-      "group",
-    ].forEach((key) => {
-      if (ruleset[key] !== undefined) {
-        filters.push({ key, value: ruleset[key] });
-      }
-    });
-  }
-
-  const entityMap = new Map((card.entities || []).map((e) => [e.entity_id, e]));
-  const deviceMap = new Map((card.devices || []).map((d) => [d.id, d]));
-  const areaMap = new Map((card.areas || []).map((a) => [a.area_id, a]));
-
-  return Object.values(card.hass.states).filter((entity) => {
-    if (card.hiddenEntities.includes(entity.entity_id)) return false;
-    if (!filters.length) return true;
-    return filters.every((rule) =>
-      matchesRule(card, entity, rule, {
-        areas: card.areas,
-        devices: card.devices,
-        entities: card.entities,
-        entityMap,
-        deviceMap,
-        areaMap,
-      })
-    );
-  });
+  // Memoized Filter, alle Inputs explizit
+  return memoFilterEntitiesByRuleset(
+    card,
+    ruleset,
+    card.entities || [],
+    card.devices || [],
+    card.areas || [],
+    card.hiddenEntities || [],
+    card.hass.states
+  ) as HassEntity[];
 }
 function compareMinutesAgo(dateStr: string, filter: string): boolean {
   if (!dateStr) return false;

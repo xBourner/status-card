@@ -1,4 +1,5 @@
 import { LitElement, html, css, PropertyValues } from "lit";
+import { repeat } from "lit/directives/repeat.js";
 import { property, state } from "lit/decorators.js";
 import {
   LovelaceCard,
@@ -165,50 +166,48 @@ export class PopupDialog extends LitElement {
   private _getPopupCardConfig(entity: HassEntity) {
     const card: any = this.card;
     const domainFromEntity = computeDomain(entity.entity_id);
-
     const domain = this.selectedDomain || domainFromEntity;
     const deviceClass = this.selectedDomain
       ? this.selectedDeviceClass
       : (this.hass?.states?.[entity.entity_id]?.attributes as any)
           ?.device_class;
-
     const key = typeKey(domain, deviceClass);
-
     const customization =
       typeof card?.getCustomizationForType === "function"
         ? card.getCustomizationForType(key)
         : undefined;
-
     const popupCard = customization?.popup_card as any | undefined;
-
     const resolvedType: string =
       (popupCard && typeof popupCard.type === "string" && popupCard.type) ||
-      customization?.popup_card_type ||
       "tile";
-
     const baseOptions =
       resolvedType === "tile"
         ? (this.DOMAIN_FEATURES as any)[domainFromEntity] ?? {}
         : {};
-
     let overrideOptions: any = {};
     if (popupCard && typeof popupCard === "object") {
       const { type: _omitType, entity: _omitEntity, ...rest } = popupCard;
       overrideOptions = rest;
     } else {
-      overrideOptions = customization?.popup_card_options ?? {};
+      overrideOptions = {};
     }
-
     const finalConfig = {
       type: resolvedType,
       entity: entity.entity_id,
       ...baseOptions,
       ...overrideOptions,
     } as any;
-
+    const hash = this._configHash(finalConfig);
+    const cache = this._popupCardConfigCache.get(entity.entity_id);
+    if (cache && cache.hash === hash) {
+      return cache.config;
+    }
+    this._popupCardConfigCache.set(entity.entity_id, {
+      hash,
+      config: finalConfig,
+    });
     return finalConfig;
   }
-
   protected shouldUpdate(changedProps: PropertyValues): boolean {
     if (!this.open) {
       return changedProps.has("open");
@@ -230,37 +229,39 @@ export class PopupDialog extends LitElement {
   private _updateCardsHass(): void {
     if (!this.hass) return;
     this._cardEls.forEach((el) => {
-      try {
-        (el as any).hass = this.hass;
-      } catch (_) {}
+      if ((el as any).hass !== this.hass) {
+        try {
+          (el as any).hass = this.hass;
+        } catch (_) {}
+      }
     });
   }
 
   private _getOrCreateCard(entity: HassEntity): HTMLElement {
     const id = entity.entity_id;
-    const existing = this._cardEls.get(id);
-    if (existing) {
-      try {
-        (existing as any).hass = this.hass;
-      } catch (_) {}
-      return existing;
+    const cfg = this._getPopupCardConfig(entity);
+    const hash = this._configHash(cfg);
+    const cached = this._cardElementCache.get(id);
+    if (cached && cached.hash === hash) {
+      (cached.el as any).hass = this.hass;
+      return cached.el;
     }
     const placeholder = document.createElement("div");
     placeholder.classList.add("card-placeholder");
     placeholder.setAttribute("data-hui-card", "");
     this._cardEls.set(id, placeholder);
-
-    const cfg = this._getPopupCardConfig(entity);
     this._createCardElement(this.hass!, cfg).then((el) => {
       try {
         const current = this._cardEls.get(id);
         if (current === placeholder) {
           placeholder.replaceWith(el as any);
           this._cardEls.set(id, el as any);
+          this._cardElementCache.set(id, { hash, el: el as any });
         }
         (el as any).hass = this.hass;
       } catch (_) {}
     });
+    this._cardElementCache.set(id, { hash, el: placeholder });
     return placeholder;
   }
 
@@ -361,36 +362,52 @@ export class PopupDialog extends LitElement {
     return !OFF_STATES.has(e.state);
   }
 
+  private _popupCardConfigCache = new Map<
+    string,
+    { hash: string; config: any }
+  >();
+  private _cardElementCache = new Map<
+    string,
+    { hash: string; el: HTMLElement }
+  >();
+  private _sortEntitiesMemo = memoizeOne(
+    (entities: HassEntity[], mode: string, locale: string, hassStates: any) => {
+      const arr = entities.slice();
+      if (mode === "state") {
+        const cmp = compareByFriendlyName(hassStates, locale);
+        return arr.sort((a, b) => {
+          const aActive = this._isActive(a) ? 0 : 1;
+          const bActive = this._isActive(b) ? 0 : 1;
+          if (aActive !== bActive) return aActive - bActive;
+          const aDom = computeDomain(a.entity_id);
+          const bDom = computeDomain(b.entity_id);
+          const aState = this.hass
+            ? translateEntityState(this.hass, a.state, aDom)
+            : a.state;
+          const bState = this.hass
+            ? translateEntityState(this.hass, b.state, bDom)
+            : b.state;
+          const s = (aState || "").localeCompare(bState || "");
+          if (s !== 0) return s;
+          return cmp(a.entity_id, b.entity_id);
+        });
+      }
+      const cmp = compareByFriendlyName(hassStates, locale);
+      return arr.sort((a, b) => cmp(a.entity_id, b.entity_id));
+    }
+  );
+  private _configHash(obj: any): string {
+    return JSON.stringify(obj);
+  }
+
   private sortEntitiesForPopup(entities: HassEntity[]): HassEntity[] {
     const mode = (this.card as any)?._config?.popup_sort || "name";
-    const arr = entities.slice();
-    if (mode === "state") {
-      const cmp = compareByFriendlyName(
-        this.hass!.states,
-        this.hass!.locale.language
-      );
-      return arr.sort((a, b) => {
-        const aActive = this._isActive(a) ? 0 : 1;
-        const bActive = this._isActive(b) ? 0 : 1;
-        if (aActive !== bActive) return aActive - bActive;
-        const aDom = computeDomain(a.entity_id);
-        const bDom = computeDomain(b.entity_id);
-        const aState = this.hass
-          ? translateEntityState(this.hass, a.state, aDom)
-          : a.state;
-        const bState = this.hass
-          ? translateEntityState(this.hass, b.state, bDom)
-          : b.state;
-        const s = (aState || "").localeCompare(bState || "");
-        if (s !== 0) return s;
-        return cmp(a.entity_id, b.entity_id);
-      });
-    }
-    const cmp = compareByFriendlyName(
-      this.hass!.states,
-      this.hass!.locale.language
+    return this._sortEntitiesMemo(
+      entities,
+      mode,
+      this.hass?.locale?.language ?? "en",
+      this.hass?.states ?? {}
     );
-    return arr.sort((a, b) => cmp(a.entity_id, b.entity_id));
   }
 
   private groupAndSortEntities = memoizeOne(
@@ -598,30 +615,37 @@ export class PopupDialog extends LitElement {
             ? !ungroupAreas
               ? html`
                   <ul class="entity-list">
-                    ${sortedGroups.map(([areaId, groupEntities]) => {
-                      const areaName =
-                        areaMap.get(areaId) ??
-                        (areaId === "unassigned" ? "Unassigned" : areaId);
-                      return html`
-                        <li class="entity-item">
-                          <h4>${areaName}:</h4>
-                          <ul>
-                            ${groupEntities.map(
-                              (entity) => html`
-                                <li class="entity-item">
-                                  - ${entity.entity_id}
-                                </li>
-                              `
-                            )}
-                          </ul>
-                        </li>
-                      `;
-                    })}
+                    ${repeat(
+                      sortedGroups,
+                      ([areaId]) => areaId,
+                      ([areaId, groupEntities]) => {
+                        const areaName =
+                          areaMap.get(areaId) ??
+                          (areaId === "unassigned" ? "Unassigned" : areaId);
+                        return html`
+                          <li class="entity-item">
+                            <h4>${areaName}:</h4>
+                            <ul>
+                              ${repeat(
+                                groupEntities,
+                                (entity) => entity.entity_id,
+                                (entity) =>
+                                  html`<li class="entity-item">
+                                    - ${entity.entity_id}
+                                  </li>`
+                              )}
+                            </ul>
+                          </li>
+                        `;
+                      }
+                    )}
                   </ul>
                 `
               : html`
                   <ul class="entity-list">
-                    ${flatSorted.map(
+                    ${repeat(
+                      flatSorted,
+                      (entity) => entity.entity_id,
                       (entity) =>
                         html`<li class="entity-item">- ${entity.entity_id}</li>`
                     )}
@@ -636,7 +660,9 @@ export class PopupDialog extends LitElement {
                   <div class="cards-wrapper">
                     <h4>${areaName}</h4>
                     <div class="entity-cards">
-                      ${groupEntities.map(
+                      ${repeat(
+                        groupEntities,
+                        (entity) => entity.entity_id,
                         (entity) => html`
                           <div class="entity-card">
                             ${this._getOrCreateCard(entity)}
@@ -649,10 +675,14 @@ export class PopupDialog extends LitElement {
               })}`
             : html`
                 <div class="entity-cards">
-                  ${flatSorted.map(
-                    (entity) => html` <div class="entity-card">
-                      ${this._getOrCreateCard(entity)}
-                    </div>`
+                  ${repeat(
+                    flatSorted,
+                    (entity) => entity.entity_id,
+                    (entity) => html`
+                      <div class="entity-card">
+                        ${this._getOrCreateCard(entity)}
+                      </div>
+                    `
                   )}
                 </div>
               `}

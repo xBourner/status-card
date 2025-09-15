@@ -36,10 +36,6 @@ export interface CustomizationConfig {
   show_total_entities?: boolean;
   show_total_number?: boolean;
   show_entity_picture?: boolean;
-  // Popup-specific overrides
-  popup_card_type?: string;
-  // Free-form options merged into the card config for the popup card
-  popup_card_options?: any;
   card?: any;
 }
 

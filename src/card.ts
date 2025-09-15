@@ -10,7 +10,6 @@ import { computeLabelCallback, translateEntityState } from "./translations";
 import {
   actionHandler,
   applyThemesOnElement,
-  _formatDomain,
   STATES_OFF,
   CardConfig,
   AreaRegistryEntry,
@@ -107,40 +106,24 @@ export class StatusCard extends LitElement {
       this.areas ?? [],
       (this.hass as HomeAssistant).states
     );
-
-    this.entitiesByDomain = entitiesByDomain;
+    if (entitiesByDomain !== this.entitiesByDomain) {
+      this.entitiesByDomain = entitiesByDomain;
+    }
   }
 
-  private _entitiesByDomainMemo = memoizeOne(
-    (
-      registryEntities: EntityRegistryEntry[],
-      deviceRegistry: DeviceRegistryEntry[],
-      areas: AreaRegistryEntry[],
-      states: HomeAssistant["states"],
-      area: CardConfig["area"] | null,
-      floor: CardConfig["floor"] | null,
-      label: CardConfig["label"] | null,
-      hiddenAreas: string[],
-      hiddenLabels: string[],
-      hiddenEntities: string[]
-    ): { [domain: string]: HassEntity[] } => {
-      return computeEntitiesByDomain(
-        registryEntities,
-        deviceRegistry,
-        areas,
-        states,
-        {
-          area: (area as any) || null,
-          floor: (floor as any) || null,
-          label: (label as any) || null,
-          hiddenAreas,
-          hiddenLabels,
-          hiddenEntities,
-        },
-        ALLOWED_DOMAINS
-      );
-    }
-  );
+  private _lastEntitiesByDomainInput?: [
+    EntityRegistryEntry[],
+    DeviceRegistryEntry[],
+    AreaRegistryEntry[],
+    HomeAssistant["states"],
+    CardConfig["area"] | null,
+    CardConfig["floor"] | null,
+    CardConfig["label"] | null,
+    string[],
+    string[],
+    string[]
+  ];
+  private _lastEntitiesByDomainResult?: { [domain: string]: HassEntity[] };
 
   private _entitiesByDomain(
     registryEntities: EntityRegistryEntry[],
@@ -151,8 +134,21 @@ export class StatusCard extends LitElement {
     const area = this._config.area || null;
     const floor = this._config.floor || null;
     const label = this._config.label || null;
-
-    return this._entitiesByDomainMemo(
+    const hiddenAreas = this.hiddenAreas;
+    const hiddenLabels = this.hiddenLabels;
+    const hiddenEntities = this.hiddenEntities;
+    const input: [
+      EntityRegistryEntry[],
+      DeviceRegistryEntry[],
+      AreaRegistryEntry[],
+      HomeAssistant["states"],
+      CardConfig["area"] | null,
+      CardConfig["floor"] | null,
+      CardConfig["label"] | null,
+      string[],
+      string[],
+      string[]
+    ] = [
       registryEntities,
       deviceRegistry,
       areas,
@@ -160,11 +156,62 @@ export class StatusCard extends LitElement {
       area,
       floor,
       label,
-      this.hiddenAreas,
-      this.hiddenLabels,
-      this.hiddenEntities
+      hiddenAreas,
+      hiddenLabels,
+      hiddenEntities,
+    ];
+    if (
+      this._lastEntitiesByDomainInput &&
+      this._shallowArrayEqual(input, this._lastEntitiesByDomainInput)
+    ) {
+      return this._lastEntitiesByDomainResult!;
+    }
+    const result = computeEntitiesByDomain(
+      registryEntities,
+      deviceRegistry,
+      areas,
+      states,
+      { area, floor, label, hiddenAreas, hiddenLabels, hiddenEntities },
+      ALLOWED_DOMAINS
     );
+    this._lastEntitiesByDomainInput = input;
+    this._lastEntitiesByDomainResult = result;
+    return result;
   }
+
+  private _shallowArrayEqual(a: any[], b: any[]): boolean {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (Array.isArray(a[i]) && Array.isArray(b[i])) {
+        if (
+          a[i] !== b[i] &&
+          (a[i].length !== b[i].length ||
+            a[i].some((v: any, idx: number) => v !== b[i][idx]))
+        )
+          return false;
+      } else if (a[i] !== b[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private _baseEntitiesMemo = memoizeOne(
+    (all: HassEntity[], domain: string, deviceClass?: string): HassEntity[] => {
+      return all.filter((entity) => {
+        const st = entity.state;
+        if (st === "unavailable" || st === "unknown") return false;
+        const dc = entity.attributes.device_class;
+        if (domain === "switch") {
+          if (deviceClass === "outlet") return dc === "outlet";
+          if (deviceClass === "switch")
+            return dc === "switch" || dc === undefined;
+          return true;
+        }
+        return !deviceClass || dc === deviceClass;
+      });
+    }
+  );
 
   private _baseEntities(domain: string, deviceClass?: string): HassEntity[] {
     const all =
@@ -174,25 +221,7 @@ export class StatusCard extends LitElement {
         this.areas ?? [],
         this.hass.states
       )[domain] || [];
-
-    return all.filter((entity) => {
-      const st = entity.state;
-      if (st === "unavailable" || st === "unknown") {
-        return false;
-      }
-      const dc = entity.attributes.device_class;
-      if (domain === "switch") {
-        if (deviceClass === "outlet") {
-          return dc === "outlet";
-        }
-        if (deviceClass === "switch") {
-          return dc === "switch" || dc === undefined;
-        }
-        return true;
-      }
-
-      return !deviceClass || dc === deviceClass;
-    });
+    return this._baseEntitiesMemo(all, domain, deviceClass);
   }
 
   public _totalEntities(domain: string, deviceClass?: string): HassEntity[] {
@@ -763,21 +792,38 @@ export class StatusCard extends LitElement {
     };
   }
 
+  private _getPersonItemsMemo = memoizeOne(
+    (
+      entities: EntityRegistryEntry[],
+      hiddenEntities: string[],
+      hiddenLabels: string[],
+      hide_person: boolean,
+      hassStates: HomeAssistant["states"]
+    ): HassEntity[] => {
+      if (hide_person) return [];
+      return entities
+        .filter(
+          (entity) =>
+            entity.entity_id.startsWith("person.") &&
+            !hiddenEntities.includes(entity.entity_id) &&
+            !entity.labels?.some((l) => hiddenLabels.includes(l)) &&
+            !entity.hidden_by &&
+            !entity.disabled_by
+        )
+        .reverse()
+        .map((entry) => hassStates[entry.entity_id])
+        .filter((stateObj): stateObj is HassEntity => !!stateObj);
+    }
+  );
+
   private getPersonItems(): HassEntity[] {
-    return !this.hide_person
-      ? this.entities
-          .filter(
-            (entity) =>
-              entity.entity_id.startsWith("person.") &&
-              !this.hiddenEntities.includes(entity.entity_id) &&
-              !entity.labels?.some((l) => this.hiddenLabels.includes(l)) &&
-              !entity.hidden_by &&
-              !entity.disabled_by
-          )
-          .reverse()
-          .map((entry) => (this.hass as HomeAssistant).states[entry.entity_id])
-          .filter((stateObj): stateObj is HassEntity => !!stateObj)
-      : [];
+    return this._getPersonItemsMemo(
+      this.entities,
+      this.hiddenEntities,
+      this.hiddenLabels,
+      this.hide_person,
+      this.hass.states
+    );
   }
 
   private _computeExtraItems = memoizeOne(
@@ -951,62 +997,6 @@ export class StatusCard extends LitElement {
     }
 
     return base;
-  }
-
-  private renderPersonEntities(): TemplateResult[] {
-    const personEntities = this.getPersonItems();
-
-    return personEntities.map((entity) => {
-      const entityState = this.hass!.states[entity.entity_id];
-      const isNotHome = entityState?.state !== "home";
-
-      const contentClasses = {
-        horizontal: this._config.content_layout === "horizontal",
-      };
-
-      const iconStyles = {
-        "border-radius": this._config?.square ? "20%" : "50%",
-        filter: isNotHome ? "grayscale(100%)" : "none",
-      };
-
-      return html`
-        <sl-tab
-          slot="nav"
-          panel=${entity.entity_id}
-          @click="${() => this.showMoreInfo(entity)}"
-        >
-          <div class="entity ${classMap(contentClasses)}">
-            <div class="entity-icon" style=${styleMap(iconStyles)}>
-              ${entity.attributes.entity_picture
-                ? html`<img
-                    src=${entity.attributes.entity_picture}
-                    alt=${entity.attributes.friendly_name || entity.entity_id}
-                    style=${styleMap(iconStyles)}
-                  />`
-                : html`<ha-icon
-                    class="center"
-                    icon=${entity.attributes.icon || "mdi:account"}
-                    style=${styleMap(iconStyles)}
-                  ></ha-icon>`}
-            </div>
-            <div class="entity-info">
-              ${!this.hide_content_name
-                ? html`<div class="entity-name">
-                    ${entity.attributes.friendly_name?.split(" ")[0] || ""}
-                  </div>`
-                : ""}
-              <div class="entity-state">
-                ${this.getStatusProperty(
-                  "person",
-                  undefined,
-                  entityState?.state
-                )}
-              </div>
-            </div>
-          </div>
-        </sl-tab>
-      `;
-    });
   }
 
   private renderExtraTab(item: ExtraItem): TemplateResult {
@@ -1311,10 +1301,64 @@ export class StatusCard extends LitElement {
       "no-scroll": !!this._config.no_scroll,
     };
 
+    const personEntities = this.getPersonItems();
     return html`
       <ha-card>
         <sl-tab-group no-scroll-controls class=${classMap(noScroll)}>
-          ${this.renderPersonEntities()}
+          ${repeat(
+            personEntities,
+            (entity) => entity.entity_id,
+            (entity) => {
+              const entityState = this.hass!.states[entity.entity_id];
+              const isNotHome = entityState?.state !== "home";
+              const contentClasses = {
+                horizontal: this._config.content_layout === "horizontal",
+              };
+              const iconStyles = {
+                "border-radius": this._config?.square ? "20%" : "50%",
+                filter: isNotHome ? "grayscale(100%)" : "none",
+              };
+              return html`
+                <sl-tab
+                  slot="nav"
+                  panel=${entity.entity_id}
+                  @click="${() => this.showMoreInfo(entity)}"
+                >
+                  <div class="entity ${classMap(contentClasses)}">
+                    <div class="entity-icon" style=${styleMap(iconStyles)}>
+                      ${entity.attributes.entity_picture
+                        ? html`<img
+                            src=${entity.attributes.entity_picture}
+                            alt=${entity.attributes.friendly_name ||
+                            entity.entity_id}
+                            style=${styleMap(iconStyles)}
+                          />`
+                        : html`<ha-icon
+                            class="center"
+                            icon=${entity.attributes.icon || "mdi:account"}
+                            style=${styleMap(iconStyles)}
+                          ></ha-icon>`}
+                    </div>
+                    <div class="entity-info">
+                      ${!this.hide_content_name
+                        ? html`<div class="entity-name">
+                            ${entity.attributes.friendly_name?.split(" ")[0] ||
+                            ""}
+                          </div>`
+                        : ""}
+                      <div class="entity-state">
+                        ${this.getStatusProperty(
+                          "person",
+                          undefined,
+                          entityState?.state
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </sl-tab>
+              `;
+            }
+          )}
           ${repeat(
             sorted,
             (i) =>
