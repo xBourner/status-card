@@ -2079,7 +2079,7 @@ const N = (ce = class extends R {
   }
   handleAskToggleDomain(e) {
     e.stopPropagation();
-    const i = "popup-dialog-confirmation";
+    const i = "status-card-popup-confirmation";
     this.dispatchEvent(
       new CustomEvent("show-dialog", {
         detail: {
@@ -2458,7 +2458,7 @@ H([
   x()
 ], N.prototype, "selectedGroup");
 let qi = N;
-customElements.define("popup-dialog", qi);
+customElements.define("status-card-popup", qi);
 const st = class st extends R {
   constructor() {
     super(...arguments), this.open = !1, this._onClosed = () => {
@@ -2530,7 +2530,10 @@ H([
 H([
   A({ type: String })
 ], Q.prototype, "selectedDeviceClass");
-customElements.define("popup-dialog-confirmation", Q);
+customElements.define(
+  "status-card-popup-confirmation",
+  Q
+);
 var Gi = Object.defineProperty, Wi = Object.getOwnPropertyDescriptor, O = (t, e, i, s) => {
   for (var o = s > 1 ? void 0 : s ? Wi(e, i) : e, n = t.length - 1, a; n >= 0; n--)
     (a = t[n]) && (o = (s ? a(e, i, o) : a(o)) || o);
@@ -2780,7 +2783,7 @@ let T = class extends R {
       const r = this.selectedDeviceClass || void 0;
       i = this._shouldShowTotalEntities(t, r) ? this._totalEntities(t, r) : this._isOn(t, r);
     }
-    this._showPopup(this, "popup-dialog", {
+    this._showPopup(this, "status-card-popup", {
       title: e,
       hass: this.hass,
       entities: i,

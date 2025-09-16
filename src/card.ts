@@ -334,7 +334,7 @@ export class StatusCard extends LitElement {
         : this._isOn(domain, deviceClass);
     }
 
-    const dialogTag = "popup-dialog";
+    const dialogTag = "status-card-popup";
     this._showPopup(this, dialogTag, {
       title,
       hass: this.hass,

@@ -32,7 +32,7 @@ const OFF_STATES = new Set([
   "unavailable",
 ]);
 
-export class PopupDialog extends LitElement {
+export class StatusCardPopup extends LitElement {
   @property({ type: Boolean }) public open = false;
   @property({ type: String }) public title = "";
   @property({ type: String }) public selectedDomain?: string;
@@ -310,7 +310,7 @@ export class PopupDialog extends LitElement {
   private handleAskToggleDomain(e: MouseEvent) {
     e.stopPropagation();
 
-    const dialogTag = "popup-dialog-confirmation";
+    const dialogTag = "status-card-popup-confirmation";
     this.dispatchEvent(
       new CustomEvent("show-dialog", {
         detail: {
@@ -521,7 +521,7 @@ export class PopupDialog extends LitElement {
         style="--columns: ${displayColumns};"
       >
         <style>
-          ${PopupDialog.styles}
+          ${StatusCardPopup.styles}
         </style>
         <div class="dialog-header">
           <ha-icon-button
@@ -951,9 +951,9 @@ export class PopupDialog extends LitElement {
   `;
 }
 
-customElements.define("popup-dialog", PopupDialog);
+customElements.define("status-card-popup", StatusCardPopup);
 
-class PopupDialogConfirmation extends LitElement {
+class StatusCardPopupConfirmation extends LitElement {
   @property({ type: Boolean }) public open = false;
   @property({ attribute: false }) public hass?: HomeAssistant;
   @property({ attribute: false }) public card?: any;
@@ -1036,4 +1036,7 @@ class PopupDialogConfirmation extends LitElement {
   static styles = css``;
 }
 
-customElements.define("popup-dialog-confirmation", PopupDialogConfirmation);
+customElements.define(
+  "status-card-popup-confirmation",
+  StatusCardPopupConfirmation
+);
