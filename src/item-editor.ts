@@ -92,7 +92,10 @@ export class ItemEditor extends LitElement {
           },
         ],
       },
-
+      {
+        name: "state_content",
+        selector: { ui_state_content: { entity_id: entityId } },
+      },
       { name: "name", selector: { text: {} } },
       { name: "show_entity_picture", selector: { boolean: {} } },
       { name: "icon", selector: { icon: {} } },

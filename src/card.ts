@@ -25,7 +25,6 @@ import {
   handleAction,
   ActionHandlerEvent,
   ActionConfig,
-  formatNumber,
   actionHandler,
   applyThemesOnElement,
   LovelaceCardConfig,
@@ -1015,18 +1014,9 @@ export class StatusCard extends LitElement {
   }
 
   private renderExtraTab(item: ExtraItem): TemplateResult {
-    const { panel, entity, icon, name, color, icon_css, background_color } =
-      item;
+    const { panel, icon, name, color, icon_css, background_color } = item;
     const stateObj = this.hass.states[panel];
-    const raw = entity.state;
-    const num = Number(raw);
-    const displayState =
-      !Number.isNaN(num) && raw !== ""
-        ? formatNumber(num, this.hass.locale)
-        : translateEntityState(this.hass, raw, computeDomain(panel));
-    const unit = entity.attributes.unit_of_measurement;
     const customization = this.getCustomizationForType(panel);
-
     const handler = this._handleDomainAction(panel);
     const ah = actionHandler({
       hasHold: hasAction(
@@ -1046,6 +1036,8 @@ export class StatusCard extends LitElement {
       background_color,
       square: this._config.square,
     });
+
+    const stateContent = customization?.state_content ?? undefined;
 
     return html`
       <sl-tab slot="nav" panel=${panel} @action=${handler} .actionHandler=${ah}>
@@ -1073,7 +1065,12 @@ export class StatusCard extends LitElement {
               ? html`<div class="entity-name">${name}</div>`
               : ""}
             <div class="entity-state">
-              ${displayState}${unit ? ` ${unit}` : ""}
+              <state-display
+                .stateObj=${stateObj}
+                .hass=${this.hass}
+                .content=${stateContent}
+                .name=${name}
+              ></state-display>
             </div>
           </div>
         </div>

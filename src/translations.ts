@@ -235,6 +235,8 @@ export function computeLabelCallback(
       );
     case "popup_sort":
       return "Popup Sort";
+    case "state_content":
+      return hass!.localize("ui.panel.lovelace.editor.card.tile.state_content");
     default:
       if (ALLOWED_DOMAINS.includes(schema.name)) {
         return (
