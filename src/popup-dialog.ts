@@ -1,38 +1,31 @@
 import { LitElement, html, css, PropertyValues } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import { property, state } from "lit/decorators.js";
-import {
-  LovelaceCard,
-  HomeAssistant,
-  computeDomain,
-} from "custom-card-helpers";
 import { HassEntity } from "home-assistant-js-websocket";
-import { Schema } from "./helpers";
+import memoizeOne from "memoize-one";
 import {
   mdiClose,
   mdiDotsVertical,
   mdiSwapHorizontal,
   mdiToggleSwitchOffOutline,
 } from "@mdi/js";
+import {
+  LovelaceCard,
+  HomeAssistant,
+  computeDomain,
+  AreaRegistryEntry,
+  Schema,
+  STATES_OFF,
+} from "./ha";
+import { compareByFriendlyName, _formatDomain, typeKey } from "./helpers";
 import { computeLabelCallback, translateEntityState } from "./translations";
-import memoizeOne from "memoize-one";
-import { _formatDomain, typeKey, compareByFriendlyName } from "./helpers";
 import { filterEntitiesByRuleset } from "./smart_groups";
-import { AreaRegistryEntry } from "./helpers";
-
-const OFF_STATES = new Set([
-  "off",
-  "idle",
-  "not_home",
-  "closed",
-  "locked",
-  "standby",
-  "disarmed",
-  "unknown",
-  "unavailable",
-]);
 
 export class StatusCardPopup extends LitElement {
+  private _swipeStartY: number | null = null;
+  private _swipeStartTime: number | null = null;
+  private _swipeThreshold = 120;
+  private _swipeTimeLimit = 800;
   @property({ type: Boolean }) public open = false;
   @property({ type: String }) public title = "";
   @property({ type: String }) public selectedDomain?: string;
@@ -100,10 +93,51 @@ export class StatusCardPopup extends LitElement {
     );
   };
 
+  connectedCallback(): void {
+    super.connectedCallback();
+    this.addEventListener("touchstart", this._onTouchStart, { passive: true });
+    this.addEventListener("touchend", this._onTouchEnd);
+    window.addEventListener("popstate", this._onPopState);
+  }
+
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.removeEventListener("touchstart", this._onTouchStart);
+    this.removeEventListener("touchend", this._onTouchEnd);
+    window.removeEventListener("popstate", this._onPopState);
     this._cardEls.clear();
   }
+
+  private _onPopState = (ev: PopStateEvent) => {
+    if (this.open) {
+      this._onClosed(ev);
+    }
+  };
+
+  private _onTouchStart = (ev: TouchEvent) => {
+    if (ev.touches && ev.touches.length === 1) {
+      this._swipeStartY = ev.touches[0].clientY;
+      this._swipeStartTime = Date.now();
+    }
+  };
+
+  private _onTouchEnd = (ev: TouchEvent) => {
+    if (
+      this._swipeStartY !== null &&
+      this._swipeStartTime !== null &&
+      ev.changedTouches &&
+      ev.changedTouches.length === 1
+    ) {
+      const endY = ev.changedTouches[0].clientY;
+      const deltaY = endY - this._swipeStartY;
+      const deltaTime = Date.now() - this._swipeStartTime;
+      if (deltaY > this._swipeThreshold && deltaTime < this._swipeTimeLimit) {
+        this._onClosed(ev);
+      }
+    }
+    this._swipeStartY = null;
+    this._swipeStartTime = null;
+  };
 
   private _toTileConfig(cardConfig: {
     type: string;
@@ -359,7 +393,7 @@ export class StatusCardPopup extends LitElement {
   }
 
   private _isActive(e: HassEntity): boolean {
-    return !OFF_STATES.has(e.state);
+    return !STATES_OFF.includes(e.state);
   }
 
   private _popupCardConfigCache = new Map<
@@ -610,7 +644,7 @@ export class StatusCardPopup extends LitElement {
               `
             : ""}
         </div>
-        <div class="dialog-content">
+        <div class="dialog-content scrollable">
           ${this.card?.list_mode
             ? !ungroupAreas
               ? html`
@@ -857,12 +891,20 @@ export class StatusCardPopup extends LitElement {
       gap: 8px;
       margin-bottom: 12px;
       min-width: 15vw;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+      background: transparent;
     }
     .dialog-header .menu-button {
       margin-left: auto;
     }
-    .dialog-content {
+    .dialog-content.scrollable {
       margin-bottom: 16px;
+      max-height: 80vh;
+      overflow-y: auto;
     }
     .dialog-actions {
       text-align: right;
@@ -890,7 +932,7 @@ export class StatusCardPopup extends LitElement {
       width: calc(var(--columns, 4) * 22.5vw);
       box-sizing: border-box;
       font-size: 1.2em;
-      margin: 0.8em 0.2em;
+      margin: 0.8em 0.2em 0em;
     }
     .entity-cards {
       display: grid;
@@ -900,6 +942,7 @@ export class StatusCardPopup extends LitElement {
       box-sizing: border-box;
       overflow-x: hidden;
       justify-content: center;
+      margin-top: 0.8em;
     }
     .entity-card {
       width: 22.5vw;

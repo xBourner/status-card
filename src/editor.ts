@@ -1,26 +1,27 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { HomeAssistant, computeDomain } from "custom-card-helpers";
+import {
+  HomeAssistant,
+  computeDomain,
+  caseInsensitiveStringCompare,
+  LovelaceCardConfig,
+  fireEvent,
+  SelectOption,
+  Schema,
+  UiAction,
+} from "./ha";
 import { computeLabelCallback } from "./translations";
 import memoizeOne from "memoize-one";
 import {
-  caseInsensitiveStringCompare,
-  fireEvent,
   _formatDomain,
-  CardConfig,
-  CustomizationConfig,
-  Schema,
   SubElementConfig,
-  UiAction,
-  SelectOption,
   SubElementEditor,
   SmartGroupItem,
   computeEntitiesByDomain,
   arraysEqualUnordered,
   compareByFriendlyName,
   ALLOWED_DOMAINS,
-  sortOrder,
-  domainIcon,
+  DOMAIN_ICONS,
 } from "./helpers";
 import {
   mdiFormatListGroupPlus,
@@ -37,7 +38,7 @@ import "./item-editor";
 export class StatusCardEditor extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @property({ attribute: false }) public lovelace?: any;
-  @property({ type: Object }) public _config!: CardConfig;
+  @property({ type: Object }) public _config!: LovelaceCardConfig;
   @state() private _subElementEditorDomain: SubElementConfig | undefined =
     undefined;
   @state() private _subElementEditorEntity: SubElementConfig | undefined =
@@ -62,7 +63,7 @@ export class StatusCardEditor extends LitElement {
     }
   );
 
-  setConfig(config: CardConfig) {
+  setConfig(config: LovelaceCardConfig) {
     this._config = {
       ...config,
       columns: config.columns ?? 4,
@@ -178,9 +179,25 @@ export class StatusCardEditor extends LitElement {
 
       if (areasChanged || floorsChanged || labelsChanged) {
         const possibleToggleDomains = this.possibleToggleDomains;
-        const sortedToggleDomains = possibleToggleDomains.sort(
-          (a, b) => sortOrder.indexOf(a) - sortOrder.indexOf(b)
-        );
+        // Build dynamic order from DOMAIN_ICONS
+        const dynamicOrder: string[] = [];
+        for (const domain of Object.keys(DOMAIN_ICONS)) {
+          const icons = DOMAIN_ICONS[domain];
+          for (const key of Object.keys(icons)) {
+            if (key !== "on" && key !== "off") {
+              dynamicOrder.push(`${_formatDomain(domain)} - ${key}`);
+            }
+          }
+          dynamicOrder.push(_formatDomain(domain));
+        }
+        const sortedToggleDomains = possibleToggleDomains.sort((a, b) => {
+          const indexA = dynamicOrder.indexOf(a);
+          const indexB = dynamicOrder.indexOf(b);
+          return (
+            (indexA === -1 ? dynamicOrder.length : indexA) -
+            (indexB === -1 ? dynamicOrder.length : indexB)
+          );
+        });
 
         this._config = {
           ...this._config,
@@ -708,10 +725,25 @@ export class StatusCardEditor extends LitElement {
       );
     }
 
+    // Build dynamic order from DOMAIN_ICONS
+    const dynamicOrder: string[] = [];
+    for (const domain of Object.keys(DOMAIN_ICONS)) {
+      const icons = DOMAIN_ICONS[domain];
+      // deviceClass-Keys: alles außer "on"/"off"
+      for (const key of Object.keys(icons)) {
+        if (key !== "on" && key !== "off") {
+          dynamicOrder.push(`${_formatDomain(domain)} - ${key}`);
+        }
+      }
+      // Domain selbst
+      dynamicOrder.push(_formatDomain(domain));
+    }
+
     const domains = new Set(
       entities
         .map((e) => computeDomain(e.entity_id))
         .filter((d) => d !== "binary_sensor" && d !== "cover" && d !== "switch")
+        .map((d) => _formatDomain(d))
     );
 
     const deviceClassDomainPairs = new Set<string>();
@@ -732,13 +764,14 @@ export class StatusCardEditor extends LitElement {
 
     const formattedDeviceClasses = [...deviceClassDomainPairs];
 
+    // Sort by dynamicOrder
     return [...domains, ...formattedDeviceClasses, ...extraEntities].sort(
       (a, b) => {
-        const indexA = sortOrder.findIndex((item) => a.startsWith(item));
-        const indexB = sortOrder.findIndex((item) => b.startsWith(item));
+        const indexA = dynamicOrder.indexOf(a);
+        const indexB = dynamicOrder.indexOf(b);
         return (
-          (indexA === -1 ? sortOrder.length : indexA) -
-          (indexB === -1 ? sortOrder.length : indexB)
+          (indexA === -1 ? dynamicOrder.length : indexA) -
+          (indexB === -1 ? dynamicOrder.length : indexB)
         );
       }
     );
@@ -787,7 +820,7 @@ export class StatusCardEditor extends LitElement {
   }
 
   private _itemChanged(
-    ev: CustomEvent<CustomizationConfig>,
+    ev: CustomEvent<LovelaceCardConfig>,
     editorTarget: { index?: number } | undefined,
     customizationKey: "customization"
   ): void {
@@ -837,11 +870,11 @@ export class StatusCardEditor extends LitElement {
     this._editItem(ev, editorKey);
   }
 
-  private _itemChangedDomain(ev: CustomEvent<CustomizationConfig>): void {
+  private _itemChangedDomain(ev: CustomEvent<LovelaceCardConfig>): void {
     this._itemChanged(ev, this._subElementEditorDomain, "customization");
   }
 
-  private _itemChangedEntity(ev: CustomEvent<CustomizationConfig>): void {
+  private _itemChangedEntity(ev: CustomEvent<LovelaceCardConfig>): void {
     this._itemChanged(ev, this._subElementEditorEntity, "customization");
   }
 
@@ -872,7 +905,7 @@ export class StatusCardEditor extends LitElement {
   private _renderSubElementEditor(
     editorKey: "domain" | "entity",
     goBackHandler: () => void,
-    itemChangedHandler: (ev: CustomEvent<CustomizationConfig>) => void
+    itemChangedHandler: (ev: CustomEvent<LovelaceCardConfig>) => void
   ) {
     const editorName = `_subElementEditor${
       editorKey.charAt(0).toUpperCase() + editorKey.slice(1)
@@ -909,7 +942,7 @@ export class StatusCardEditor extends LitElement {
   }
 
   private _customizationChanged(
-    ev: CustomEvent<CustomizationConfig[]>,
+    ev: CustomEvent<LovelaceCardConfig[]>,
     customizationKey: "domain"
   ): void {
     ev.stopPropagation();
@@ -920,12 +953,12 @@ export class StatusCardEditor extends LitElement {
       config: {
         ...this._config,
         customization: ev.detail,
-      } as CardConfig,
+      } as LovelaceCardConfig,
     });
   }
 
   private _customizationChangedDomain(
-    ev: CustomEvent<CustomizationConfig[]>
+    ev: CustomEvent<LovelaceCardConfig[]>
   ): void {
     this._customizationChanged(ev, "domain");
   }
@@ -1211,7 +1244,7 @@ export class StatusCardEditor extends LitElement {
     this._config = {
       ...(this._config || ({} as any)),
       hidden_entities,
-    } as CardConfig;
+    } as LovelaceCardConfig;
     fireEvent(this, "config-changed", { config: { ...this._config } });
   };
 
@@ -1333,6 +1366,24 @@ export class StatusCardEditor extends LitElement {
     return res;
   }
 
+  private _domainIcon(
+    domain: string,
+    state: string = "on",
+    deviceClass?: string
+  ): string {
+    const icons: any = DOMAIN_ICONS as any;
+    if (domain in icons) {
+      const def = icons[domain];
+      if (typeof def === "string") return def;
+      if (deviceClass && def[deviceClass])
+        return (
+          def[deviceClass][state === "off" ? "off" : "on"] || def[deviceClass]
+        );
+      return def[state === "off" ? "off" : "on"] || Object.values(def)[0];
+    }
+    return "mdi:help-circle";
+  }
+
   render() {
     if (!this.hass || !this._config) {
       return html`<div>Loading...</div>`;
@@ -1390,7 +1441,7 @@ export class StatusCardEditor extends LitElement {
                     <ha-expansion-panel outlined class="domain-panel">
                       <div slot="header" class="domain-header">
                         <ha-icon
-                          icon=${domainIcon(group.domain, "on")}
+                          .icon=${this._domainIcon(group.domain, "on")}
                         ></ha-icon>
                         <span class="domain-title"
                           >${this._domainLabel(group.domain)}</span
@@ -1409,10 +1460,9 @@ export class StatusCardEditor extends LitElement {
                                 >
                                   <div slot="header" class="dc-header">
                                     <ha-icon
-                                      icon=${domainIcon(
+                                      .icon=${this._domainIcon(
                                         group.domain,
-                                        "on",
-                                        sub.deviceClass
+                                        "on"
                                       )}
                                     ></ha-icon>
                                     <span class="dc-title">${sub.label}</span>

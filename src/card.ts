@@ -8,23 +8,14 @@ import type { HassEntity } from "home-assistant-js-websocket";
 import "./popup-dialog";
 import { computeLabelCallback, translateEntityState } from "./translations";
 import {
-  actionHandler,
-  applyThemesOnElement,
-  STATES_OFF,
-  CardConfig,
-  AreaRegistryEntry,
-  DeviceRegistryEntry,
-  EntityRegistryEntry,
   DeviceClassItem,
   DomainItem,
   ExtraItem,
   AnyItem,
-  Schema,
-  CustomizationConfig,
   GroupItem,
   computeEntitiesByDomain,
   typeKey,
-  domainIcon,
+  DOMAIN_ICONS,
   ALLOWED_DOMAINS,
 } from "./helpers";
 import {
@@ -35,13 +26,21 @@ import {
   ActionHandlerEvent,
   ActionConfig,
   formatNumber,
-} from "custom-card-helpers";
+  actionHandler,
+  applyThemesOnElement,
+  LovelaceCardConfig,
+  AreaRegistryEntry,
+  DeviceRegistryEntry,
+  EntityRegistryEntry,
+  STATES_OFF,
+  Schema,
+} from "./ha";
 import { filterEntitiesByRuleset } from "./smart_groups";
 
 @customElement("status-card")
 export class StatusCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
-  @property({ type: Object }) public _config!: CardConfig;
+  @property({ type: Object }) public _config!: LovelaceCardConfig;
 
   @state() public areas?: AreaRegistryEntry[] = [];
   @state() public devices: DeviceRegistryEntry[] = [];
@@ -116,9 +115,9 @@ export class StatusCard extends LitElement {
     DeviceRegistryEntry[],
     AreaRegistryEntry[],
     HomeAssistant["states"],
-    CardConfig["area"] | null,
-    CardConfig["floor"] | null,
-    CardConfig["label"] | null,
+    LovelaceCardConfig["area"] | null,
+    LovelaceCardConfig["floor"] | null,
+    LovelaceCardConfig["label"] | null,
     string[],
     string[],
     string[]
@@ -142,9 +141,9 @@ export class StatusCard extends LitElement {
       DeviceRegistryEntry[],
       AreaRegistryEntry[],
       HomeAssistant["states"],
-      CardConfig["area"] | null,
-      CardConfig["floor"] | null,
-      CardConfig["label"] | null,
+      LovelaceCardConfig["area"] | null,
+      LovelaceCardConfig["floor"] | null,
+      LovelaceCardConfig["label"] | null,
       string[],
       string[],
       string[]
@@ -278,7 +277,7 @@ export class StatusCard extends LitElement {
     });
   }
 
-  public setConfig(config: CardConfig): void {
+  public setConfig(config: LovelaceCardConfig): void {
     if (!config) {
       throw new Error("Invalid configuration.");
     }
@@ -353,7 +352,9 @@ export class StatusCard extends LitElement {
     if (!this._config || !this.hass) return;
 
     const oldHass = changedProps.get("hass") as HomeAssistant | undefined;
-    const oldConfig = changedProps.get("_config") as CardConfig | undefined;
+    const oldConfig = changedProps.get("_config") as
+      | LovelaceCardConfig
+      | undefined;
 
     if (changedProps.has("selectedDomain") && this.selectedDomain) {
       const domain = this.selectedDomain;
@@ -517,17 +518,15 @@ export class StatusCard extends LitElement {
     }
   }
 
-  private _customizationIndex = memoizeOne((list?: CustomizationConfig[]) => {
-    const map = new Map<string, CustomizationConfig>();
+  private _customizationIndex = memoizeOne((list?: LovelaceCardConfig[]) => {
+    const map = new Map<string, LovelaceCardConfig>();
     (list ?? []).forEach((c) => {
       if (c.type) map.set(c.type.toLowerCase(), c);
     });
     return map;
   });
 
-  public getCustomizationForType(
-    type: string
-  ): CustomizationConfig | undefined {
+  public getCustomizationForType(type: string): LovelaceCardConfig | undefined {
     if (!type) return undefined;
     const map = this._customizationIndex(this._config.customization);
     return map.get(type.toLowerCase());
@@ -559,16 +558,32 @@ export class StatusCard extends LitElement {
       return entity.attributes.icon;
     }
 
-    if (!entity) {
-      const isInverted = customization?.invert === true;
-      const state = isInverted ? "off" : "on";
-      let fallbackDomain = domain;
-      if (!deviceClass && domain.includes(".")) {
-        fallbackDomain = domain.split(".")[0];
-      }
-
-      return domainIcon(fallbackDomain, state, deviceClass);
+    // Fallback: Use DOMAIN_ICONS from helpers.ts
+    const isInverted = customization?.invert === true;
+    const state = isInverted ? "off" : "on";
+    let fallbackDomain = domain;
+    if (!deviceClass && domain.includes(".")) {
+      fallbackDomain = domain.split(".")[0];
     }
+
+    // Try DOMAIN_ICONS lookup
+    if (DOMAIN_ICONS && DOMAIN_ICONS[fallbackDomain]) {
+      const icons = DOMAIN_ICONS[fallbackDomain];
+      if (deviceClass && typeof icons === "object") {
+        const dc = icons[deviceClass];
+        if (dc) {
+          if (typeof dc === "string") return dc;
+          if (typeof dc === "object" && "on" in dc && "off" in dc)
+            return dc[state] || dc["on"] || dc["off"];
+        }
+      }
+      if (typeof icons === "object" && "on" in icons && "off" in icons) {
+        return icons[state] || icons["on"] || icons["off"];
+      }
+      if (typeof icons === "string") return icons;
+    }
+
+    // No domainIcon fallback available here
     return "";
   }
 
@@ -828,7 +843,7 @@ export class StatusCard extends LitElement {
 
   private _computeExtraItems = memoizeOne(
     (
-      cfg: CardConfig,
+      cfg: LovelaceCardConfig,
       states: { [entity_id: string]: HassEntity }
     ): ExtraItem[] => {
       const content = cfg.content || [];
@@ -841,8 +856,8 @@ export class StatusCard extends LitElement {
           const entity: HassEntity | undefined = states[eid];
           if (!entity) return acc;
 
-          const cust: CustomizationConfig | undefined = cfg.customization?.find(
-            (c: CustomizationConfig) => c.type === eid
+          const cust: LovelaceCardConfig | undefined = cfg.customization?.find(
+            (c: LovelaceCardConfig) => c.type === eid
           );
           if (
             cust &&

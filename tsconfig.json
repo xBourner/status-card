@@ -10,8 +10,9 @@
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
     "outDir": "./dist",
-    "rootDir": "."
+    "rootDir": ".",
+    "noImplicitAny": false
   },
-  "include": ["src/**/*.ts", "package.json"],
+  "include": ["src/**/*.ts", "src/ha/", "package.json"],
   "exclude": ["node_modules"]
 }

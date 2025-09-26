@@ -1,27 +1,30 @@
 import { LitElement, html } from "lit";
-import { HomeAssistant } from "custom-card-helpers";
 import { customElement, property } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import { css, CSSResult, nothing } from "lit";
 import { mdiClose, mdiPencil } from "@mdi/js";
 import {
+  HomeAssistant,
+  LovelaceCardConfig,
   fireEvent,
-  CustomizationConfig,
-  EditorTarget,
-  HTMLElementValue,
   SelectOption,
-} from "./helpers";
+  EditorTarget,
+} from "./ha";
+
+interface HTMLElementValue extends HTMLElement {
+  value: string;
+}
 
 abstract class BaseItemsEditor extends LitElement {
   @property({ attribute: false }) hass?: HomeAssistant;
   @property({ type: Array }) SelectOptions: SelectOption[] = [];
 
-  protected abstract customizationkey: CustomizationConfig[] | undefined;
+  protected abstract customizationkey: LovelaceCardConfig[] | undefined;
   protected abstract customizationChangedEvent: string;
 
-  private _entityKeys = new WeakMap<CustomizationConfig, string>();
+  private _entityKeys = new WeakMap<LovelaceCardConfig, string>();
 
-  private _getKey(action: CustomizationConfig) {
+  private _getKey(action: LovelaceCardConfig) {
     if (!this._entityKeys.has(action)) {
       this._entityKeys.set(action, Math.random().toString());
     }
@@ -32,6 +35,12 @@ abstract class BaseItemsEditor extends LitElement {
     if (!this.hass) {
       return nothing;
     }
+    const selectedTypes = new Set(
+      (this.customizationkey || []).map((conf) => conf.type)
+    );
+    const availableOptions = this.SelectOptions.filter(
+      (option) => !selectedTypes.has(option.value)
+    );
 
     return html`
       <div class="customization">
@@ -57,12 +66,10 @@ abstract class BaseItemsEditor extends LitElement {
                 @closed=${(ev: any) => ev.stopPropagation()}
                 @value-changed=${this._valueChanged}
               >
-                ${this.SelectOptions.map(
-                  (option) =>
-                    html`<mwc-list-item .value=${option.value}
-                      >${option.label}</mwc-list-item
-                    >`
-                )}
+                <mwc-list-item .value=${conf.type} selected disabled>
+                  ${this.SelectOptions.find((o) => o.value === conf.type)
+                    ?.label || conf.type}
+                </mwc-list-item>
               </ha-select>
               <ha-icon-button
                 .label=${this.hass!.localize("ui.common.remove")}
@@ -98,7 +105,7 @@ abstract class BaseItemsEditor extends LitElement {
             @closed=${(ev: any) => ev.stopPropagation()}
             @click=${this._addRow}
           >
-            ${this.SelectOptions.map(
+            ${availableOptions.map(
               (option) =>
                 html`<mwc-list-item .value=${option.value}
                   >${option.label}</mwc-list-item
@@ -118,7 +125,7 @@ abstract class BaseItemsEditor extends LitElement {
     const index = (ev.target as any).index;
     const newCustomization = this.customizationkey.concat();
     newCustomization[index] = { ...newCustomization[index], type: value || "" };
-    fireEvent(this, this.customizationChangedEvent, newCustomization);
+    fireEvent(this, "config-changed", newCustomization as any);
   }
 
   private _removeRow(ev: Event): void {
@@ -127,11 +134,7 @@ abstract class BaseItemsEditor extends LitElement {
     if (index != undefined) {
       const customization = this.customizationkey!.concat();
       customization.splice(index, 1);
-      fireEvent<CustomizationConfig[]>(
-        this,
-        this.customizationChangedEvent,
-        customization
-      );
+      fireEvent(this, "config-changed", customization as any);
     }
   }
 
@@ -139,7 +142,7 @@ abstract class BaseItemsEditor extends LitElement {
     ev.stopPropagation();
     const index = (ev.target as EditorTarget).index;
     if (index != undefined) {
-      fireEvent<number>(this, "edit-item", index);
+      fireEvent(this, "edit-item", index);
     }
   }
 
@@ -155,11 +158,11 @@ abstract class BaseItemsEditor extends LitElement {
       return;
     }
     const preset = selectElement.value;
-    const newItem: CustomizationConfig = { type: preset };
-    fireEvent<CustomizationConfig[]>(this, this.customizationChangedEvent, [
+    const newItem: LovelaceCardConfig = { type: preset };
+    fireEvent(this, "config-changed", [
       ...this.customizationkey,
       newItem,
-    ]);
+    ] as any);
     selectElement.value = "";
   }
 
@@ -190,7 +193,7 @@ abstract class BaseItemsEditor extends LitElement {
 
 @customElement("status-items-editor")
 export class StatusItemsEditor extends BaseItemsEditor {
-  @property({ attribute: false }) customization?: CustomizationConfig[];
+  @property({ attribute: false }) customization?: LovelaceCardConfig[];
   protected customizationChangedEvent = "config-changed";
   protected get customizationkey() {
     return this.customization;

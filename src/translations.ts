@@ -1,5 +1,5 @@
-import { HomeAssistant } from "custom-card-helpers";
-import { Schema, ALLOWED_DOMAINS, deviceClasses } from "./helpers";
+import { HomeAssistant, Schema } from "./ha";
+import { ALLOWED_DOMAINS, deviceClasses } from "./helpers";
 
 export function translateEntityState(
   hass: HomeAssistant,

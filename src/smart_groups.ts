@@ -1,5 +1,13 @@
+import type { HassEntity } from "home-assistant-js-websocket";
 import memoizeOne from "memoize-one";
-// Memoized Map-Erstellung
+import {
+  AreaRegistryEntry,
+  EntityRegistryEntry,
+  DeviceRegistryEntry,
+  computeDomain,
+} from "./ha";
+import type { StatusCard } from "./card";
+
 const memoEntityMap = memoizeOne(
   (entities: any[] = []) => new Map(entities.map((e) => [e.entity_id, e]))
 );
@@ -70,14 +78,6 @@ const memoFilterEntitiesByRuleset = memoizeOne(
     });
   }
 );
-import type { HassEntity } from "home-assistant-js-websocket";
-import { computeDomain } from "custom-card-helpers";
-import {
-  AreaRegistryEntry,
-  EntityRegistryEntry,
-  DeviceRegistryEntry,
-} from "./helpers";
-import type { StatusCard } from "./card";
 
 export function filterEntitiesByRuleset(
   card: StatusCard,

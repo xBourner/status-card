@@ -1,107 +1,10 @@
-import memoizeOne from "memoize-one";
-import { ActionConfig } from "custom-card-helpers";
-import { noChange } from "lit";
-import {
-  AttributePart,
-  directive,
-  Directive,
-  DirectiveParameters,
-} from "lit/directive.js";
 import type { HassEntity } from "home-assistant-js-websocket";
-import "custom-card-helpers";
-
-declare module "custom-card-helpers" {
-  interface HomeAssistant {
-    // die zusätzlichen Properties
-    entities: { [id: string]: EntityRegistryEntry };
-    devices: { [id: string]: DeviceRegistryEntry };
-    areas: { [id: string]: AreaRegistryEntry };
-  }
-}
-
-export interface CustomizationConfig {
-  type: string;
-  invert?: boolean;
-  name?: string;
-  icon?: string;
-  icon_color?: string;
-  state?: string;
-  state_not?: string;
-  invert_state?: "true" | "false";
-  tap_action?: ActionConfig;
-  hold_action?: ActionConfig;
-  double_tap_action?: ActionConfig;
-  icon_css?: string;
-  background_color?: number[];
-  show_total_entities?: boolean;
-  show_total_number?: boolean;
-  show_entity_picture?: boolean;
-  card?: any;
-}
-
-export interface CardConfig {
-  area?: string[];
-  extra_entities?: string[];
-  hide_person?: boolean;
-  list_mode?: boolean;
-  hide_content_name?: boolean;
-  floor?: string[];
-  label?: string[];
-  hidden_entities?: string[];
-  hidden_labels?: string[];
-  hidden_areas?: string[];
-  columns?: number;
-  invert?: Record<string, Record<string, boolean>>;
-  content?: string[];
-  customization?: CustomizationConfig[];
-  theme?: string;
-  color?: string;
-  background_color?: number[];
-  show_total_number?: boolean;
-  show_total_entities?: boolean;
-  tap_action?: ActionConfig;
-  hold_action?: ActionConfig;
-  double_tap_action?: ActionConfig;
-  square?: boolean;
-  filter?: string;
-  invert_state?: "true" | "false";
-  hide_filter?: string;
-  label_filter?: boolean;
-  multiple_areas?: boolean;
-  multiple_floors?: boolean;
-  icon_color?: string;
-  rulesets?: any;
-  content_layout?: "horizontal" | "vertical";
-  no_scroll?: boolean;
-  card?: any;
-}
-
-export interface EntityRegistryEntry {
-  entity_id: string;
-  device_id?: string;
-  area_id?: string;
-  hidden_by?: string;
-  hidden?: boolean;
-  disabled_by?: string;
-  labels?: string[];
-  entity_category?: string;
-  platform?: string;
-  config_entry_id?: string;
-}
-
-export interface AreaRegistryEntry {
-  area_id: string;
-  floor_id?: string;
-  name: string;
-}
-
-export interface DeviceRegistryEntry {
-  area_id: string;
-  labels?: string[];
-  id: string;
-  model?: string;
-  manufacturer?: string;
-}
+import {
+  AreaRegistryEntry,
+  EntityRegistryEntry,
+  DeviceRegistryEntry,
+  caseInsensitiveStringCompare,
+} from "./ha";
 
 export interface DomainItem {
   type: "domain";
@@ -144,24 +47,6 @@ export interface SmartGroupItem {
 
 export type AnyItem = DomainItem | DeviceClassItem | ExtraItem | GroupItem;
 
-export type UiAction =
-  | Exclude<ActionConfig["action"], "fire-dom-event">
-  | "perform-action";
-
-export interface Schema {
-  name: string;
-  selector?: string;
-  required?: boolean;
-  default?: string;
-  type?: string;
-}
-
-export interface SelectOption {
-  value: string;
-  label: string;
-  type?: "domain" | "entity";
-}
-
 export interface SubElementEditor {
   index?: number;
 }
@@ -172,264 +57,139 @@ export interface SubElementConfig {
   schemaType?: string;
 }
 
-export interface EditorTarget extends EventTarget {
-  value?: string;
-  index?: number;
-  checked?: boolean;
-  configValue?: string;
-  type?: HTMLInputElement["type"];
-  config: ActionConfig;
-}
-
-export interface HTMLElementValue extends HTMLElement {
-  value: string;
-}
-
 interface DeviceClasses {
   [key: string]: string[];
 }
 
-export function domainIcon(
-  domain: string,
-  state?: string,
-  deviceClass?: string
-): string {
-  switch (domain) {
-    case "alarm_control_panel":
-      return state === "off" ? "mdi:alarm-light-off" : "mdi:alarm-light";
-    case "siren":
-      return state === "off" ? "mdi:bell-off" : "mdi:bell-ring";
-    case "lock":
-      return state === "off" ? "mdi:lock" : "mdi:lock-open";
-    case "light":
-      return state === "off" ? "mdi:lightbulb-off" : "mdi:lightbulb";
-    case "media_player":
-      return state === "off" ? "mdi:cast-off" : "mdi:cast";
-    case "climate":
-      return state === "off" ? "mdi:thermostat-cog" : "mdi:thermostat";
-    case "vacuum":
-      return state === "off" ? "mdi:robot-vacuum-off" : "mdi:robot-vacuum";
-    case "fan":
-      return state === "off" ? "mdi:fan-off" : "mdi:fan";
-    case "switch":
-      if (deviceClass) {
-        switch (deviceClass) {
-          case "outlet":
-            return state === "off" ? "mdi:power-plug-off" : "mdi:power-plug";
-          case "switch":
-            return state === "off"
-              ? "mdi:toggle-switch-off"
-              : "mdi:toggle-switch";
-          default:
-            return state === "off"
-              ? "mdi:toggle-switch-off"
-              : "mdi:toggle-switch";
-        }
-      }
-      return state === "off" ? "mdi:toggle-switch-off" : "mdi:toggle-switch";
-    case "cover":
-      if (deviceClass) {
-        switch (deviceClass) {
-          case "door":
-            return state === "off" ? "mdi:door-closed" : "mdi:door-open";
-          case "garage":
-            return state === "off" ? "mdi:garage" : "mdi:garage-open";
-          case "gate":
-            return state === "off" ? "mdi:gate" : "mdi:gate-open";
-          case "blind":
-            return state === "off" ? "mdi:blinds" : "mdi:blinds-open";
-          case "curtain":
-            return state === "off" ? "mdi:curtains-closed" : "mdi:curtains";
-          case "damper":
-            return state === "off" ? "mdi:valve-closed" : "mdi:valve";
-          case "awning":
-            return state === "off" ? "mdi:awning-outline" : "mdi:awning";
-          case "shutter":
-            return state === "off"
-              ? "mdi:window-shutter"
-              : "mdi:window-shutter-open";
-          case "shade":
-            return state === "off"
-              ? "mdi:roller-shade-closed"
-              : "mdi:roller-shade";
-          case "window":
-            return state === "off" ? "mdi:window-closed" : "mdi:window-open";
-          default:
-            return "mdi:help-circle";
-        }
-      }
-      return state === "off" ? "mdi:window-closed" : "mdi:window-open";
-    case "binary_sensor":
-      if (deviceClass) {
-        switch (deviceClass) {
-          case "door":
-            return state === "off" ? "mdi:door-closed" : "mdi:door-open";
-          case "window":
-            return state === "off" ? "mdi:window-closed" : "mdi:window-open";
-          case "lock":
-            return state === "off" ? "mdi:lock-open" : "mdi:lock";
-          case "motion":
-            return state === "off"
-              ? "mdi:motion-sensor-off"
-              : "mdi:motion-sensor";
-          case "presence":
-            return state === "off" ? "mdi:home-off" : "mdi:home";
-          case "occupancy":
-            return state === "off" ? "mdi:seat-outline" : "mdi:seat";
-          case "vibration":
-            return state === "off" ? "mdi:vibrate-off" : "mdi:vibrate";
-          case "plug":
-            return state === "off" ? "mdi:power-plug-off" : "mdi:power-plug";
-          case "power":
-            return state === "off" ? "mdi:power-off" : "mdi:power";
-          case "battery":
-            return state === "off" ? "mdi:battery-off" : "mdi:battery";
-          case "battery_charging":
-            return state === "off"
-              ? "mdi:battery-alert"
-              : "mdi:battery-charging";
-          case "moving":
-            return state === "off" ? "mdi:car-off" : "mdi:car";
-          case "running":
-            return state === "off" ? "mdi:play-pause" : "mdi:play";
-          case "gas":
-            return state === "off" ? "mdi:gas-cylinder" : "mdi:gas-cylinder";
-          case "carbon_monoxide":
-            return state === "off" ? "mdi:molecule-co" : "mdi:molecule-co";
-          case "cold":
-            return state === "off" ? "mdi:snowflake-off" : "mdi:snowflake";
-          case "heat":
-            return state === "off"
-              ? "mdi:weather-sunny-off"
-              : "mdi:weather-sunny";
-          case "moisture":
-            return state === "off" ? "mdi:water-off" : "mdi:water";
-          case "connectivity":
-            return state === "off" ? "mdi:connection" : "mdi:connection";
-          case "opening":
-            return state === "off" ? "mdi:shield-lock" : "mdi:shield-lock-open";
-          case "garage_door":
-            return state === "off" ? "mdi:garage" : "mdi:garage-open";
-          case "light":
-            return state === "off" ? "mdi:lightbulb-off" : "mdi:lightbulb-on";
-          case "problem":
-            return state === "off"
-              ? "mdi:alert-circle-check"
-              : "mdi:alert-circle";
-          case "safety":
-            return state === "off"
-              ? "mdi:shield-alert-outline"
-              : "mdi:shield-alert";
-          case "smoke":
-            return state === "off"
-              ? "mdi:smoke-detector-off"
-              : "mdi:smoke-detector";
-          case "sound":
-            return state === "off" ? "mdi:volume-off" : "mdi:volume-high";
-          case "tamper":
-            return state === "off"
-              ? "mdi:shield-home-outline"
-              : "mdi:shield-home";
-          case "update":
-            return state === "off" ? "mdi:autorenew-off" : "mdi:autorenew";
-          default:
-            return "mdi:help-circle";
-        }
-      }
-      return state === "off"
-        ? "mdi:radiobox-blank"
-        : "mdi:checkbox-marked-circle";
-    case "humidifier":
-      return state === "off" ? "mdi:water-off" : "mdi:air-humidifier";
-    case "lawn_mower":
-      return state === "off" ? "mdi:lawn-mower" : "mdi:robot-mower";
-    case "valve":
-      return state === "off" ? "mdi:valve" : "mdi:valve";
-    case "water_heater":
-      return state === "off" ? "mdi:water-pump-off" : "mdi:water-boiler";
-    case "remote":
-      return state === "off" ? "mdi:remote-off" : "mdi:remote";
-    case "device_tracker":
-      return state === "off" ? "mdi:account-off" : "mdi:cellphone";
-    case "update":
-      return state === "off" ? "mdi:autorenew-off" : "mdi:autorenew";
-    case "input_boolean":
-      return state === "off" ? "mdi:toggle-switch-off" : "mdi:toggle-switch";
-    case "timer":
-      return state === "off" ? "mdi:timer-off" : "mdi:timer-outline";
-    case "counter":
-      return state === "off" ? "mdi:numeric" : "mdi:counter";
-    case "calendar":
-      return state === "off" ? "mdi:calendar-off" : "mdi:calendar";
-    case "person":
-      return "mdi:account";
-    default:
-      console.warn(`Unable to find icon for domain ${domain} (${state})`);
-      return "mdi:help-circle";
-  }
-}
+export const DOMAIN_ICONS = {
+  alarm_control_panel: { on: "mdi:alarm-light", off: "mdi:alarm-light-off" },
+  siren: { on: "mdi:bell-ring", off: "mdi:bell_off" },
+  lock: { on: "mdi:lock-open", off: "mdi:lock" },
+  light: { on: "mdi:lightbulb-multiple", off: "mdi:lightbulb-multiple-off" },
+  media_player: { on: "mdi:cast", off: "mdi:cast-off" },
+  climate: { on: "mdi:thermostat", off: "mdi:thermostat-cog" },
+  humidifier: { on: "mdi:air-humidifier", off: "mdi:air-humidifier-off" },
+  switch: {
+    on: "mdi:toggle-switch",
+    off: "mdi:toggle-switch-off",
+    switch: { on: "mdi:toggle-switch", off: "mdi:toggle-switch-off" },
+    outlet: { on: "mdi:power-plug", off: "mdi:power-plug-off" },
+  },
+  vacuum: { on: "mdi:robot-vacuum", off: "mdi:robot-vacuum-off" },
+  lawn_mower: { on: "robot-mower", off: "mdi:robot-mower" },
+  fan: { on: "mdi:fan", off: "mdi:fan-off" },
 
-export const sortOrder = [
-  "alarm_control_panel",
-  "siren",
-  "lock",
-  "light",
-  "media_player",
-  "climate",
-  "Switch - switch",
-  "Switch - outlet",
-  "vacuum",
-  "fan",
-  "humidifier",
-  "lawn_mower",
-  "valve",
-  "water_heater",
-  "remote",
-  "Cover - door",
-  "Cover - window",
-  "Cover - garage",
-  "Cover - gate",
-  "Cover - blind",
-  "Cover - curtain",
-  "Cover - damper",
-  "Cover - awning",
-  "Cover - shade",
-  "Cover - shutter",
-  "Binary Sensor - door",
-  "Binary Sensor - window",
-  "Binary Sensor - lock",
-  "Binary Sensor - motion",
-  "Binary Sensor - presence",
-  "Binary Sensor - occupancy",
-  "Binary Sensor - vibration",
-  "Binary Sensor - plug",
-  "Binary Sensor - power",
-  "Binary Sensor - battery",
-  "Binary Sensor - battery_charging",
-  "Binary Sensor - moving",
-  "Binary Sensor - running",
-  "Binary Sensor - gas",
-  "Binary Sensor - carbon_monoxide",
-  "Binary Sensor - cold",
-  "Binary Sensor - heat",
-  "Binary Sensor - moisture",
-  "Binary Sensor - connectivity",
-  "Binary Sensor - opening",
-  "Binary Sensor - garage_door",
-  "Binary Sensor - light",
-  "Binary Sensor - problem",
-  "Binary Sensor - safety",
-  "Binary Sensor - smoke",
-  "Binary Sensor - sound",
-  "Binary Sensor - tamper",
-  "Binary Sensor - update",
-  "update",
-  "device_tracker",
-  "input_boolean",
-  "timer",
-  "counter",
-  "calendar",
-];
+  cover: {
+    on: "mdi:garage-open",
+    off: "mdi:garage",
+    garage: { on: "mdi:garage-open", off: "mdi:garage" },
+    door: { on: "mdi:door-open", off: "mdi:door-closed" },
+    gate: { on: "mdi:gate-open", off: "mdi:gate" },
+    blind: { on: "mdi:blinds-open", off: "mdi:blinds" },
+    curtain: { on: "mdi:curtains", off: "mdi:curtains-closed" },
+    damper: { on: "mdi:valve-open", off: "mdi:valve-closed" },
+    awning: { on: "mdi:awning-outline", off: "mdi:awning-outline" },
+    shutter: { on: "mdi:window-shutter-open", off: "mdi:window-shutter" },
+    shade: { on: "mdi:roller-shade", off: "mdi:roller-shade-closed" },
+    window: { on: "mdi:window-open", off: "mdi:window-closed" },
+  },
+  binary_sensor: {
+    on: "mdi:power-off",
+    off: "mdi:power-off",
+    motion: { on: "mdi:motion-sensor", off: "mdi:motion-sensor-off" },
+    moisture: { on: "mdi:water-alert", off: "mdi:water-off" },
+    window: { on: "mdi:window-open", off: "mdi:window-closed" },
+    door: { on: "mdi:door-open", off: "mdi:door-closed" },
+    lock: { on: "mdi:lock-open", off: "mdi:lock" },
+    presence: { on: "mdi:home-outline", off: "mdi:home-export-outline" },
+    occupancy: { on: "mdi:seat", off: "mdi:seat-outline" },
+    vibration: { on: "mdi:vibrate", off: "mdi:vibrate-off" },
+    opening: { on: "mdi:shield-lock-open", off: "mdi:shield-lock" },
+    garage_door: { on: "mdi:garage-open", off: "mdi:garage" },
+    problem: {
+      on: "mdi:alert-circle-outline",
+      off: "mdi:alert-circle-check-outline",
+    },
+    smoke: {
+      on: "mdi:smoke-detector-outline",
+      off: "mdi:smoke-detector-off-outline",
+    },
+    running: { on: "mdi:play", off: "mdi:pause" },
+    plug: { on: "mdi:power-plug", off: "mdi:power-plug-off" },
+    power: { on: "mdi:power", off: "mdi:power-off" },
+    battery: { on: "mdi:battery-alert", off: "mdi:battery" },
+    battery_charging: { on: "mdi:battery-charging", off: "mdi:battery-check" },
+    gas: { on: "mdi:gas-station-outline", off: "mdi:gas-station-off-outline" },
+    carbon_monoxide: { on: "mdi:molecule-co", off: "mdi:molecule-co" },
+    cold: { on: "mdi:snowflake", off: "mdi:snowflake-off" },
+    heat: { on: "mdi:weather-sunny", off: "mdi:weather-sunny-off" },
+    connectivity: { on: "mdi:connection", off: "mdi:connection" },
+    safety: { on: "mdi:shield-alert-outline", off: "mdi:shield-check-outline" },
+    sound: { on: "mdi:volume-high", off: "mdi:volume-off" },
+    update: { on: "mdi:autorenew", off: "mdi:autorenew-off" },
+    tamper: { on: "mdi:shield-home", off: "mdi:shield-home" },
+    light: { on: "mdi:lightbulb-outline", off: "mdi:lightbulb-off-outline" },
+    moving: { on: "mdi:car", off: "mdi:car-off" },
+  },
+  person: { on: "mdi:account", off: "mdi:account-off" },
+  device_tracker: { on: "mdi:account", off: "mdi:account-off" },
+  valve: { on: "mdi:valve", off: "mdi:valve-closed" },
+  water_heater: { on: "mdi:water-boiler", off: "mdi:water-pump-off" },
+  remote: { on: "mdi:remote", off: "mdi:remote-off" },
+  update: { on: "mdi:autorenew", off: "mdi:autorenew-off" },
+  air_quality: { on: "mdi:air-filter", off: "mdi:air-filter" },
+  camera: { on: "mdi:camera", off: "mdi:camera-off" },
+  calendar: { on: "mdi:calendar", off: "mdi:calendar-remove" },
+  scene: { on: "mdi:movie", off: "mdi:movie-off" },
+  notifications: { on: "mdi:bell", off: "mdi:bell-off" },
+  sensor: { on: "mdi:gauge", off: "mdi:gauge" },
+  script: { on: "mdi:script-text", off: "mdi:script-text" },
+  tags: { on: "mdi:tag-multiple", off: "mdi:tag-multiple" },
+  select: { on: "mdi:format-list-bulleted", off: "mdi:format-list-bulleted" },
+  automation: { on: "mdi:robot", off: "mdi:robot-off" },
+  button: { on: "mdi:gesture-tap-button", off: "mdi:gesture-tap-button" },
+  number: { on: "mdi:numeric", off: "mdi:numeric" },
+  conversation: { on: "mdi:comment-multiple", off: "mdi:comment-multiple" },
+  assist_satellite: {
+    on: "mdi:satellite-variant",
+    off: "mdi:satellite-variant",
+  },
+  counter: { on: "mdi:counter", off: "mdi:counter" },
+  event: { on: "mdi:calendar-star", off: "mdi:calendar-star" },
+  group: {
+    on: "mdi:google-circles-communities",
+    off: "mdi:google-circles-communities",
+  },
+  image: { on: "mdi:image", off: "mdi:image-off" },
+  image_processing: {
+    on: "mdi:image-filter-center-focus",
+    off: "mdi:image-filter-center-focus",
+  },
+  input_boolean: { on: "mdi:toggle-switch", off: "mdi:toggle-switch-off" },
+  input_datetime: { on: "mdi:calendar-clock", off: "mdi:calendar-clock" },
+  input_number: { on: "mdi:numeric", off: "mdi:numeric" },
+  input_select: {
+    on: "mdi:format-list-bulleted",
+    off: "mdi:format-list-bulleted",
+  },
+  input_text: { on: "mdi:text-box", off: "mdi:text-box" },
+  stt: { on: "mdi:record-rec", off: "mdi:record" },
+  sun: { on: "mdi:weather-sunny", off: "mdi:weather-night" },
+  text: { on: "mdi:text-box", off: "mdi:text-box" },
+  date: { on: "mdi:calendar", off: "mdi:calendar-remove" },
+  datetime: { on: "mdi:calendar-clock", off: "mdi:calendar-clock" },
+  time: { on: "mdi:clock-outline", off: "mdi:clock-off" },
+  timer: { on: "mdi:timer-outline", off: "mdi:timer-off" },
+  todo: {
+    on: "mdi:check-circle-outline",
+    off: "mdi:checkbox-blank-circle-outline",
+  },
+  tts: { on: "mdi:volume-high", off: "mdi:volume-off" },
+  wake_word: { on: "mdi:microphone", off: "mdi:microphone-off" },
+  weather: { on: "mdi:weather-partly-cloudy", off: "mdi:weather-night" },
+  zone: { on: "mdi:map-marker", off: "mdi:map-marker-off" },
+  geo_location: { on: "mdi:map-marker", off: "mdi:map-marker-off" },
+};
 
 export const ALLOWED_DOMAINS = [
   "alarm_control_panel",
@@ -502,483 +262,6 @@ export const deviceClasses: DeviceClasses = {
   switch: ["switch", "outlet"],
 };
 
-const caseInsensitiveCollator = memoizeOne(
-  (language: string | undefined) =>
-    new Intl.Collator(language, { sensitivity: "accent" })
-);
-
-const fallbackStringCompare = (a: string, b: string) => {
-  if (a < b) {
-    return -1;
-  }
-  if (a > b) {
-    return 1;
-  }
-
-  return 0;
-};
-
-export const caseInsensitiveStringCompare = (
-  a: string,
-  b: string,
-  language: string | undefined = undefined
-) => {
-  // @ts-ignore
-  if (Intl?.Collator) {
-    return caseInsensitiveCollator(language).compare(a, b);
-  }
-
-  return fallbackStringCompare(a.toLowerCase(), b.toLowerCase());
-};
-
-export function fireEvent<T>(
-  node: HTMLElement | Window,
-  type: string,
-  detail: T
-): void {
-  const event = new CustomEvent(type, {
-    bubbles: false,
-    composed: false,
-    detail: detail,
-  });
-  node.dispatchEvent(event);
-}
-
-interface ActionHandlerType extends HTMLElement {
-  holdTime: number;
-  bind(element: Element, options?: ActionHandlerOptions): void;
-}
-interface ActionHandlerElement extends HTMLElement {
-  actionHandler?: {
-    options: ActionHandlerOptions;
-    start?: (ev: Event) => void;
-    end?: (ev: Event) => void;
-    handleKeyDown?: (ev: KeyboardEvent) => void;
-  };
-}
-
-export interface ActionHandlerOptions {
-  hasHold?: boolean;
-  hasDoubleClick?: boolean;
-  disabled?: boolean;
-}
-
-class ActionHandler extends HTMLElement implements ActionHandlerType {
-  public holdTime = 500;
-
-  protected timer?: number;
-
-  protected held = false;
-
-  private cancelled = false;
-
-  private dblClickTimeout?: number;
-
-  public connectedCallback() {
-    [
-      "touchcancel",
-      "mouseout",
-      "mouseup",
-      "touchmove",
-      "mousewheel",
-      "wheel",
-      "scroll",
-    ].forEach((ev) => {
-      document.addEventListener(
-        ev,
-        () => {
-          this.cancelled = true;
-          if (this.timer) {
-            clearTimeout(this.timer);
-            this.timer = undefined;
-          }
-        },
-        { passive: true }
-      );
-    });
-  }
-
-  public bind(
-    element: ActionHandlerElement,
-    options: ActionHandlerOptions = {}
-  ) {
-    if (
-      element.actionHandler &&
-      deepEqual(options, element.actionHandler.options)
-    ) {
-      return;
-    }
-
-    if (element.actionHandler) {
-      element.removeEventListener("touchstart", element.actionHandler.start!);
-      element.removeEventListener("touchend", element.actionHandler.end!);
-      element.removeEventListener("touchcancel", element.actionHandler.end!);
-
-      element.removeEventListener("mousedown", element.actionHandler.start!);
-      element.removeEventListener("click", element.actionHandler.end!);
-
-      element.removeEventListener(
-        "keydown",
-        element.actionHandler.handleKeyDown!
-      );
-    }
-    element.actionHandler = { options };
-
-    if (options.disabled) {
-      return;
-    }
-
-    element.actionHandler.start = (ev: Event) => {
-      this.cancelled = false;
-      let x: number;
-      let y: number;
-      if ((ev as TouchEvent).touches) {
-        x = (ev as TouchEvent).touches[0].clientX;
-        y = (ev as TouchEvent).touches[0].clientY;
-      } else {
-        x = (ev as MouseEvent).clientX;
-        y = (ev as MouseEvent).clientY;
-      }
-
-      if (options.hasHold) {
-        this.held = false;
-        this.timer = window.setTimeout(() => {
-          this.held = true;
-        }, this.holdTime);
-      }
-    };
-
-    element.actionHandler.end = (ev: Event) => {
-      // Don't respond when moved or scrolled while touch
-      if (ev.currentTarget !== ev.target) {
-        return;
-      }
-      if (
-        ev.type === "touchcancel" ||
-        (ev.type === "touchend" && this.cancelled)
-      ) {
-        return;
-      }
-      const target = ev.target as HTMLElement;
-      // Prevent mouse event if touch event
-      if (ev.cancelable) {
-        ev.preventDefault();
-      }
-      if (options.hasHold) {
-        clearTimeout(this.timer);
-        this.timer = undefined;
-      }
-      if (options.hasHold && this.held) {
-        fireEvent(target, "action", { action: "hold" });
-      } else if (options.hasDoubleClick) {
-        if (
-          (ev.type === "click" && (ev as MouseEvent).detail < 2) ||
-          !this.dblClickTimeout
-        ) {
-          this.dblClickTimeout = window.setTimeout(() => {
-            this.dblClickTimeout = undefined;
-            fireEvent(target, "action", { action: "tap" });
-          }, 250);
-        } else {
-          clearTimeout(this.dblClickTimeout);
-          this.dblClickTimeout = undefined;
-          fireEvent(target, "action", { action: "double_tap" });
-        }
-      } else {
-        fireEvent(target, "action", { action: "tap" });
-      }
-    };
-
-    element.actionHandler.handleKeyDown = (ev: KeyboardEvent) => {
-      if (!["Enter", " "].includes(ev.key)) {
-        return;
-      }
-      (ev.currentTarget as ActionHandlerElement).actionHandler!.end!(ev);
-    };
-
-    element.addEventListener("touchstart", element.actionHandler.start, {
-      passive: true,
-    });
-    element.addEventListener("touchend", element.actionHandler.end);
-    element.addEventListener("touchcancel", element.actionHandler.end);
-
-    element.addEventListener("mousedown", element.actionHandler.start, {
-      passive: true,
-    });
-    element.addEventListener("click", element.actionHandler.end);
-
-    element.addEventListener("keydown", element.actionHandler.handleKeyDown);
-  }
-}
-
-customElements.define("action-handler-status-card", ActionHandler);
-
-const getActionHandler = (): ActionHandler => {
-  const body = document.body;
-  if (body.querySelector("action-handler-status-card")) {
-    return body.querySelector("action-handler-status-card") as ActionHandler;
-  }
-
-  const actionhandler = document.createElement("action-handler-status-card");
-  body.appendChild(actionhandler);
-
-  return actionhandler as ActionHandler;
-};
-
-export const actionHandlerBind = (
-  element: ActionHandlerElement,
-  options?: ActionHandlerOptions
-): void => {
-  const actionhandler: ActionHandler = getActionHandler();
-  if (!actionhandler) {
-    return;
-  }
-  actionhandler.bind(element, options);
-};
-
-export const actionHandler = directive(
-  class extends Directive {
-    update(part: AttributePart, [options]: DirectiveParameters<this>) {
-      actionHandlerBind(part.element as ActionHandlerElement, options);
-      return noChange;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
-    render(_options?: ActionHandlerOptions) {}
-  }
-);
-
-// From https://github.com/epoberezkin/fast-deep-equal
-// MIT License - Copyright (c) 2017 Evgeny Poberezkin
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const deepEqual = (a: any, b: any): boolean => {
-  if (a === b) {
-    return true;
-  }
-
-  if (a && b && typeof a === "object" && typeof b === "object") {
-    if (a.constructor !== b.constructor) {
-      return false;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let i: number | [any, any];
-    let length: number;
-    if (Array.isArray(a)) {
-      length = a.length;
-      if (length !== b.length) {
-        return false;
-      }
-      for (i = length; i-- !== 0; ) {
-        if (!deepEqual(a[i], b[i])) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    if (a instanceof Map && b instanceof Map) {
-      if (a.size !== b.size) {
-        return false;
-      }
-      for (i of a.entries()) {
-        if (!b.has(i[0])) {
-          return false;
-        }
-      }
-      for (i of a.entries()) {
-        if (!deepEqual(i[1], b.get(i[0]))) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    if (a instanceof Set && b instanceof Set) {
-      if (a.size !== b.size) {
-        return false;
-      }
-      for (i of a.entries()) {
-        if (!b.has(i[0])) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    if (ArrayBuffer.isView(a) && ArrayBuffer.isView(b)) {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      length = a.length;
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      if (length !== b.length) {
-        return false;
-      }
-      for (i = length; i-- !== 0; ) {
-        if ((a as Uint8Array)[i] !== (b as Uint8Array)[i]) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    if (a.constructor === RegExp) {
-      return a.source === b.source && a.flags === b.flags;
-    }
-    if (a.valueOf !== Object.prototype.valueOf) {
-      return a.valueOf() === b.valueOf();
-    }
-    if (a.toString !== Object.prototype.toString) {
-      return a.toString() === b.toString();
-    }
-
-    const keys = Object.keys(a);
-    length = keys.length;
-    if (length !== Object.keys(b).length) {
-      return false;
-    }
-    for (i = length; i-- !== 0; ) {
-      if (!Object.prototype.hasOwnProperty.call(b, keys[i])) {
-        return false;
-      }
-    }
-
-    for (i = length; i-- !== 0; ) {
-      const key = keys[i];
-
-      if (!deepEqual(a[key], b[key])) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  // true if both NaN, false otherwise
-  // eslint-disable-next-line no-self-compare
-  return a !== a && b !== b;
-};
-
-export const applyThemesOnElement = (
-  element: any,
-  themes: any,
-  selectedTheme?: string,
-  themeSettings?: Partial<{
-    dark: boolean;
-    primaryColor: string;
-    accentColor: string;
-  }>,
-  main?: boolean
-) => {
-  const themeToApply = selectedTheme || (main ? themes?.theme : undefined);
-  const darkMode =
-    themeSettings?.dark !== undefined
-      ? themeSettings.dark
-      : themes?.darkMode || false;
-
-  if (!element.__themes) {
-    element.__themes = { cacheKey: null, keys: new Set<string>() };
-  }
-
-  let cacheKey = themeToApply || "";
-  let themeRules: Record<string, string> = {};
-
-  // Default theme: only use provided primary/accent colors, do not wipe inline styles
-  if (themeToApply === "default") {
-    const primaryColor = themeSettings?.primaryColor;
-    const accentColor = themeSettings?.accentColor;
-
-    if (primaryColor) {
-      cacheKey = `${cacheKey}__primary_${primaryColor}`;
-      themeRules["primary-color"] = String(primaryColor);
-    }
-    if (accentColor) {
-      cacheKey = `${cacheKey}__accent_${accentColor}`;
-      themeRules["accent-color"] = String(accentColor);
-    }
-
-    // If nothing changes and we already applied the same config, skip
-    if (
-      !primaryColor &&
-      !accentColor &&
-      element.__themes?.cacheKey === "default"
-    ) {
-      return;
-    }
-  }
-
-  // Custom theme: merge base rules with dark/light mode specific overrides if present
-  if (
-    themeToApply &&
-    themeToApply !== "default" &&
-    themes?.themes?.[themeToApply]
-  ) {
-    const { modes, ...base } = themes.themes[themeToApply] || {};
-    themeRules = { ...themeRules, ...base };
-    if (modes) {
-      if (darkMode && modes.dark) {
-        themeRules = { ...themeRules, ...modes.dark };
-      } else if (!darkMode && modes.light) {
-        themeRules = { ...themeRules, ...modes.light };
-      }
-    }
-  } else if (
-    !themeToApply &&
-    (!element.__themes?.keys ||
-      (element.__themes.keys as Set<string>).size === 0)
-  ) {
-    // No theme to apply and nothing set previously
-    return;
-  }
-
-  const prevKeys: Set<string> = element.__themes?.keys || new Set<string>();
-  const newKeys = new Set<string>(Object.keys(themeRules));
-
-  // If default theme with no explicit colors provided, clear previously set vars
-  if (themeToApply === "default" && newKeys.size === 0) {
-    for (const key of prevKeys) {
-      try {
-        element.style.removeProperty(`--${key}`);
-      } catch {}
-    }
-    element.__themes = { cacheKey: "default", keys: new Set<string>() };
-    return;
-  }
-
-  // If cacheKey unchanged and keys are identical, skip reapplying
-  if (element.__themes?.cacheKey === cacheKey) {
-    let same = true;
-    if (prevKeys.size !== newKeys.size) {
-      same = false;
-    } else {
-      for (const k of prevKeys) {
-        if (!newKeys.has(k)) {
-          same = false;
-          break;
-        }
-      }
-    }
-    if (same) return;
-  }
-
-  // Remove variables that are no longer present
-  for (const key of prevKeys) {
-    if (!newKeys.has(key)) {
-      try {
-        element.style.removeProperty(`--${key}`);
-      } catch {}
-    }
-  }
-
-  // Apply new variables
-  for (const [key, value] of Object.entries(themeRules)) {
-    element.style.setProperty(`--${key}`, String(value));
-  }
-
-  element.__themes.cacheKey = cacheKey || null;
-  element.__themes.keys = newKeys;
-};
-
 export function computeEntitiesByDomain(
   registryEntities: EntityRegistryEntry[],
   deviceRegistry: DeviceRegistryEntry[],
@@ -1044,9 +327,11 @@ export function computeEntitiesByDomain(
       if (areaSel) {
         const areaOk =
           (entry.area_id !== undefined &&
+            entry.area_id !== null &&
             (areaSel as string[]).includes(entry.area_id)) ||
           (device &&
             device.area_id !== undefined &&
+            device.area_id !== null &&
             (areaSel as string[]).includes(device.area_id));
         if (!areaOk) return false;
       }
@@ -1131,17 +416,3 @@ export function arraysEqualUnordered<T>(a: T[], b: T[]): boolean {
   }
   return true;
 }
-
-export const STATES_OFF = [
-  "closed",
-  "locked",
-  "off",
-  "docked",
-  "idle",
-  "standby",
-  "paused",
-  "auto",
-  "not_home",
-  "disarmed",
-  "0",
-];

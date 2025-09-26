@@ -1,19 +1,18 @@
 import { LitElement, TemplateResult, html, css, CSSResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { HomeAssistant } from "custom-card-helpers";
-import { CardConfig, CustomizationConfig, UiAction } from "./helpers";
 import memoizeOne from "memoize-one";
+import { HomeAssistant, LovelaceCardConfig, UiAction } from "./ha";
 import { computeLabelCallback } from "./translations";
 
 @customElement("status-item-editor")
 export class ItemEditor extends LitElement {
-  @property({ attribute: false }) config?: CustomizationConfig;
+  @property({ attribute: false }) config?: LovelaceCardConfig;
   @property({ attribute: false }) hass?: HomeAssistant;
   @property({ attribute: false }) lovelace?: any;
   @property({ type: Boolean }) useSensorSchema: boolean = false;
   @property({ type: Number }) index?: number;
   @state() private getSchema?: string;
-  @state() private _config?: CardConfig;
+  @state() private _config?: LovelaceCardConfig;
 
   private _schemadomain = memoizeOne(() => {
     const actions: UiAction[] = [
@@ -121,6 +120,7 @@ export class ItemEditor extends LitElement {
     if (!this._config?.invert_state) {
       this._config = {
         ...this._config,
+        type: this._config?.type ?? this.config.type ?? "",
         invert_state: this.config.invert_state || "false",
         icon_color: this.config.icon_color || undefined,
         tap_action: this.config.tap_action || undefined,
@@ -161,7 +161,7 @@ export class ItemEditor extends LitElement {
     }
     event.stopPropagation();
 
-    const updatedConfig: CardConfig = {
+    const updatedConfig: LovelaceCardConfig = {
       ...this.config,
       ...event.detail.value,
     };
@@ -175,7 +175,7 @@ export class ItemEditor extends LitElement {
     );
   }
 
-  setConfig(config: CardConfig) {
+  setConfig(config: LovelaceCardConfig) {
     this._config = {
       ...config,
       customization: config.customization ?? [],
