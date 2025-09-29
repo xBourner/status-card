@@ -65,7 +65,7 @@ export const DOMAIN_ICONS = {
   alarm_control_panel: { on: "mdi:alarm-light", off: "mdi:alarm-light-off" },
   siren: { on: "mdi:bell-ring", off: "mdi:bell_off" },
   lock: { on: "mdi:lock-open", off: "mdi:lock" },
-  light: { on: "mdi:lightbulb-multiple", off: "mdi:lightbulb-multiple-off" },
+  light: { on: "mdi:lightbulb", off: "mdi:lightbulb-off" },
   media_player: { on: "mdi:cast", off: "mdi:cast-off" },
   climate: { on: "mdi:thermostat", off: "mdi:thermostat-cog" },
   humidifier: { on: "mdi:air-humidifier", off: "mdi:air-humidifier-off" },

@@ -1031,7 +1031,7 @@ const Q = {
   alarm_control_panel: { on: "mdi:alarm-light", off: "mdi:alarm-light-off" },
   siren: { on: "mdi:bell-ring", off: "mdi:bell_off" },
   lock: { on: "mdi:lock-open", off: "mdi:lock" },
-  light: { on: "mdi:lightbulb-multiple", off: "mdi:lightbulb-multiple-off" },
+  light: { on: "mdi:lightbulb", off: "mdi:lightbulb-off" },
   media_player: { on: "mdi:cast", off: "mdi:cast-off" },
   climate: { on: "mdi:thermostat", off: "mdi:thermostat-cog" },
   humidifier: { on: "mdi:air-humidifier", off: "mdi:air-humidifier-off" },
@@ -2947,7 +2947,12 @@ let T = class extends V {
       square: this._config.square
     }), p = (r == null ? void 0 : r.state_content) ?? void 0;
     return $`
-      <sl-tab slot="nav" panel=${t} @action=${l} .actionHandler=${d}>
+      <ha-tab-group-tab
+        slot="nav"
+        panel=${t}
+        @action=${l}
+        .actionHandler=${d}
+      >
         <div class="extra-entity ${ut(h)}">
           <div class="entity-icon" style=${Z(u)}>
             ${i.startsWith("/") || i.startsWith("http") ? $`<img
@@ -2975,7 +2980,7 @@ let T = class extends V {
             </div>
           </div>
         </div>
-      </sl-tab>
+      </ha-tab-group-tab>
     `;
   }
   renderGroupTab(e, t) {
@@ -2994,7 +2999,7 @@ let T = class extends V {
       square: this._config.square
     });
     return $`
-      <sl-tab
+      <ha-tab-group-tab
         slot="nav"
         panel=${"group-" + t}
         @action=${c}
@@ -3012,7 +3017,7 @@ let T = class extends V {
             </div>
           </div>
         </div>
-      </sl-tab>
+      </ha-tab-group-tab>
     `;
   }
   renderDomainTab(e) {
@@ -3033,7 +3038,7 @@ let T = class extends V {
       square: this._config.square
     });
     return $`
-      <sl-tab
+      <ha-tab-group-tab
         slot="nav"
         panel=${t}
         @action=${r}
@@ -3057,7 +3062,7 @@ let T = class extends V {
             </div>
           </div>
         </div>
-      </sl-tab>
+      </ha-tab-group-tab>
     `;
   }
   renderDeviceClassTab(e) {
@@ -3080,7 +3085,7 @@ let T = class extends V {
       square: this._config.square
     });
     return $`
-      <sl-tab
+      <ha-tab-group-tab
         slot="nav"
         panel=${i}
         @action=${l}
@@ -3105,7 +3110,7 @@ let T = class extends V {
             </div>
           </div>
         </div>
-      </sl-tab>
+      </ha-tab-group-tab>
     `;
   }
   renderTab(e) {
@@ -3131,7 +3136,7 @@ let T = class extends V {
     }, a = this.getPersonItems();
     return $`
       <ha-card>
-        <sl-tab-group no-scroll-controls class=${ut(n)}>
+        <ha-tab-group no-scroll-controls class=${ut(n)}>
           ${X(
       a,
       (c) => c.entity_id,
@@ -3144,7 +3149,7 @@ let T = class extends V {
           filter: l ? "grayscale(100%)" : "none"
         };
         return $`
-                <sl-tab
+                <ha-tab-group-tab
                   slot="nav"
                   panel=${c.entity_id}
                   @click="${() => this.showMoreInfo(c)}"
@@ -3174,7 +3179,7 @@ let T = class extends V {
                       </div>
                     </div>
                   </div>
-                </sl-tab>
+                </ha-tab-group-tab>
               `;
       }
     )}
@@ -3183,7 +3188,7 @@ let T = class extends V {
       (c) => c.type === "extra" ? c.panel : c.type === "domain" ? c.domain : c.type === "deviceClass" ? `${c.domain}-${c.deviceClass}` : c.type === "group" ? `group-${c.group_id}` : "",
       (c) => this.renderTab(c)
     )}
-        </sl-tab-group>
+        </ha-tab-group>
       </ha-card>
     `;
   }
@@ -3195,9 +3200,31 @@ let T = class extends V {
         height: 100%;
         align-content: center;
       }
-      sl-tab-group {
+      ha-tab-group {
+        --track-width: unset !important;
         padding: 6px 4px;
-        align-content: center;
+      }
+      ha-tab-group::part(nav) {
+        padding: 0 !important;
+      }
+      ha-tab-group::part(scroll-button) {
+        display: none !important;
+      }
+      ha-tab-group-tab {
+        pointer-events: auto;
+      }
+      ha-tab-group-tab * {
+        pointer-events: none;
+      }
+      ha-tab-group-tab::part(base) {
+        padding: 0 8px !important;
+      }
+      ha-tab-group.no-scroll::part(tabs) {
+        display: flex;
+        flex-wrap: wrap;
+        overflow-x: visible !important;
+        max-width: 100%;
+        border-bottom: none !important;
       }
       .center {
         display: flex;
@@ -3259,26 +3286,6 @@ let T = class extends V {
       .entity-state {
         color: var(--secondary-text-color);
         font-size: 0.9em;
-      }
-      sl-tab {
-        pointer-events: auto;
-      }
-      sl-tab * {
-        pointer-events: none;
-      }
-      sl-tab::part(base) {
-        padding: 0 8px !important;
-        display: flex;
-      }
-      sl-tab-group::part(tabs) {
-        border-bottom: none !important;
-      }
-      sl-tab-group.no-scroll::part(tabs) {
-        display: flex;
-        flex-wrap: wrap;
-        overflow-x: visible !important;
-        max-width: 100%;
-        border-bottom: none !important;
       }
     `;
   }

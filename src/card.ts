@@ -1040,7 +1040,12 @@ export class StatusCard extends LitElement {
     const stateContent = customization?.state_content ?? undefined;
 
     return html`
-      <sl-tab slot="nav" panel=${panel} @action=${handler} .actionHandler=${ah}>
+      <ha-tab-group-tab
+        slot="nav"
+        panel=${panel}
+        @action=${handler}
+        .actionHandler=${ah}
+      >
         <div class="extra-entity ${classMap(contentClasses)}">
           <div class="entity-icon" style=${styleMap(iconStyles)}>
             ${icon.startsWith("/") || icon.startsWith("http")
@@ -1074,7 +1079,7 @@ export class StatusCard extends LitElement {
             </div>
           </div>
         </div>
-      </sl-tab>
+      </ha-tab-group-tab>
     `;
   }
 
@@ -1112,7 +1117,7 @@ export class StatusCard extends LitElement {
     });
 
     return html`
-      <sl-tab
+      <ha-tab-group-tab
         slot="nav"
         panel=${"group-" + index}
         @action=${handler}
@@ -1132,7 +1137,7 @@ export class StatusCard extends LitElement {
             </div>
           </div>
         </div>
-      </sl-tab>
+      </ha-tab-group-tab>
     `;
   }
 
@@ -1168,7 +1173,7 @@ export class StatusCard extends LitElement {
     });
 
     return html`
-      <sl-tab
+      <ha-tab-group-tab
         slot="nav"
         panel=${domain}
         @action=${handler}
@@ -1199,7 +1204,7 @@ export class StatusCard extends LitElement {
             </div>
           </div>
         </div>
-      </sl-tab>
+      </ha-tab-group-tab>
     `;
   }
 
@@ -1237,7 +1242,7 @@ export class StatusCard extends LitElement {
     });
 
     return html`
-      <sl-tab
+      <ha-tab-group-tab
         slot="nav"
         panel=${deviceClass}
         @action=${handler}
@@ -1269,7 +1274,7 @@ export class StatusCard extends LitElement {
             </div>
           </div>
         </div>
-      </sl-tab>
+      </ha-tab-group-tab>
     `;
   }
 
@@ -1316,7 +1321,7 @@ export class StatusCard extends LitElement {
     const personEntities = this.getPersonItems();
     return html`
       <ha-card>
-        <sl-tab-group no-scroll-controls class=${classMap(noScroll)}>
+        <ha-tab-group no-scroll-controls class=${classMap(noScroll)}>
           ${repeat(
             personEntities,
             (entity) => entity.entity_id,
@@ -1331,7 +1336,7 @@ export class StatusCard extends LitElement {
                 filter: isNotHome ? "grayscale(100%)" : "none",
               };
               return html`
-                <sl-tab
+                <ha-tab-group-tab
                   slot="nav"
                   panel=${entity.entity_id}
                   @click="${() => this.showMoreInfo(entity)}"
@@ -1367,7 +1372,7 @@ export class StatusCard extends LitElement {
                       </div>
                     </div>
                   </div>
-                </sl-tab>
+                </ha-tab-group-tab>
               `;
             }
           )}
@@ -1385,7 +1390,7 @@ export class StatusCard extends LitElement {
                 : "",
             (i) => this.renderTab(i)
           )}
-        </sl-tab-group>
+        </ha-tab-group>
       </ha-card>
     `;
   }
@@ -1398,9 +1403,31 @@ export class StatusCard extends LitElement {
         height: 100%;
         align-content: center;
       }
-      sl-tab-group {
+      ha-tab-group {
+        --track-width: unset !important;
         padding: 6px 4px;
-        align-content: center;
+      }
+      ha-tab-group::part(nav) {
+        padding: 0 !important;
+      }
+      ha-tab-group::part(scroll-button) {
+        display: none !important;
+      }
+      ha-tab-group-tab {
+        pointer-events: auto;
+      }
+      ha-tab-group-tab * {
+        pointer-events: none;
+      }
+      ha-tab-group-tab::part(base) {
+        padding: 0 8px !important;
+      }
+      ha-tab-group.no-scroll::part(tabs) {
+        display: flex;
+        flex-wrap: wrap;
+        overflow-x: visible !important;
+        max-width: 100%;
+        border-bottom: none !important;
       }
       .center {
         display: flex;
@@ -1462,26 +1489,6 @@ export class StatusCard extends LitElement {
       .entity-state {
         color: var(--secondary-text-color);
         font-size: 0.9em;
-      }
-      sl-tab {
-        pointer-events: auto;
-      }
-      sl-tab * {
-        pointer-events: none;
-      }
-      sl-tab::part(base) {
-        padding: 0 8px !important;
-        display: flex;
-      }
-      sl-tab-group::part(tabs) {
-        border-bottom: none !important;
-      }
-      sl-tab-group.no-scroll::part(tabs) {
-        display: flex;
-        flex-wrap: wrap;
-        overflow-x: visible !important;
-        max-width: 100%;
-        border-bottom: none !important;
       }
     `;
   }
