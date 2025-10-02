@@ -1407,6 +1407,22 @@ export class StatusCard extends LitElement {
         --track-width: unset !important;
         padding: 6px 4px;
       }
+      ha-tab-group-tab[active],
+      ha-tab-group-tab.active {
+        font-size: var(--ha-font-size-m);
+        --wa-color-brand-on-quiet: var(
+          --ha-tab-active-text-color,
+          var(--primary-color)
+        );
+        --wa-color-neutral-on-quiet: var(--wa-color-brand-on-quiet);
+        opacity: 0.8;
+        color: inherit;
+        --wa-space-l: 16px;
+      }
+      ha-tab-group-tab[active]:hover,
+      ha-tab-group-tab.active:hover {
+        color: var(--wa-color-brand-on-quiet) !important;
+      }
       ha-tab-group::part(nav) {
         padding: 0 !important;
       }

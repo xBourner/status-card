@@ -22,10 +22,6 @@ import { computeLabelCallback, translateEntityState } from "./translations";
 import { filterEntitiesByRuleset } from "./smart_groups";
 
 export class StatusCardPopup extends LitElement {
-  private _swipeStartY: number | null = null;
-  private _swipeStartTime: number | null = null;
-  private _swipeThreshold = 120;
-  private _swipeTimeLimit = 800;
   @property({ type: Boolean }) public open = false;
   @property({ type: String }) public title = "";
   @property({ type: String }) public selectedDomain?: string;
@@ -51,7 +47,7 @@ export class StatusCardPopup extends LitElement {
   private _cardEls: Map<string, HTMLElement> = new Map();
   private _lastEntityIds: string[] = [];
 
-  public showDialog(params: {
+  public async showDialog(params: {
     title?: string;
     hass: HomeAssistant;
     entities?: HassEntity[];
@@ -60,7 +56,7 @@ export class StatusCardPopup extends LitElement {
     selectedDeviceClass?: string;
     selectedGroup?: number;
     card?: unknown;
-  }): void {
+  }): Promise<void> {
     this.title = params.title ?? this.title;
     this.hass = params.hass;
     this.entities = params.entities ?? [];
@@ -72,6 +68,44 @@ export class StatusCardPopup extends LitElement {
     this._cardEls.clear();
     this.open = true;
     this.requestUpdate();
+    try {
+      await this.updateComplete;
+    } catch (_) {}
+    this._applyDialogStyleAfterRender();
+  }
+
+  private _applyDialogStyleAfterRender() {
+    try {
+      requestAnimationFrame(() => {
+        try {
+          this._applyDialogStyle();
+        } catch (_) {}
+      });
+    } catch (_) {
+      try {
+        this._applyDialogStyle();
+      } catch (_) {}
+    }
+  }
+
+  private _applyDialogStyle() {
+    const surface = document
+      .querySelector("body > home-assistant")
+      ?.shadowRoot?.querySelector("status-card-popup")
+      ?.shadowRoot?.querySelector("ha-dialog")
+      ?.shadowRoot?.querySelector(
+        "div > div.mdc-dialog__container > div.mdc-dialog__surface"
+      ) as HTMLElement | null;
+
+    if (surface) {
+      surface.style.minHeight = "unset";
+      return true;
+    }
+    return false;
+  }
+
+  protected firstUpdated(_changedProperties: PropertyValues): void {
+    super.firstUpdated(_changedProperties);
   }
 
   private _onClosed = (_ev: Event) => {
@@ -95,15 +129,11 @@ export class StatusCardPopup extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.addEventListener("touchstart", this._onTouchStart, { passive: true });
-    this.addEventListener("touchend", this._onTouchEnd);
     window.addEventListener("popstate", this._onPopState);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
-    this.removeEventListener("touchstart", this._onTouchStart);
-    this.removeEventListener("touchend", this._onTouchEnd);
     window.removeEventListener("popstate", this._onPopState);
     this._cardEls.clear();
   }
@@ -112,31 +142,6 @@ export class StatusCardPopup extends LitElement {
     if (this.open) {
       this._onClosed(ev);
     }
-  };
-
-  private _onTouchStart = (ev: TouchEvent) => {
-    if (ev.touches && ev.touches.length === 1) {
-      this._swipeStartY = ev.touches[0].clientY;
-      this._swipeStartTime = Date.now();
-    }
-  };
-
-  private _onTouchEnd = (ev: TouchEvent) => {
-    if (
-      this._swipeStartY !== null &&
-      this._swipeStartTime !== null &&
-      ev.changedTouches &&
-      ev.changedTouches.length === 1
-    ) {
-      const endY = ev.changedTouches[0].clientY;
-      const deltaY = endY - this._swipeStartY;
-      const deltaTime = Date.now() - this._swipeStartTime;
-      if (deltaY > this._swipeThreshold && deltaTime < this._swipeTimeLimit) {
-        this._onClosed(ev);
-      }
-    }
-    this._swipeStartY = null;
-    this._swipeStartTime = null;
   };
 
   private _toTileConfig(cardConfig: {
@@ -554,9 +559,6 @@ export class StatusCardPopup extends LitElement {
         @closed=${this._onClosed}
         style="--columns: ${displayColumns};"
       >
-        <style>
-          ${StatusCardPopup.styles}
-        </style>
         <div class="dialog-header">
           <ha-icon-button
             slot="trigger"
@@ -905,11 +907,15 @@ export class StatusCardPopup extends LitElement {
       margin-bottom: 16px;
       max-height: 80vh;
       overflow-y: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .dialog-content.scrollable::-webkit-scrollbar {
+      display: none;
     }
     .dialog-actions {
       text-align: right;
     }
-
     .cards-wrapper {
       display: flex;
       flex-direction: column;
@@ -978,7 +984,7 @@ export class StatusCardPopup extends LitElement {
         overflow-x: hidden;
       }
       .entity-card {
-        width: 100%;
+        width: 92vw;
       }
       .entity-cards {
         grid-template-columns: 1fr;
