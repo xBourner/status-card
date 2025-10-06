@@ -1,4 +1,4 @@
-<h1 id="status-card">Status Card</h1>
+<h1 id="top">Status Card</h1>
 
 [![(https://hacs.xyz)](https://img.shields.io/badge/hacs-default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/xBourner/status-card/total?style=for-the-badge)
@@ -85,7 +85,7 @@ If you have any problems, suggestions for improvements or want to connect with m
 
 <br><hr>
 
-[🔝 Back to top](#status-card)
+[🔝 Back to top](#top)
 
 
 
