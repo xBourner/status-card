@@ -1,6 +1,6 @@
 <a name="top"></a>
 
-# Status Card
+<h1 id="status-card">Status Card</h1>
 
 
 
@@ -59,6 +59,13 @@ This card i highly influenced by [Dwains Dashboard](https://github.com/dwainsche
     <img src="https://github.com/xBourner/status-card/blob/main/.github/img/top.png" alt="Back to Top" width="4%">
   </a>
 </p>
+
+<br><hr>
+
+[🔝 Back to top](#status-card)
+
+
+
 
 ## Installation
 
