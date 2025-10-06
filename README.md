@@ -67,12 +67,12 @@ Click this link to add **Status Card** to your Home Assistant:
 6. **Clear your browser cache** and reload (F5) Home Assistant.
 
 
-#### Usage:
+### Usage:
 
 After adding the repository to your HA instance you need to add the card to one of your dashboards. <br>
 The card needs to work with your areas so you need to assign your relevant devices/entities to your areas.
 
-#### Configuration:
+### Configuration:
 
 See more in [Wiki](https://github.com/xBourner/status-card/wiki)
 
