@@ -49,12 +49,6 @@ You only need to assign your entities/devices to your areas and the card will do
 
 This card i highly influenced by [Dwains Dashboard](https://github.com/dwainscheeren/dwains-lovelace-dashboard). So now you can use this great idea as a single card in all of your Dashboards
 
-<br><hr>
-
-[🔝 Back to top](#status-card)
-
-
-
 
 ## Installation
 
@@ -77,10 +71,6 @@ Click this link to add **Status Card** to your Home Assistant:
 
 After adding the repository to your HA instance you need to add the card to one of your dashboards. <br>
 The card needs to work with your areas so you need to assign your relevant devices/entities to your areas.
-
-<br><hr>
-
-[🔝 Back to top](#status-card)
 
 # Feedback
 
