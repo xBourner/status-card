@@ -557,7 +557,6 @@ export class StatusCard extends LitElement {
       return entity.attributes.icon;
     }
 
-    // Fallback: Use DOMAIN_ICONS from helpers.ts
     const isInverted = customization?.invert === true;
     const state = isInverted ? "off" : "on";
     let fallbackDomain = domain;
@@ -565,7 +564,6 @@ export class StatusCard extends LitElement {
       fallbackDomain = domain.split(".")[0];
     }
 
-    // Try DOMAIN_ICONS lookup
     if (DOMAIN_ICONS && DOMAIN_ICONS[fallbackDomain]) {
       const icons = DOMAIN_ICONS[fallbackDomain];
       if (deviceClass && typeof icons === "object") {
@@ -582,7 +580,6 @@ export class StatusCard extends LitElement {
       if (typeof icons === "string") return icons;
     }
 
-    // No domainIcon fallback available here
     return "";
   }
 
@@ -763,7 +760,6 @@ export class StatusCard extends LitElement {
         (typeof actionConfig === "string" && actionConfig === "toggle") ||
         (typeof actionConfig === "object" && actionConfig?.action === "toggle");
 
-      // for entities
       if (domain.includes(".")) {
         const entityId = domain;
         const stateObj = this.hass.states[entityId];
@@ -780,7 +776,6 @@ export class StatusCard extends LitElement {
         }
       }
 
-      //  for domain/device_class
       if (isMoreInfo || actionConfig === undefined) {
         this.selectedDomain = domain;
         this.selectedDeviceClass = deviceClass || null;
@@ -845,7 +840,7 @@ export class StatusCard extends LitElement {
       cfg: LovelaceCardConfig,
       states: { [entity_id: string]: HassEntity }
     ): ExtraItem[] => {
-      const content = cfg.content || [];
+      const content = (cfg.content || []).map((c) => c.toLowerCase());
       if (!cfg.extra_entities) return [];
 
       return (cfg.extra_entities as string[])
@@ -854,9 +849,10 @@ export class StatusCard extends LitElement {
 
           const entity: HassEntity | undefined = states[eid];
           if (!entity) return acc;
-
-          const cust: LovelaceCardConfig | undefined = cfg.customization?.find(
-            (c: LovelaceCardConfig) => c.type === eid
+          const eidLower = eid.toLowerCase();
+          if (!content.includes(eidLower)) return acc;
+          const cust = cfg.customization?.find(
+            (c) => (c.type?.toLowerCase?.() ?? c.type) === eidLower
           );
           if (
             cust &&
@@ -868,7 +864,7 @@ export class StatusCard extends LitElement {
             if ((!inv && !match) || (inv && match)) return acc;
           }
 
-          const idx: number = content.indexOf(eid);
+          const idx: number = content.indexOf(eidLower);
           const order: number = idx >= 0 ? idx : 0;
           const icon: string = this.getCustomIcon(eid, undefined, entity);
           const name: string =
@@ -914,7 +910,10 @@ export class StatusCard extends LitElement {
     }[] =>
       content
         .map((id, idx) => {
-          const ruleset = rulesets.find((g: any) => g.group_id === id);
+          const idLower = id.toLowerCase();
+          const ruleset = rulesets.find(
+            (g: any) => (g.group_id?.toLowerCase?.() ?? g.group_id) === idLower
+          );
           if (!ruleset) return undefined;
           const hasAttrs = Object.keys(ruleset).some(
             (key) =>
@@ -947,7 +946,11 @@ export class StatusCard extends LitElement {
     content
       .map((c, idx) =>
         !c.includes(" - ")
-          ? ({ type: "domain" as const, domain: c, order: idx } as DomainItem)
+          ? ({
+              type: "domain" as const,
+              domain: c.toLowerCase(),
+              order: idx,
+            } as DomainItem)
           : null
       )
       .filter((v): v is DomainItem => v !== null)
@@ -983,7 +986,9 @@ export class StatusCard extends LitElement {
   }
 
   private getDomainItems(): DomainItem[] {
-    return this._computeDomainItems(this._config.content || []);
+    return this._computeDomainItems(
+      (this._config.content || []).map((c) => c.toLowerCase())
+    );
   }
 
   private getDeviceClassItems(): DeviceClassItem[] {

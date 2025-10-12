@@ -18,7 +18,6 @@ const memoAreaMap = memoizeOne(
   (areas: any[] = []) => new Map(areas.map((a) => [a.area_id, a]))
 );
 
-// Memoized Filterfunktion
 const memoFilterEntitiesByRuleset = memoizeOne(
   (
     card: StatusCard,
@@ -83,7 +82,6 @@ export function filterEntitiesByRuleset(
   card: StatusCard,
   ruleset: any
 ): HassEntity[] {
-  // Memoized Filter, alle Inputs explizit
   return memoFilterEntitiesByRuleset(
     card,
     ruleset,

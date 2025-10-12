@@ -298,8 +298,6 @@ export function computeEntitiesByDomain(
     .filter((entry) => {
       const domain = entry.entity_id.split(".")[0];
       if (!allowedDomains.includes(domain)) return false;
-
-      // Special handling for update domain
       if (domain === "update") {
         return !entry.hidden_by && !entry.disabled_by;
       }
@@ -308,12 +306,10 @@ export function computeEntitiesByDomain(
         ? deviceMap.get(entry.device_id)
         : undefined;
 
-      // Must be in any area (entity or its device)
       const isInAnyArea =
         entry.area_id != null || (device && device.area_id != null);
-      if (!isInAnyArea) return false;
 
-      // Label filter
+      if (!isInAnyArea) return false;
       if (labelSel) {
         const matchesLabel =
           (entry.labels?.some((l) => (labelSel as string[]).includes(l)) ??
@@ -323,7 +319,6 @@ export function computeEntitiesByDomain(
         if (!matchesLabel) return false;
       }
 
-      // Area filter
       if (areaSel) {
         const areaOk =
           (entry.area_id !== undefined &&
@@ -336,7 +331,6 @@ export function computeEntitiesByDomain(
         if (!areaOk) return false;
       }
 
-      // Floor filter via area->floor map
       if (floorSel) {
         const entryFloor = entry.area_id
           ? floorByArea.get(entry.area_id)
@@ -350,7 +344,6 @@ export function computeEntitiesByDomain(
         if (!floorOk) return false;
       }
 
-      // Hidden area filter
       if (hiddenAreasSet.size) {
         const inHiddenArea =
           (entry.area_id && hiddenAreasSet.has(entry.area_id)) ||
@@ -358,7 +351,6 @@ export function computeEntitiesByDomain(
         if (inHiddenArea) return false;
       }
 
-      // Hidden labels/entities
       if (entry.labels?.some((l) => hiddenLabelsSet.has(l))) return false;
       if (hiddenEntitiesSet.has(entry.entity_id)) return false;
 

@@ -179,7 +179,6 @@ export class StatusCardEditor extends LitElement {
 
       if (areasChanged || floorsChanged || labelsChanged) {
         const possibleToggleDomains = this.possibleToggleDomains;
-        // Build dynamic order from DOMAIN_ICONS
         const dynamicOrder: string[] = [];
         for (const domain of Object.keys(DOMAIN_ICONS)) {
           const icons = DOMAIN_ICONS[domain];
@@ -725,17 +724,14 @@ export class StatusCardEditor extends LitElement {
       );
     }
 
-    // Build dynamic order from DOMAIN_ICONS
     const dynamicOrder: string[] = [];
     for (const domain of Object.keys(DOMAIN_ICONS)) {
       const icons = DOMAIN_ICONS[domain];
-      // deviceClass-Keys: alles außer "on"/"off"
       for (const key of Object.keys(icons)) {
         if (key !== "on" && key !== "off") {
           dynamicOrder.push(`${_formatDomain(domain)} - ${key}`);
         }
       }
-      // Domain selbst
       dynamicOrder.push(_formatDomain(domain));
     }
 
@@ -764,7 +760,6 @@ export class StatusCardEditor extends LitElement {
 
     const formattedDeviceClasses = [...deviceClassDomainPairs];
 
-    // Sort by dynamicOrder
     return [...domains, ...formattedDeviceClasses, ...extraEntities].sort(
       (a, b) => {
         const indexA = dynamicOrder.indexOf(a);
