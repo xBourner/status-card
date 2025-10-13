@@ -840,7 +840,7 @@ export class StatusCard extends LitElement {
       cfg: LovelaceCardConfig,
       states: { [entity_id: string]: HassEntity }
     ): ExtraItem[] => {
-      const content = (cfg.content || []).map((c) => c.toLowerCase());
+      const content = cfg.content || [];
       if (!cfg.extra_entities) return [];
 
       return (cfg.extra_entities as string[])
@@ -849,10 +849,8 @@ export class StatusCard extends LitElement {
 
           const entity: HassEntity | undefined = states[eid];
           if (!entity) return acc;
-          const eidLower = eid.toLowerCase();
-          if (!content.includes(eidLower)) return acc;
-          const cust = cfg.customization?.find(
-            (c) => (c.type?.toLowerCase?.() ?? c.type) === eidLower
+          const cust: LovelaceCardConfig | undefined = cfg.customization?.find(
+            (c: LovelaceCardConfig) => c.type === eid
           );
           if (
             cust &&
@@ -864,7 +862,7 @@ export class StatusCard extends LitElement {
             if ((!inv && !match) || (inv && match)) return acc;
           }
 
-          const idx: number = content.indexOf(eidLower);
+          const idx: number = content.indexOf(eid);
           const order: number = idx >= 0 ? idx : 0;
           const icon: string = this.getCustomIcon(eid, undefined, entity);
           const name: string =
@@ -910,10 +908,7 @@ export class StatusCard extends LitElement {
     }[] =>
       content
         .map((id, idx) => {
-          const idLower = id.toLowerCase();
-          const ruleset = rulesets.find(
-            (g: any) => (g.group_id?.toLowerCase?.() ?? g.group_id) === idLower
-          );
+          const ruleset = rulesets.find((g: any) => g.group_id === id);
           if (!ruleset) return undefined;
           const hasAttrs = Object.keys(ruleset).some(
             (key) =>
@@ -948,7 +943,7 @@ export class StatusCard extends LitElement {
         !c.includes(" - ")
           ? ({
               type: "domain" as const,
-              domain: c.toLowerCase(),
+              domain: c.trim().toLowerCase().replace(/\s+/g, "_"),
               order: idx,
             } as DomainItem)
           : null
@@ -986,9 +981,7 @@ export class StatusCard extends LitElement {
   }
 
   private getDomainItems(): DomainItem[] {
-    return this._computeDomainItems(
-      (this._config.content || []).map((c) => c.toLowerCase())
-    );
+    return this._computeDomainItems(this._config.content || []);
   }
 
   private getDeviceClassItems(): DeviceClassItem[] {

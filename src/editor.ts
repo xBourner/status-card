@@ -13,7 +13,6 @@ import {
 import { computeLabelCallback } from "./translations";
 import memoizeOne from "memoize-one";
 import {
-  _formatDomain,
   SubElementConfig,
   SubElementEditor,
   SmartGroupItem,
@@ -72,6 +71,16 @@ export class StatusCardEditor extends LitElement {
       hide_content_name: config.hide_content_name ?? false,
       customization: config.customization ?? [],
     };
+
+    if (Array.isArray(this._config.content)) {
+      this._config = {
+        ...this._config,
+        content: this._config.content.map((v) =>
+          this._normalizeContentEntry(v)
+        ),
+      };
+    }
+
     this._loadRulesetsFromConfig();
   }
 
@@ -184,19 +193,21 @@ export class StatusCardEditor extends LitElement {
           const icons = DOMAIN_ICONS[domain];
           for (const key of Object.keys(icons)) {
             if (key !== "on" && key !== "off") {
-              dynamicOrder.push(`${_formatDomain(domain)} - ${key}`);
+              dynamicOrder.push(`${domain} - ${key}`);
             }
           }
-          dynamicOrder.push(_formatDomain(domain));
+          dynamicOrder.push(domain);
         }
-        const sortedToggleDomains = possibleToggleDomains.sort((a, b) => {
-          const indexA = dynamicOrder.indexOf(a);
-          const indexB = dynamicOrder.indexOf(b);
-          return (
-            (indexA === -1 ? dynamicOrder.length : indexA) -
-            (indexB === -1 ? dynamicOrder.length : indexB)
-          );
-        });
+        const sortedToggleDomains = possibleToggleDomains
+          .map((a) => this._normalizeContentEntry(a))
+          .sort((a, b) => {
+            const indexA = dynamicOrder.indexOf(a);
+            const indexB = dynamicOrder.indexOf(b);
+            return (
+              (indexA === -1 ? dynamicOrder.length : indexA) -
+              (indexB === -1 ? dynamicOrder.length : indexB)
+            );
+          });
 
         this._config = {
           ...this._config,
@@ -595,7 +606,13 @@ export class StatusCardEditor extends LitElement {
   });
 
   private _valueChanged(event: CustomEvent) {
-    this._config = event.detail.value;
+    const next = event.detail.value;
+    if (Array.isArray(next?.content)) {
+      next.content = next.content.map((v: string) =>
+        this._normalizeContentEntry(v)
+      );
+    }
+    this._config = next;
     this.dispatchEvent(
       new CustomEvent("config-changed", {
         detail: { config: this._config },
@@ -636,6 +653,25 @@ export class StatusCardEditor extends LitElement {
     const domain = match[1].toLowerCase().replace(/\s+/g, "_");
     const deviceClass = match[2].toLowerCase();
     return { domain, deviceClass };
+  }
+
+  private _normalizeContentEntry(type: string): string {
+    if (type.includes(".")) return type;
+    const pair = this._parseTypePair(type);
+    if (pair) {
+      const { domain, deviceClass } = pair;
+      if (DOMAIN_ICONS[domain] || ALLOWED_DOMAINS.includes(domain)) {
+        return `${domain} - ${deviceClass}`;
+      }
+      // Likely a group id containing a dash, keep as-is
+      return type;
+    }
+    const norm = type.trim().toLowerCase().replace(/\s+/g, "_");
+    if (DOMAIN_ICONS[norm] || ALLOWED_DOMAINS.includes(norm)) {
+      return norm;
+    }
+    // Not a known domain/device class; likely a group id — keep original casing
+    return type;
   }
 
   private _labelForTypePair(type: string): string {
@@ -729,17 +765,17 @@ export class StatusCardEditor extends LitElement {
       const icons = DOMAIN_ICONS[domain];
       for (const key of Object.keys(icons)) {
         if (key !== "on" && key !== "off") {
-          dynamicOrder.push(`${_formatDomain(domain)} - ${key}`);
+          dynamicOrder.push(`${domain} - ${key}`);
         }
       }
-      dynamicOrder.push(_formatDomain(domain));
+      dynamicOrder.push(domain);
     }
 
     const domains = new Set(
       entities
         .map((e) => computeDomain(e.entity_id))
         .filter((d) => d !== "binary_sensor" && d !== "cover" && d !== "switch")
-        .map((d) => _formatDomain(d))
+        .map((d) => d)
     );
 
     const deviceClassDomainPairs = new Set<string>();
@@ -754,7 +790,7 @@ export class StatusCardEditor extends LitElement {
         const deviceClass =
           this.hass!.states[e.entity_id]?.attributes.device_class || "";
         if (deviceClass) {
-          deviceClassDomainPairs.add(`${_formatDomain(dom)} - ${deviceClass}`);
+          deviceClassDomainPairs.add(`${dom} - ${deviceClass}`);
         }
       });
 
