@@ -80,7 +80,58 @@ body:
   attributes:
     label: Card Version
     description: What version of the card are you running?
-    options: []
+    options:
+    - v3.0.3-beta
+    - v3.0.3
+    - v3.0.2-beta
+    - v3.0.2
+    - v3.0.1-beta
+    - v3.0.1
+    - v3.0
+    - v3-beta
+    - v2.13.3-beta
+    - v2.13.2-beta
+    - v2.13.1-beta
+    - v2.13-beta
+    - v2.12.2
+    - v2.12.1
+    - v2.12
+    - v2.11
+    - v2.10.3
+    - v2.10.2
+    - v2.10.1
+    - v2.10
+    - v2.9.1
+    - v2.9.0
+    - v2.8.4
+    - v2.8.3
+    - v2.8.2
+    - v2.8.1
+    - v2.8.0
+    - v2.7.2
+    - v2.7.1
+    - v2.7.0
+    - v2.6.3
+    - v2.6.2
+    - v2.6.1
+    - v2.6
+    - v2.5
+    - v2.4.3
+    - v2.4.2
+    - v2.4.1
+    - v2.4.0
+    - v2.3.1
+    - v2.3.0
+    - v2.2.1
+    - v2.2.0
+    - v2.1.2
+    - v2.1.1
+    - v2.1.0
+    - v2.0
+    - v1.2.1
+    - v1.2.0
+    - v1.1.1
+    - v1.1.0
     default: 0
   validations:
     required: true
