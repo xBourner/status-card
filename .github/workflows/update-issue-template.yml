@@ -1,41 +1,44 @@
 name: Update Issue Template Versions
 
 on:
-  workflow_dispatch:   # optional, manuelles Starten
+  workflow_dispatch:
   push:
     tags:
-      - 'v*.*.*'      # optional, bei neuen Tags auslösen
+      - 'v*.*.*'
 
 jobs:
   update-template:
     runs-on: ubuntu-latest
-
     permissions:
-      # Schreibrechte, damit git-auto-commit die Änderungen pushen kann
       contents: write
 
     steps:
-      # 1️⃣ Checkout mit allen Tags
+      # 1️⃣ Checkout eigenes Repo
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2️⃣ Tags sammeln
-      - name: Get all tags
-        id: get_tags
+      # 2️⃣ Eigene Tags für card_version
+      - name: Get card_version tags
+        id: get_card_tags
         run: |
           TAGS=$(git tag --sort=-v:refname | grep '^v' | sed 's/^v//' | jq -R -s -c 'split("\n")[:-1]')
-          if [ "$TAGS" = "[]" ] || [ -z "$TAGS" ]; then
-            echo "⚠️ Keine Tags gefunden!"
-          else
-            echo "Tags found: $TAGS"
-          fi
-          echo "TAGS=$TAGS" >> $GITHUB_ENV
+          echo "CARD_TAGS=$TAGS" >> $GITHUB_ENV
 
-      # 3️⃣ Python-Skript: Issue Template updaten
+      # 3️⃣ Home Assistant Tags für ha_version
+      - name: Get HA tags
+        id: get_ha_tags
+        run: |
+          git ls-remote --tags https://github.com/home-assistant/core.git | \
+            awk -F/ '{print $3}' | grep '^[0-9]' | sort -rV | jq -R -s -c 'split("\n")[:-1]' > ha_tags.json
+          HA_TAGS=$(cat ha_tags.json)
+          echo "HA_TAGS=$HA_TAGS" >> $GITHUB_ENV
+
+      # 4️⃣ Python Skript zum Update beider Dropdowns
       - name: Update Issue Template with Python
         env:
-          TAGS: ${{ env.TAGS }}
+          CARD_TAGS: ${{ env.CARD_TAGS }}
+          HA_TAGS: ${{ env.HA_TAGS }}
         run: |
           python - <<'PY'
           import os, json, sys
@@ -46,12 +49,12 @@ jobs:
               subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", "pyyaml"])
               import yaml
 
-          TAGS_JSON = os.environ.get("TAGS", "[]")
           try:
-              tags = json.loads(TAGS_JSON)
+              card_tags = json.loads(os.environ.get("CARD_TAGS", "[]"))
+              ha_tags = json.loads(os.environ.get("HA_TAGS", "[]"))
           except Exception as e:
-              print("Error parsing TAGS JSON:", e)
-              tags = []
+              print("Error parsing JSON:", e)
+              card_tags, ha_tags = [], []
 
           FILE = ".github/ISSUE_TEMPLATE/bug_report.yml"
           if not os.path.exists(FILE):
@@ -65,36 +68,39 @@ jobs:
               print("Error: YAML file empty or invalid")
               sys.exit(1)
 
-          updated = False
+          updated_card = updated_ha = False
           for item in data.get("body", []):
-              if isinstance(item, dict) and item.get("id") == "card_version":
-                  attrs = item.get("attributes") or {}
-                  attrs["options"] = tags
-                  item["attributes"] = attrs
-                  # Entferne 'default' auf oberster Ebene, GitHub Issue Forms erlaubt das nicht
-                  item.pop("default", None)
-                  updated = True
-                  break
+              if isinstance(item, dict):
+                  if item.get("id") == "card_version":
+                      attrs = item.get("attributes") or {}
+                      attrs["options"] = card_tags
+                      item["attributes"] = attrs
+                      item.pop("default", None)
+                      updated_card = True
+                  elif item.get("id") == "ha_version":
+                      attrs = item.get("attributes") or {}
+                      attrs["options"] = ha_tags
+                      item["attributes"] = attrs
+                      item.pop("default", None)
+                      updated_ha = True
 
-          if not updated:
-              print("Warning: Kein Eintrag mit id 'card_version' gefunden.")
+          if not (updated_card or updated_ha):
+              print("Warning: Kein Eintrag mit id 'card_version' oder 'ha_version' gefunden.")
           else:
               with open(FILE, "w", encoding="utf-8") as f:
                   yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
-
               print("Successfully updated", FILE)
               for item in data.get("body", []):
-                  if isinstance(item, dict) and item.get("id") == "card_version":
-                      print("Resulting options:")
+                  if isinstance(item, dict) and item.get("id") in ["card_version", "ha_version"]:
+                      print(f"{item.get('id')} options:")
                       for v in item.get("attributes", {}).get("options", []):
                           print("-", v)
-                      break
           PY
 
-      # 4️⃣ Commit und Push der Änderungen
+      # 5️⃣ Commit & Push
       - name: Commit and Push changes
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: "Update issue template with latest tags"
+          commit_message: "Update issue template with latest card and HA tags"
           branch: main
           file_pattern: .github/ISSUE_TEMPLATE/bug_report.yml
