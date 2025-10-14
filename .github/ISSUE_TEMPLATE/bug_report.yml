@@ -13,7 +13,7 @@ body:
   id: what-happened
   attributes:
     label: What happened?
-    description: Please tell me what exactly happened while using the card. The more detailed, the better.
+    description: Please tell me exactly what happened while using the card. The more detailed, the better.
     placeholder: Tell us what you see!
   validations:
     required: true
@@ -33,7 +33,7 @@ body:
   id: ha_version
   attributes:
     label: HA Version
-    description: What version of HA are you running?
+    description: What version of HA are you running? Please update version if you don't see your running verision in this list.
     options:
     - 2025.10.2
     - 2025.10.1
