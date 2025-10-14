@@ -1,18 +1,17 @@
 name: Update Issue Template Versions
 
 on:
+  workflow_dispatch:   # optional, manuelles Starten
   push:
     tags:
-      - 'v*.*.*'   # Trigger bei neuen Tags
-  workflow_dispatch:   # Optional: manuell starten
+      - 'v*.*.*'      # optional, bei neuen Tags auslösen
 
 jobs:
   update-template:
     runs-on: ubuntu-latest
 
     permissions:
-      # Give the default GITHUB_TOKEN write permission to commit and push the
-      # added or changed files to the repository.
+      # Schreibrechte, damit git-auto-commit die Änderungen pushen kann
       contents: write
 
     steps:
@@ -72,8 +71,8 @@ jobs:
                   attrs = item.get("attributes") or {}
                   attrs["options"] = tags
                   item["attributes"] = attrs
-                  if tags:
-                      item["default"] = 0  # erster Eintrag als Default
+                  # Entferne 'default' auf oberster Ebene, GitHub Issue Forms erlaubt das nicht
+                  item.pop("default", None)
                   updated = True
                   break
 
@@ -89,23 +88,13 @@ jobs:
                       print("Resulting options:")
                       for v in item.get("attributes", {}).get("options", []):
                           print("-", v)
-                      print("Default index:", item.get("default", "not set"))
                       break
           PY
 
-      # 4️⃣ Zeige Diff zur Kontrolle
-      - name: Show diff
-        run: |
-          git --no-pager diff -- .github/ISSUE_TEMPLATE/bug_report.yml || true
-
-      - uses: stefanzweifel/git-auto-commit-action@v7
+      # 4️⃣ Commit und Push der Änderungen
+      - name: Commit and Push changes
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "Update issue template with latest tags"
           branch: main
           file_pattern: .github/ISSUE_TEMPLATE/bug_report.yml
-          commit_user_name: github-actions[bot]
-          commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
-          skip_dirty_check: true
-          skip_fetch: true
-          disable_globbing: true
-          push_options: '--force'
