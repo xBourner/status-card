@@ -1,14 +1,38 @@
-Issue: Feature request 
-Suggest an idea for this project
-
-Is your feature request related to a problem? Please describe.
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
-
-Describe the solution you'd like
-A clear and concise description of what you want to happen.
-
-Describe alternatives you've considered
-A clear and concise description of any alternative solutions or features you've considered.
-
-Additional context
-Add any other context or screenshots about the feature request here.
+name: Feature Request
+description: Suggest an idea for this project.
+title: '[FR]: '
+labels:
+- fr
+assignees:
+- xBourner
+body:
+- type: markdown
+  attributes:
+    value: 'Thanks for taking the time to fill out this feature request!'
+- type: textarea
+  id: problem
+  attributes:
+    label: Is the FR related to a problem?
+    description: Please tell me exactly what happened while using the card. The more detailed, the better.
+    placeholder: Tell us what you see!
+- type: textarea
+  id: solution
+  attributes:
+    label: Describe the solution you'd like
+    description: A clear and concise description of what you want to happen.
+    placeholder: Your solution
+  validations:
+    required: true    
+- type: textarea
+  id: screenshots
+  attributes:
+    label: Screenshots
+    placeholder: If applicable, add screenshots to help explain your problem. 
+- type: checkboxes
+  id: terms
+  attributes:
+    label: Agreement
+    options:
+    - label: I agree that I updated HA and the card to the latest version and deleted
+        my cache or reinstalled the HA app before submitting this bug.
+      required: true
