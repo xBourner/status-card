@@ -8,14 +8,12 @@ assignees:
 body:
 - type: markdown
   attributes:
-    value: 'Thanks for taking the time to fill out this bug report!
-
-      '
+    value: 'Thanks for taking the time to fill out this bug report!'
 - type: textarea
   id: what-happened
   attributes:
     label: What happened?
-    description: Also tell us, what did you expect to happen?
+    description: Please tell me what exactly happened while using the card. The more detailed, the better.
     placeholder: Tell us what you see!
   validations:
     required: true
@@ -23,7 +21,6 @@ body:
   id: to-reproduce
   attributes:
     label: 'To Reproduce:'
-    description: Steps to reproduce the behavior
     placeholder: Steps to reproduce the behavior
   validations:
     required: true
@@ -31,7 +28,6 @@ body:
   id: screenshots
   attributes:
     label: Screenshots
-    description: If applicable, add screenshots to help explain your problem.
     placeholder: If applicable, add screenshots to help explain your problem.
 - type: dropdown
   id: ha_version
@@ -139,6 +135,7 @@ body:
   id: browsers
   attributes:
     label: What browsers are you seeing the problem on?
+    description: Browser/App
     multiple: true
     options:
     - Firefox
@@ -147,12 +144,13 @@ body:
     - Microsoft Edge
     - HA App on Android
     - HA App on iOS
+  validations:
+    required: true    
 - type: checkboxes
   id: terms
   attributes:
-    label: Code of Conduct
-    description: By submitting this issue, you agree to follow our [Code of Conduct](https://example.com).
+    label: Agreement
     options:
-    - label: I agree that ii updated HA and the card to the latest version and deleted
-        my cache.
+    - label: I agree that I updated HA and the card to the latest version and deleted
+        my cache or reinstalled the HA app before submitting this bug.
       required: true
