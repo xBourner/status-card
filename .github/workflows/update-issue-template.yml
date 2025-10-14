@@ -4,42 +4,52 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'v*.*.*'  # Wenn ein neuer Tag gepusht wird
+      - 'v*.*.*'
   schedule:
-    - cron: '0 0 * * *' # täglich um Mitternacht, z. B. für HA-Versionen
+    - cron: '0 0 * * *'  # optional: täglicher Cron-Job
 
 jobs:
   update-template:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write  # notwendig für git-auto-commit-action
+      contents: write
 
     steps:
-      # 1️⃣ Checkout mit allen Tags
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      # 2️⃣ Tags aus eigenem Repo sammeln
-      - name: Get all tags
-        id: get_tags
+      # 1️⃣ Tags für die Karte sammeln
+      - name: Get Card Version Tags
+        id: get_card_tags
         run: |
           TAGS=$(git tag --sort=-v:refname | grep '^v' | sed 's/^v//' | jq -R -s -c 'split("\n")[:-1]')
-          if [ "$TAGS" = "[]" ] || [ -z "$TAGS" ]; then
-            echo "⚠️ Keine Tags gefunden!"
-          else
-            echo "Tags found: $TAGS"
-          fi
           echo "TAGS=$TAGS" >> $GITHUB_ENV
 
-      # 3️⃣ Python-Skript: Issue Template updaten
+      # 2️⃣ HA Versionen abrufen
+      - name: Get HA Version Tags
+        id: get_ha_tags
+        run: |
+          HA_TAGS=$(git ls-remote --tags https://github.com/home-assistant/core.git \
+            | awk -F'/' '{print $3}' \
+            | grep -E '^20[0-9]{2}\.[0-9]+\.[0-9]+b?[0-9]*$' \
+            | sort -Vr \
+            | awk -F. '{maj=$1"."$2} {print $0}' \
+            | awk '!a[$0]++' \
+            | grep -E '^202[0-9]\.' \
+            | head -n 50 \
+            | jq -R -s -c 'split("\n")[:-1]')
+          echo "HA_TAGS=$HA_TAGS" >> $GITHUB_ENV
+
+      # 3️⃣ Python: Issue Template updaten
       - name: Update Issue Template with Python
         env:
-          TAGS: ${{ env.TAGS }}
+          CARD_TAGS: ${{ env.TAGS }}
+          HA_TAGS: ${{ env.HA_TAGS }}
         run: |
           python - <<'PY'
-          import os, json, sys, re, requests
+          import os, json, sys
           try:
               import yaml
           except ImportError:
@@ -47,44 +57,9 @@ jobs:
               subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", "pyyaml"])
               import yaml
 
-          # === 1️⃣ card_version aus Repo-Tags ===
-          TAGS_JSON = os.environ.get("TAGS", "[]")
-          try:
-              card_versions = json.loads(TAGS_JSON)
-          except Exception as e:
-              print("Error parsing TAGS JSON:", e)
-              card_versions = []
+          CARD_TAGS = json.loads(os.environ.get("CARD_TAGS", "[]"))
+          HA_TAGS = json.loads(os.environ.get("HA_TAGS", "[]"))
 
-          # === 2️⃣ ha_version aus Home-Assistant-Core Tags ===
-          url = "https://api.github.com/repos/home-assistant/core/tags?per_page=100"
-          try:
-              resp = requests.get(url)
-              resp.raise_for_status()
-              ha_tags = [t['name'] for t in resp.json()]
-          except Exception as e:
-              print("Error fetching HA tags:", e)
-              ha_tags = []
-
-          version_pattern = re.compile(r'^\d+\.\d+\.\d+(b\d+)?$')
-          ha_versions = [v for v in ha_tags if version_pattern.match(v)]
-
-          def version_key(v):
-              m = re.match(r'(\d+)\.(\d+)\.(\d+)(b(\d+))?', v)
-              major, minor, patch, _, beta = m.groups()
-              major, minor, patch = int(major), int(minor), int(patch)
-              beta = int(beta) if beta else -1
-              return (major, minor, patch, beta)
-
-          ha_versions.sort(key=version_key, reverse=True)
-
-          # Letzte 3 Major-Versionen
-          major_versions = sorted({v.split('.')[0] + '.' + v.split('.')[1] for v in ha_versions}, reverse=True)[:3]
-          ha_versions_filtered = [v for v in ha_versions if v.split('.')[0]+'.'+v.split('.')[1] in major_versions]
-
-          print("card_versions:", card_versions)
-          print("ha_versions (filtered):", ha_versions_filtered)
-
-          # === 3️⃣ YAML Datei aktualisieren ===
           FILE = ".github/ISSUE_TEMPLATE/bug_report.yml"
           if not os.path.exists(FILE):
               print(f"Error: {FILE} not found")
@@ -97,36 +72,33 @@ jobs:
               print("Error: YAML file empty or invalid")
               sys.exit(1)
 
-          updated_card = updated_ha = False
-          for item in data.get("body", []):
-              if isinstance(item, dict):
-                  if item.get("id") == "card_version":
+          def update_dropdown(field_id, options):
+              for item in data.get("body", []):
+                  if isinstance(item, dict) and item.get("id") == field_id:
                       attrs = item.get("attributes") or {}
-                      attrs["options"] = card_versions
+                      attrs["options"] = options
                       item["attributes"] = attrs
-                      if card_versions:
-                          item["default"] = 0
-                      updated_card = True
-                  elif item.get("id") == "ha_version":
-                      attrs = item.get("attributes") or {}
-                      attrs["options"] = ha_versions_filtered
-                      item["attributes"] = attrs
-                      if ha_versions_filtered:
-                          item["default"] = 0
-                      updated_ha = True
+                      if "default" in item:
+                          del item["default"]
+                      break
 
-          if not (updated_card or updated_ha):
-              print("Warning: Kein Eintrag mit id 'card_version' oder 'ha_version' gefunden.")
-          else:
-              with open(FILE, "w", encoding="utf-8") as f:
-                  yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
-              print(f"Successfully updated {FILE}")
+          update_dropdown("card_version", CARD_TAGS)
+          update_dropdown("ha_version", HA_TAGS)
+
+          with open(FILE, "w", encoding="utf-8") as f:
+              yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+
+          print("Successfully updated", FILE)
+          for item in data.get("body", []):
+              if isinstance(item, dict) and item.get("id") in ["card_version", "ha_version"]:
+                  print(f"Options for {item['id']}:")
+                  for v in item.get("attributes", {}).get("options", []):
+                      print("-", v)
           PY
 
-      # 4️⃣ Commit & Push
-      - name: Commit & Push changes
-        uses: stefanzweifel/git-auto-commit-action@v7
+      # 4️⃣ Commit und Push
+      - uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: "Update issue template with latest versions"
+          commit_message: Update issue template with latest versions
           branch: main
-          file_pattern: ".github/ISSUE_TEMPLATE/bug_report.yml"
+          file_pattern: .github/ISSUE_TEMPLATE/bug_report.yml
