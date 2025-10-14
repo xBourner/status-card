@@ -3,16 +3,17 @@ name: Update Issue Template Versions
 on:
   push:
     tags:
-      - 'v*.*.*'  # löst aus, wenn ein neuer Tag wie v1.0.3 gepusht wird
-  workflow_dispatch:   # optional, manuelles Starten
+      - 'v*.*.*'   # löst aus, wenn ein neuer Tag wie v3.0.3 gepusht wird
+  workflow_dispatch:   # optional: manuelles Starten über GitHub UI
 
 jobs:
   update-template:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # <--- alle Tags holen!
+          fetch-depth: 0   # <--- alle Tags holen, nicht nur den letzten Commit
 
       - name: Install yq (richtige Version)
         run: |
@@ -35,10 +36,15 @@ jobs:
 
           echo "Updating $FILE with tags: ${{ steps.get_tags.outputs.tags }}"
 
-          yq -i -y '
+          # Schreibe die erkannten Tags in die Dropdown-Liste
+          yq e '
             (.body[] | select(.id == "card_version").attributes.options) = 
             ( '${{ steps.get_tags.outputs.tags }}' | fromjson )
-          ' "$FILE"
+          ' -i "$FILE"
+
+          # Optional: zeige das Ergebnis zur Kontrolle im Log
+          echo "Resulting options:"
+          yq e '.body[] | select(.id == "card_version").attributes.options' "$FILE"
 
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
