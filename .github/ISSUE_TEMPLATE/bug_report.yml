@@ -39,6 +39,17 @@ body:
     label: HA Version
     description: What version of HA are you running?
     options:
+    - 2025.10.2
+    - 2025.10.1
+    - 2025.10.0b7
+    - 2025.10.0b6
+    - 2025.10.0b5
+    - 2025.10.0b4
+    - 2025.10.0b3
+    - 2025.10.0b2
+    - 2025.10.0b1
+    - 2025.10.0b0
+    - 2025.10.0
     - 2025.9.4
     - 2025.9.3
     - 2025.9.2
@@ -76,10 +87,11 @@ body:
     - 2025.7.0b1
     - 2025.7.0b0
     - 2025.7.0
+    - 2025.6.3
+    - 2025.6.2
     default: 0
   validations:
     required: true
-  default: 0
 - type: dropdown
   id: card_version
   attributes:
@@ -140,7 +152,6 @@ body:
     default: 0
   validations:
     required: true
-  default: 0
 - type: dropdown
   id: browsers
   attributes:
