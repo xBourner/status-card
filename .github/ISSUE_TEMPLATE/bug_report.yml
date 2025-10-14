@@ -30,9 +30,7 @@ body:
     attributes:
       label: Screenshots
       description: If applicable, add screenshots to help explain your problem.
-      placeholder: If applicable, add screenshots to help explain your problem.
-    validations:
-      required: true        
+      placeholder: If applicable, add screenshots to help explain your problem.     
   - type: dropdown
     id: ha_version
     attributes:
