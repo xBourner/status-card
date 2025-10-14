@@ -3,8 +3,8 @@ name: Update Issue Template Versions
 on:
   push:
     tags:
-      - 'v*.*.*'  # löst aus, wenn ein neuer Tag wie v3.0.3 gepusht wird
-  workflow_dispatch:   # optional manuelles Starten
+      - 'v*.*.*'   # Trigger bei neuen Tags
+  workflow_dispatch:   # Optional: manuell starten
 
 jobs:
   update-template:
@@ -88,17 +88,24 @@ jobs:
                       break
           PY
 
-      # 4️⃣ Zeige Diff für Kontrolle
+      # 4️⃣ Zeige Diff zur Kontrolle
       - name: Show diff
         run: |
           git --no-pager diff -- .github/ISSUE_TEMPLATE/bug_report.yml || true
 
-      # 5️⃣ Commit + Push mit sicherem GITHUB_TOKEN
+      # 5️⃣ Commit nur lokal
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Update issue template with latest tags"
           branch: main
-          push: true
+          file_pattern: .github/ISSUE_TEMPLATE/bug_report.yml
+
+      # 6️⃣ Push per GITHUB_TOKEN
+      - name: Push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git push https://xBourner:${GITHUB_TOKEN}@github.com/xBourner/status-card.git main
