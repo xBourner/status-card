@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # <--- alle Tags holen, nicht nur den letzten Commit
+          fetch-depth: 0   # alle Tags holen
 
       - name: Install yq (richtige Version)
         run: |
@@ -25,24 +25,20 @@ jobs:
         id: get_tags
         run: |
           TAGS=$(git tag --sort=-v:refname | grep '^v' | sed 's/^v//' | jq -R -s -c 'split("\n")[:-1]')
-          if [ "$TAGS" = "[]" ] || [ -z "$TAGS" ]; then
-            echo "⚠️  Keine Tags gefunden! Hast du schon welche gepusht?"
-          fi
-          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+          echo "TAGS=$TAGS" >> $GITHUB_ENV
+          echo "Tags gefunden: $TAGS"
 
       - name: Update Issue Template
         run: |
           FILE=".github/ISSUE_TEMPLATE/bug_report.yml"
-
-          echo "Updating $FILE with tags: ${{ steps.get_tags.outputs.tags }}"
+          echo "Updating $FILE with tags: $TAGS"
 
           # Schreibe die erkannten Tags in die Dropdown-Liste
           yq e '
-            (.body[] | select(.id == "card_version").attributes.options) = 
-            ( '${{ steps.get_tags.outputs.tags }}' | fromjson )
+            (.body[] | select(.id == "card_version").attributes.options) = (env(TAGS) | fromjson)
           ' -i "$FILE"
 
-          # Optional: zeige das Ergebnis zur Kontrolle im Log
+          # Bonus: zeige das Ergebnis im Log
           echo "Resulting options:"
           yq e '.body[] | select(.id == "card_version").attributes.options' "$FILE"
 
