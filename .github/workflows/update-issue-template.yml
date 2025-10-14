@@ -1,4 +1,4 @@
-name: Update Issue Template Versions
+name: Update Issue Template
 
 on:
   workflow_dispatch:
@@ -6,50 +6,43 @@ on:
     tags:
       - 'v*.*.*'
   schedule:
-    - cron: '0 0 * * *'  # optional: täglicher Cron-Job
+    - cron: '0 6 * * *' # täglich um 06:00 UTC
 
 jobs:
   update-template:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
+      contents: write  # Erlaubt GitHub Actions, Dateien zu committen und zu pushen
 
     steps:
-      - uses: actions/checkout@v5
+      # 1️⃣ Checkout des Repos inkl. aller Tags
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 1️⃣ Tags für die Karte sammeln
-      - name: Get Card Version Tags
+      # 2️⃣ Sammle eigene Tags für card_version
+      - name: Get all card tags
         id: get_card_tags
         run: |
-          TAGS=$(git tag --sort=-v:refname | grep '^v' | sed 's/^v//' | jq -R -s -c 'split("\n")[:-1]')
-          echo "TAGS=$TAGS" >> $GITHUB_ENV
+          CARD_TAGS=$(git tag --sort=-v:refname | grep '^v' | sed 's/^v//' | jq -R -s -c 'split("\n")[:-1]')
+          echo "CARD_TAGS=$CARD_TAGS" >> $GITHUB_ENV
 
-      # 2️⃣ HA Versionen abrufen
-      - name: Get HA Version Tags
+      # 3️⃣ Sammle HA-Versionen von GitHub
+      - name: Get Home Assistant tags
         id: get_ha_tags
         run: |
-          HA_TAGS=$(git ls-remote --tags https://github.com/home-assistant/core.git \
-            | awk -F'/' '{print $3}' \
-            | grep -E '^20[0-9]{2}\.[0-9]+\.[0-9]+b?[0-9]*$' \
-            | sort -Vr \
-            | awk -F. '{maj=$1"."$2} {print $0}' \
-            | awk '!a[$0]++' \
-            | grep -E '^202[0-9]\.' \
-            | head -n 50 \
-            | jq -R -s -c 'split("\n")[:-1]')
+          HA_TAGS=$(gh api repos/home-assistant/core/tags --jq '.[].name' | jq -R -s -c 'split("\n")[:-1]')
           echo "HA_TAGS=$HA_TAGS" >> $GITHUB_ENV
 
-      # 3️⃣ Python: Issue Template updaten
+      # 4️⃣ Update Issue Template via Python
       - name: Update Issue Template with Python
         env:
-          CARD_TAGS: ${{ env.TAGS }}
+          CARD_TAGS: ${{ env.CARD_TAGS }}
           HA_TAGS: ${{ env.HA_TAGS }}
         run: |
           python - <<'PY'
-          import os, json, sys
+          import os, json, re, sys
           try:
               import yaml
           except ImportError:
@@ -58,8 +51,28 @@ jobs:
               import yaml
 
           CARD_TAGS = json.loads(os.environ.get("CARD_TAGS", "[]"))
-          HA_TAGS = json.loads(os.environ.get("HA_TAGS", "[]"))
+          RAW_HA_TAGS = json.loads(os.environ.get("HA_TAGS", "[]"))
 
+          # Filter HA tags
+          pattern = re.compile(r"^(?P<major>\d{4}\.\d+)\.(?P<minor>\d+)(?P<beta>b\d+)?$")
+          ha_versions = {}
+          for tag in RAW_HA_TAGS:
+              m = pattern.match(tag)
+              if not m:
+                  continue
+              major_minor = f"{m.group('major')}.0"
+              if major_minor not in ha_versions:
+                  ha_versions[major_minor] = []
+              ha_versions[major_minor].append(tag)
+
+          last_three = sorted(ha_versions.keys(), reverse=True)[:3]
+
+          final_ha_tags = []
+          for key in last_three:
+              versions = sorted(ha_versions[key], reverse=True)
+              final_ha_tags.extend(versions)
+
+          # YAML laden
           FILE = ".github/ISSUE_TEMPLATE/bug_report.yml"
           if not os.path.exists(FILE):
               print(f"Error: {FILE} not found")
@@ -83,7 +96,7 @@ jobs:
                       break
 
           update_dropdown("card_version", CARD_TAGS)
-          update_dropdown("ha_version", HA_TAGS)
+          update_dropdown("ha_version", final_ha_tags)
 
           with open(FILE, "w", encoding="utf-8") as f:
               yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
@@ -96,9 +109,15 @@ jobs:
                       print("-", v)
           PY
 
-      # 4️⃣ Commit und Push
-      - uses: stefanzweifel/git-auto-commit-action@v7
+      # 5️⃣ Commit & Push
+      - name: Commit updated template
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: Update issue template with latest versions
+          commit_message: Update issue template with latest tags
           branch: main
           file_pattern: .github/ISSUE_TEMPLATE/bug_report.yml
+          commit_user_name: github-actions[bot]
+          commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          skip_dirty_check: true
+          skip_fetch: true
+          skip_checkout: true
