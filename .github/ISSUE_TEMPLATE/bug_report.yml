@@ -104,7 +104,6 @@ body:
     default: 0
   validations:
     required: true
-  default: 0
 - type: dropdown
   id: browsers
   attributes:
