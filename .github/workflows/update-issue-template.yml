@@ -11,14 +11,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # <--- alle Tags holen!
 
-      - name: Install yq
-        run: sudo apt-get install -y yq
+      - name: Install yq (richtige Version)
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
 
       - name: Get all tags
         id: get_tags
         run: |
           TAGS=$(git tag --sort=-v:refname | grep '^v' | sed 's/^v//' | jq -R -s -c 'split("\n")[:-1]')
+          if [ "$TAGS" = "[]" ] || [ -z "$TAGS" ]; then
+            echo "⚠️  Keine Tags gefunden! Hast du schon welche gepusht?"
+          fi
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
       - name: Update Issue Template
@@ -27,7 +35,7 @@ jobs:
 
           echo "Updating $FILE with tags: ${{ steps.get_tags.outputs.tags }}"
 
-          yq -i '
+          yq -i -y '
             (.body[] | select(.id == "card_version").attributes.options) = 
             ( '${{ steps.get_tags.outputs.tags }}' | fromjson )
           ' "$FILE"
