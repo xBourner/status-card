@@ -25,9 +25,11 @@ jobs:
       - name: Get card version tags
         id: get_card_tags
         run: |
-          TAGS=$(git tag --sort=-v:refname | grep -E '^[0-9]' | jq -R -s -c 'split("\n")[:-1]')
+          # Alle Tags sortiert, inkl. Beta/Pre-Releases
+          TAGS=$(git tag --sort=-v:refname | jq -R -s -c 'split("\n")[:-1]')
           echo "CARD_TAGS=$TAGS" >> $GITHUB_ENV
           echo "Found card tags: $TAGS"
+
 
       # 3️⃣ Sammle letzte 3 Major.Minor-Versionen inkl. Betas von HA
       - name: Get HA tags
