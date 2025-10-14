@@ -3,8 +3,8 @@ name: Update Issue Template Versions
 on:
   push:
     tags:
-      - 'v*.*.*'   # löst aus, wenn ein neuer Tag wie v3.0.3 gepusht wird
-  workflow_dispatch:   # optional: manuelles Starten über GitHub UI
+      - 'v*.*.*'
+  workflow_dispatch:
 
 jobs:
   update-template:
@@ -13,34 +13,87 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # alle Tags holen
-
-      - name: Install yq (richtige Version)
-        run: |
-          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          sudo chmod +x /usr/local/bin/yq
-          yq --version
+          fetch-depth: 0
 
       - name: Get all tags
         id: get_tags
         run: |
           TAGS=$(git tag --sort=-v:refname | grep '^v' | sed 's/^v//' | jq -R -s -c 'split("\n")[:-1]')
+          if [ "$TAGS" = "[]" ] || [ -z "$TAGS" ]; then
+            echo "⚠️  Keine Tags gefunden! Hast du schon welche gepusht?"
+          else
+            echo "Tags found: $TAGS"
+          fi
           echo "TAGS=$TAGS" >> $GITHUB_ENV
-          echo "Tags gefunden: $TAGS"
 
-      - name: Update Issue Template
+      - name: Update Issue Template with Python (robust)
+        env:
+          TAGS: ${{ env.TAGS }}
         run: |
-          FILE=".github/ISSUE_TEMPLATE/bug_report.yml"
-          echo "Updating $FILE with tags: $TAGS"
+          python - <<'PY'
+          import os, json, sys
+          try:
+              import yaml
+          except Exception:
+              # Install pyyaml if not available
+              import subprocess, sys
+              subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", "pyyaml"])
+              import yaml
 
-          # Schreibe die erkannten Tags in die Dropdown-Liste
-          yq e '
-            (.body[] | select(.id == "card_version").attributes.options) = (env(TAGS) | fromjson)
-          ' -i "$FILE"
+          TAGS_JSON = os.environ.get("TAGS", "[]")
+          try:
+              tags = json.loads(TAGS_JSON)
+          except Exception as e:
+              print("Error parsing TAGS JSON:", e)
+              tags = []
 
-          # Bonus: zeige das Ergebnis im Log
-          echo "Resulting options:"
-          yq e '.body[] | select(.id == "card_version").attributes.options' "$FILE"
+          FILE = ".github/ISSUE_TEMPLATE/bug_report.yml"
+          if not os.path.exists(FILE):
+              print(f"Error: {FILE} not found")
+              sys.exit(1)
+
+          with open(FILE, "r", encoding="utf-8") as f:
+              data = yaml.safe_load(f)
+
+          if data is None:
+              print("Error: YAML file empty or invalid")
+              sys.exit(1)
+
+          body = data.get("body", [])
+          updated = False
+          for item in body:
+              if isinstance(item, dict) and item.get("id") == "card_version":
+                  # ensure attributes exists
+                  attrs = item.get("attributes") or {}
+                  attrs["options"] = tags
+                  item["attributes"] = attrs
+                  # set default to 0 (first list element) if tags non-empty
+                  if tags:
+                      item["default"] = 0
+                  updated = True
+                  break
+
+          if not updated:
+              print("Warning: Kein Eintrag mit id 'card_version' in body gefunden.")
+          else:
+              # write back preserving order as much as possible
+              with open(FILE, "w", encoding="utf-8") as f:
+                  yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+
+              print("Successfully updated", FILE)
+              # show resulting options for log
+              for item in data.get("body", []):
+                  if isinstance(item, dict) and item.get("id") == "card_version":
+                      print("Resulting options:")
+                      for v in item.get("attributes", {}).get("options", []):
+                          print("-", v)
+                      print("Default index:", item.get("default", "not set"))
+                      break
+          PY
+
+      - name: Show diff
+        run: |
+          git --no-pager diff -- .github/ISSUE_TEMPLATE/bug_report.yml || true
 
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
