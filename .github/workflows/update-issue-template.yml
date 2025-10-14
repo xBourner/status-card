@@ -5,6 +5,9 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  schedule:
+    - cron: '0 0 * * *' 
+
 
 jobs:
   update-template:
@@ -13,19 +16,16 @@ jobs:
       contents: write
 
     steps:
-      # 1️⃣ Checkout eigenes Repo
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2️⃣ Eigene Tags für card_version
       - name: Get card_version tags
         id: get_card_tags
         run: |
           TAGS=$(git tag --sort=-v:refname | grep '^v' | sed 's/^v//' | jq -R -s -c 'split("\n")[:-1]')
           echo "CARD_TAGS=$TAGS" >> $GITHUB_ENV
 
-      # 3️⃣ Home Assistant Tags für ha_version
       - name: Get HA tags
         id: get_ha_tags
         run: |
@@ -34,7 +34,6 @@ jobs:
           HA_TAGS=$(cat ha_tags.json)
           echo "HA_TAGS=$HA_TAGS" >> $GITHUB_ENV
 
-      # 4️⃣ Python Skript zum Update beider Dropdowns
       - name: Update Issue Template with Python
         env:
           CARD_TAGS: ${{ env.CARD_TAGS }}
@@ -97,7 +96,6 @@ jobs:
                           print("-", v)
           PY
 
-      # 5️⃣ Commit & Push
       - name: Commit and Push changes
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
