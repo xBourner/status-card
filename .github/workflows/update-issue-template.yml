@@ -4,43 +4,42 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*.*.*'  # Wenn ein neuer Tag gepusht wird
   schedule:
-    - cron: '0 0 * * *' 
-
+    - cron: '0 0 * * *' # täglich um Mitternacht, z. B. für HA-Versionen
 
 jobs:
   update-template:
     runs-on: ubuntu-latest
+
     permissions:
-      contents: write
+      contents: write  # notwendig für git-auto-commit-action
 
     steps:
+      # 1️⃣ Checkout mit allen Tags
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Get card_version tags
-        id: get_card_tags
+      # 2️⃣ Tags aus eigenem Repo sammeln
+      - name: Get all tags
+        id: get_tags
         run: |
           TAGS=$(git tag --sort=-v:refname | grep '^v' | sed 's/^v//' | jq -R -s -c 'split("\n")[:-1]')
-          echo "CARD_TAGS=$TAGS" >> $GITHUB_ENV
+          if [ "$TAGS" = "[]" ] || [ -z "$TAGS" ]; then
+            echo "⚠️ Keine Tags gefunden!"
+          else
+            echo "Tags found: $TAGS"
+          fi
+          echo "TAGS=$TAGS" >> $GITHUB_ENV
 
-      - name: Get HA tags
-        id: get_ha_tags
-        run: |
-          git ls-remote --tags https://github.com/home-assistant/core.git | \
-            awk -F/ '{print $3}' | grep '^[0-9]' | sort -rV | jq -R -s -c 'split("\n")[:-1]' > ha_tags.json
-          HA_TAGS=$(cat ha_tags.json)
-          echo "HA_TAGS=$HA_TAGS" >> $GITHUB_ENV
-
+      # 3️⃣ Python-Skript: Issue Template updaten
       - name: Update Issue Template with Python
         env:
-          CARD_TAGS: ${{ env.CARD_TAGS }}
-          HA_TAGS: ${{ env.HA_TAGS }}
+          TAGS: ${{ env.TAGS }}
         run: |
           python - <<'PY'
-          import os, json, sys
+          import os, json, sys, re, requests
           try:
               import yaml
           except ImportError:
@@ -48,13 +47,44 @@ jobs:
               subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", "pyyaml"])
               import yaml
 
+          # === 1️⃣ card_version aus Repo-Tags ===
+          TAGS_JSON = os.environ.get("TAGS", "[]")
           try:
-              card_tags = json.loads(os.environ.get("CARD_TAGS", "[]"))
-              ha_tags = json.loads(os.environ.get("HA_TAGS", "[]"))
+              card_versions = json.loads(TAGS_JSON)
           except Exception as e:
-              print("Error parsing JSON:", e)
-              card_tags, ha_tags = [], []
+              print("Error parsing TAGS JSON:", e)
+              card_versions = []
 
+          # === 2️⃣ ha_version aus Home-Assistant-Core Tags ===
+          url = "https://api.github.com/repos/home-assistant/core/tags?per_page=100"
+          try:
+              resp = requests.get(url)
+              resp.raise_for_status()
+              ha_tags = [t['name'] for t in resp.json()]
+          except Exception as e:
+              print("Error fetching HA tags:", e)
+              ha_tags = []
+
+          version_pattern = re.compile(r'^\d+\.\d+\.\d+(b\d+)?$')
+          ha_versions = [v for v in ha_tags if version_pattern.match(v)]
+
+          def version_key(v):
+              m = re.match(r'(\d+)\.(\d+)\.(\d+)(b(\d+))?', v)
+              major, minor, patch, _, beta = m.groups()
+              major, minor, patch = int(major), int(minor), int(patch)
+              beta = int(beta) if beta else -1
+              return (major, minor, patch, beta)
+
+          ha_versions.sort(key=version_key, reverse=True)
+
+          # Letzte 3 Major-Versionen
+          major_versions = sorted({v.split('.')[0] + '.' + v.split('.')[1] for v in ha_versions}, reverse=True)[:3]
+          ha_versions_filtered = [v for v in ha_versions if v.split('.')[0]+'.'+v.split('.')[1] in major_versions]
+
+          print("card_versions:", card_versions)
+          print("ha_versions (filtered):", ha_versions_filtered)
+
+          # === 3️⃣ YAML Datei aktualisieren ===
           FILE = ".github/ISSUE_TEMPLATE/bug_report.yml"
           if not os.path.exists(FILE):
               print(f"Error: {FILE} not found")
@@ -72,15 +102,17 @@ jobs:
               if isinstance(item, dict):
                   if item.get("id") == "card_version":
                       attrs = item.get("attributes") or {}
-                      attrs["options"] = card_tags
+                      attrs["options"] = card_versions
                       item["attributes"] = attrs
-                      item.pop("default", None)
+                      if card_versions:
+                          item["default"] = 0
                       updated_card = True
                   elif item.get("id") == "ha_version":
                       attrs = item.get("attributes") or {}
-                      attrs["options"] = ha_tags
+                      attrs["options"] = ha_versions_filtered
                       item["attributes"] = attrs
-                      item.pop("default", None)
+                      if ha_versions_filtered:
+                          item["default"] = 0
                       updated_ha = True
 
           if not (updated_card or updated_ha):
@@ -88,17 +120,13 @@ jobs:
           else:
               with open(FILE, "w", encoding="utf-8") as f:
                   yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
-              print("Successfully updated", FILE)
-              for item in data.get("body", []):
-                  if isinstance(item, dict) and item.get("id") in ["card_version", "ha_version"]:
-                      print(f"{item.get('id')} options:")
-                      for v in item.get("attributes", {}).get("options", []):
-                          print("-", v)
+              print(f"Successfully updated {FILE}")
           PY
 
-      - name: Commit and Push changes
+      # 4️⃣ Commit & Push
+      - name: Commit & Push changes
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: "Update issue template with latest card and HA tags"
+          commit_message: "Update issue template with latest versions"
           branch: main
-          file_pattern: .github/ISSUE_TEMPLATE/bug_report.yml
+          file_pattern: ".github/ISSUE_TEMPLATE/bug_report.yml"
