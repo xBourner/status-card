@@ -3,30 +3,33 @@ name: Update Issue Template Versions
 on:
   push:
     tags:
-      - 'v*.*.*'
-  workflow_dispatch:
+      - 'v*.*.*'  # löst aus, wenn ein neuer Tag wie v3.0.3 gepusht wird
+  workflow_dispatch:   # optional manuelles Starten
 
 jobs:
   update-template:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout mit allen Tags
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # 2️⃣ Tags sammeln
       - name: Get all tags
         id: get_tags
         run: |
           TAGS=$(git tag --sort=-v:refname | grep '^v' | sed 's/^v//' | jq -R -s -c 'split("\n")[:-1]')
           if [ "$TAGS" = "[]" ] || [ -z "$TAGS" ]; then
-            echo "⚠️  Keine Tags gefunden! Hast du schon welche gepusht?"
+            echo "⚠️ Keine Tags gefunden!"
           else
             echo "Tags found: $TAGS"
           fi
           echo "TAGS=$TAGS" >> $GITHUB_ENV
 
-      - name: Update Issue Template with Python (robust)
+      # 3️⃣ Python-Skript: Issue Template updaten
+      - name: Update Issue Template with Python
         env:
           TAGS: ${{ env.TAGS }}
         run: |
@@ -34,9 +37,8 @@ jobs:
           import os, json, sys
           try:
               import yaml
-          except Exception:
-              # Install pyyaml if not available
-              import subprocess, sys
+          except ImportError:
+              import subprocess
               subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", "pyyaml"])
               import yaml
 
@@ -59,29 +61,24 @@ jobs:
               print("Error: YAML file empty or invalid")
               sys.exit(1)
 
-          body = data.get("body", [])
           updated = False
-          for item in body:
+          for item in data.get("body", []):
               if isinstance(item, dict) and item.get("id") == "card_version":
-                  # ensure attributes exists
                   attrs = item.get("attributes") or {}
                   attrs["options"] = tags
                   item["attributes"] = attrs
-                  # set default to 0 (first list element) if tags non-empty
                   if tags:
-                      item["default"] = 0
+                      item["default"] = 0  # erster Eintrag als Default
                   updated = True
                   break
 
           if not updated:
-              print("Warning: Kein Eintrag mit id 'card_version' in body gefunden.")
+              print("Warning: Kein Eintrag mit id 'card_version' gefunden.")
           else:
-              # write back preserving order as much as possible
               with open(FILE, "w", encoding="utf-8") as f:
                   yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
 
               print("Successfully updated", FILE)
-              # show resulting options for log
               for item in data.get("body", []):
                   if isinstance(item, dict) and item.get("id") == "card_version":
                       print("Resulting options:")
@@ -91,12 +88,17 @@ jobs:
                       break
           PY
 
+      # 4️⃣ Zeige Diff für Kontrolle
       - name: Show diff
         run: |
           git --no-pager diff -- .github/ISSUE_TEMPLATE/bug_report.yml || true
 
+      # 5️⃣ Commit + Push mit sicherem GITHUB_TOKEN
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Update issue template with latest tags"
           branch: main
+          push: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
