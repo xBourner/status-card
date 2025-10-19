@@ -891,12 +891,10 @@ export class StatusCardPopup extends LitElement {
       justify-content: flex-start;
       align-items: center;
       gap: 8px;
-      margin-bottom: 12px;
       min-width: 15vw;
       position: sticky;
       top: 0;
       z-index: 10;
-      padding-bottom: 8px;
       border-bottom: 1px solid rgba(0, 0, 0, 0.07);
       background: transparent;
     }
@@ -935,10 +933,11 @@ export class StatusCardPopup extends LitElement {
       margin: 0.2em 0;
     }
     h4 {
-      width: calc(var(--columns, 4) * 22.5vw);
+      width: 100%;
+      padding-left: 1.5em;
       box-sizing: border-box;
       font-size: 1.2em;
-      margin: 0.8em 0.2em 0em;
+      margin: 0.6em 0;
     }
     .entity-cards {
       display: grid;
@@ -948,14 +947,32 @@ export class StatusCardPopup extends LitElement {
       box-sizing: border-box;
       overflow-x: hidden;
       justify-content: center;
-      margin-top: 0.8em;
     }
     .entity-card {
       width: 22.5vw;
       box-sizing: border-box;
     }
-
     @media (max-width: 1200px) {
+      ha-dialog {
+        --mdc-dialog-min-width: 96vw;
+        --mdc-dialog-max-width: 96vw;
+      }
+      .entity-card {
+        width: 30vw;
+      }
+      .entity-cards {
+        grid-template-columns: repeat(3, 30vw);
+      }
+      h4 {
+        width: 100%;
+        font-size: 1.2em;
+        margin: 0.6em 0;
+        padding: 0 1em;
+        box-sizing: border-box;
+      }
+    }
+
+    @media (max-width: 900px) {
       ha-dialog {
         --mdc-dialog-min-width: 96vw;
         --mdc-dialog-max-width: 96vw;
@@ -964,11 +981,14 @@ export class StatusCardPopup extends LitElement {
         width: 45vw;
       }
       .entity-cards {
-        grid-template-columns: repeat(var(--columns, 2), 45vw);
+        grid-template-columns: repeat(2, 45vw);
       }
       h4 {
-        width: calc(var(--columns, 2) * 45vw);
-        margin: 0.8em 0.2em;
+        width: 100%;
+        font-size: 1.2em;
+        margin: 0.6em 0;
+        padding: 0 1em;
+        box-sizing: border-box;
       }
     }
 
@@ -993,7 +1013,7 @@ export class StatusCardPopup extends LitElement {
         width: 100%;
         font-size: 1.2em;
         margin: 0.6em 0;
-        padding: 0 8px;
+        padding: 0 0.3em;
         box-sizing: border-box;
       }
     }
