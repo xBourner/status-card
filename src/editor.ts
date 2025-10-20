@@ -109,6 +109,8 @@ export class StatusCardEditor extends LitElement {
     label: [],
   };
 
+  private _groupPreviousIds: Map<number, string> = new Map();
+
   protected async updated(
     changedProperties: Map<string | number | symbol, unknown>
   ): Promise<void> {
@@ -361,6 +363,10 @@ export class StatusCardEditor extends LitElement {
                 },
                 {
                   name: "no_scroll",
+                  selector: { boolean: {} },
+                },
+                {
+                  name: "hide_card_if_empty",
                   selector: { boolean: {} },
                 },
               ],
@@ -663,14 +669,12 @@ export class StatusCardEditor extends LitElement {
       if (DOMAIN_ICONS[domain] || ALLOWED_DOMAINS.includes(domain)) {
         return `${domain} - ${deviceClass}`;
       }
-      // Likely a group id containing a dash, keep as-is
       return type;
     }
     const norm = type.trim().toLowerCase().replace(/\s+/g, "_");
     if (DOMAIN_ICONS[norm] || ALLOWED_DOMAINS.includes(norm)) {
       return norm;
     }
-    // Not a known domain/device class; likely a group id — keep original casing
     return type;
   }
 
@@ -1020,9 +1024,14 @@ export class StatusCardEditor extends LitElement {
         rules,
       };
     });
+
+    this._groupPreviousIds.clear();
+    this.rulesets.forEach((g, i) =>
+      this._groupPreviousIds.set(i, g.group_id || "")
+    );
   }
 
-  private _saveRulesetsToConfig(): void {
+  private _commitRulesets(): void {
     const rulesetsConfig = this.rulesets.map((group) => {
       const rules = group.rules.reduce((acc, rule) => {
         if (rule.key && rule.key !== "") {
@@ -1039,16 +1048,45 @@ export class StatusCardEditor extends LitElement {
       };
     });
 
+    const contentOrig = Array.isArray(this._config?.content)
+      ? [...(this._config.content as any[])]
+      : [];
+
+    const idMap = new Map<string, string>();
+    rulesetsConfig.forEach((rs, idx) => {
+      const newId = rs.group_id ?? "";
+      const oldId = this._groupPreviousIds.get(idx) ?? "";
+      if (oldId && oldId !== newId) {
+        idMap.set(oldId, newId);
+      }
+    });
+
+    const seen = new Set<string>();
+    const content: string[] = [];
+    for (const c of contentOrig) {
+      const replaced = idMap.get(c) ?? c;
+      if (!seen.has(replaced)) {
+        seen.add(replaced);
+        content.push(replaced);
+      }
+    }
+
     this._config = {
       ...this._config,
       rulesets: rulesetsConfig,
+      content,
     };
+
+    this._groupPreviousIds.clear();
+    rulesetsConfig.forEach((rs, i) =>
+      this._groupPreviousIds.set(i, rs.group_id ?? "")
+    );
 
     fireEvent(this, "config-changed", { config: this._config });
   }
 
   private _updateConfigFromRulesets(): void {
-    this._saveRulesetsToConfig();
+    this._commitRulesets();
   }
 
   private get ruleKeySelector() {
@@ -1163,18 +1201,45 @@ export class StatusCardEditor extends LitElement {
       rules.push({ key: "", value: "" });
     }
 
+    const newGroup = {
+      group_id: value.group_id ?? "",
+      group_icon: value.group_icon ?? "",
+      group_status: value.group_status ?? "",
+      rules,
+    };
+
     this.rulesets = this.rulesets.map((group, groupIndex) =>
-      groupIndex === idx
-        ? {
-            group_id: value.group_id ?? "",
-            group_icon: value.group_icon ?? "",
-            group_status: value.group_status ?? "",
-            rules,
-          }
-        : group
+      groupIndex === idx ? newGroup : group
     );
 
+    const currentGroup = this.rulesets[idx] ?? {
+      group_id: "",
+      group_icon: "",
+      group_status: "",
+      rules: [],
+    };
+    const currentForm = this._groupFormData(currentGroup as SmartGroupItem);
+    const otherFieldsChanged = Object.keys(value).some((k) => {
+      if (k === "group_id") return false;
+      return value[k] !== (currentForm as any)[k];
+    });
+
+    if (!otherFieldsChanged) {
+      this._groupDrafts.add(idx);
+      return;
+    }
+
+    this._groupDrafts.delete(idx);
     this._updateConfigFromRulesets();
+  }
+
+  private _groupDrafts: Set<number> = new Set();
+
+  private _groupFormBlur(idx: number) {
+    if (this._groupDrafts.has(idx)) {
+      this._groupDrafts.delete(idx);
+      this._updateConfigFromRulesets();
+    }
   }
 
   private _addRuleset = () => {
@@ -1592,6 +1657,7 @@ export class StatusCardEditor extends LitElement {
                     .computeLabel=${this.computeLabel}
                     @value-changed=${(ev: CustomEvent) =>
                       this._groupValueChanged(ev, i)}
+                    @focusout=${() => this._groupFormBlur(i)}
                   ></ha-form>
                 </div>
               </ha-expansion-panel>

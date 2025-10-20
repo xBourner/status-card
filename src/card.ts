@@ -1,4 +1,11 @@
-import { LitElement, html, css, PropertyValues, TemplateResult } from "lit";
+import {
+  LitElement,
+  html,
+  css,
+  PropertyValues,
+  TemplateResult,
+  nothing,
+} from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import { classMap } from "lit/directives/class-map.js";
@@ -1312,11 +1319,56 @@ export class StatusCard extends LitElement {
       domain,
       deviceClass
     );
+
+    const personEntities = this.getPersonItems();
+    const hideCard = this._config.hide_card_if_empty ?? false;
+
+    let wouldRender = false;
+
+    if (personEntities && personEntities.length > 0) wouldRender = true;
+    if (!wouldRender && extra && extra.length > 0) wouldRender = true;
+    if (!wouldRender && group && group.length > 0) {
+      for (const g of group) {
+        const ents = filterEntitiesByRuleset(this, g.ruleset);
+        if (ents && ents.length > 0) {
+          wouldRender = true;
+          break;
+        }
+      }
+    }
+    if (!wouldRender && domain && domain.length > 0) {
+      for (const d of domain) {
+        const devClass = this.selectedDeviceClass || undefined;
+        const showAll = this._shouldShowTotalEntities(d.domain, devClass);
+        const ents = showAll
+          ? this._totalEntities(d.domain, devClass)
+          : this._isOn(d.domain, devClass);
+        if (ents && ents.length > 0) {
+          wouldRender = true;
+          break;
+        }
+      }
+    }
+
+    if (!wouldRender && deviceClass && deviceClass.length > 0) {
+      for (const dc of deviceClass) {
+        const devClass = dc.deviceClass;
+        const domainName = dc.domain;
+        const showAll = this._shouldShowTotalEntities(domainName, devClass);
+        const ents = showAll
+          ? this._totalEntities(domainName, devClass)
+          : this._isOn(domainName, devClass);
+        if (ents && ents.length > 0) {
+          wouldRender = true;
+          break;
+        }
+      }
+    }
+
+    if (!wouldRender && hideCard) return nothing;
     const noScroll = {
       "no-scroll": !!this._config.no_scroll,
     };
-
-    const personEntities = this.getPersonItems();
     return html`
       <ha-card>
         <ha-tab-group no-scroll-controls class=${classMap(noScroll)}>

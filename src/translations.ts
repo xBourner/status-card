@@ -237,6 +237,8 @@ export function computeLabelCallback(
       return "Popup Sort";
     case "state_content":
       return hass!.localize("ui.panel.lovelace.editor.card.tile.state_content");
+    case "hide_card_if_empty":
+      return hass!.localize("ui.common.hide") + " Status Card if empty";
     default:
       if (ALLOWED_DOMAINS.includes(schema.name)) {
         return (
