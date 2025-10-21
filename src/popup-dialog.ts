@@ -881,7 +881,7 @@ export class StatusCardPopup extends LitElement {
     ha-dialog {
       --dialog-content-padding: 12px;
       --mdc-dialog-min-width: calc((var(--columns, 4) * 22.5vw) + 3vw);
-      --mdc-dialog-max-width: calc((var(--columns, 4) * 22.5vw) + 5vw);
+      --mdc-dialog-max-width: 96vw;
       box-sizing: border-box;
       overflow-x: auto;
     }

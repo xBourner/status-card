@@ -1365,7 +1365,19 @@ export class StatusCard extends LitElement {
       }
     }
 
-    if (!wouldRender && hideCard) return nothing;
+    if (!wouldRender && hideCard) {
+      try {
+        this.setAttribute("hidden", "");
+      } catch (e) {
+        /* ignore */
+      }
+      return html``;
+    }
+    try {
+      if (this.hasAttribute("hidden")) this.removeAttribute("hidden");
+    } catch (e) {
+      /* ignore */
+    }
     const noScroll = {
       "no-scroll": !!this._config.no_scroll,
     };
