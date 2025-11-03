@@ -1,4 +1,4 @@
-const Oe = "v3.0.3", Te = {
+const Oe = "v3.0.5", Te = {
   version: Oe
 };
 /**
