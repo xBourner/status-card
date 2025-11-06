@@ -13,7 +13,6 @@ import {
   LovelaceCard,
   HomeAssistant,
   computeDomain,
-  AreaRegistryEntry,
   Schema,
   STATES_OFF,
 } from "./ha";
@@ -30,9 +29,9 @@ export class StatusCardPopup extends LitElement {
   @property({ type: Array }) public entities: HassEntity[] = [];
   @property({ attribute: false }) public hass?: HomeAssistant;
   @property({ attribute: false }) public card!: LovelaceCard & {
-    areas?: AreaRegistryEntry[];
-    entities?: any[];
-    devices?: any[];
+    areas?: HomeAssistant["areas"];
+    entities?: HomeAssistant["entities"];
+    devices?: HomeAssistant["devices"];
     _config?: any;
     selectedGroup?: number | null;
     selectedDomain?: string | null;
@@ -64,7 +63,9 @@ export class StatusCardPopup extends LitElement {
     this.selectedDomain = params.selectedDomain;
     this.selectedDeviceClass = params.selectedDeviceClass;
     this.selectedGroup = params.selectedGroup;
-    this.card = params.card as LovelaceCard & { areas?: AreaRegistryEntry[] };
+    this.card = params.card as LovelaceCard & {
+      areas?: HomeAssistant["areas"];
+    };
     this._cardEls.clear();
     this.open = true;
     this.requestUpdate();
@@ -378,7 +379,7 @@ export class StatusCardPopup extends LitElement {
   }
 
   private getAreaForEntity(entity: HassEntity): string {
-    const entry = this.card.entities?.find(
+    const entry = Object.values(this.hass!.entities)?.find(
       (e: any) => e.entity_id === entity.entity_id
     );
     if (entry) {
@@ -386,7 +387,7 @@ export class StatusCardPopup extends LitElement {
         return entry.area_id;
       }
       if (entry.device_id) {
-        const device = this.card.devices?.find(
+        const device = Object.values(this.hass!.devices)?.find(
           (d: any) => d.id === entry.device_id
         );
         if (device && device.area_id) {
@@ -495,9 +496,17 @@ export class StatusCardPopup extends LitElement {
         ? card._shouldShowTotalEntities(domain, deviceClass)
         : false;
     const showAllEntities = shouldShowTotal ? true : this._showAll;
-    const areaMap = new Map<string, string>(
-      card.areas?.map((a: any) => [a.area_id, a.name])
-    );
+
+    const areaMap = new Map<string, string>();
+
+    const hassAreas = this.hass?.areas ?? [];
+    const arr = Array.isArray(hassAreas)
+      ? hassAreas
+      : Object.values(hassAreas as any);
+    for (const a of arr) {
+      const aa = a as any;
+      if (aa && aa.area_id && aa.name) areaMap.set(aa.area_id, aa.name);
+    }
 
     let ents: HassEntity[] = [];
     let isNoGroup = false;
@@ -710,6 +719,7 @@ export class StatusCardPopup extends LitElement {
                 `;
               })}`
             : html`
+                <h4></h4>
                 <div class="entity-cards">
                   ${repeat(
                     flatSorted,

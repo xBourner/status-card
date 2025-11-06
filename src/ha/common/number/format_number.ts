@@ -1,21 +1,10 @@
-import {
-  HassEntity,
-  HassEntityAttributeBase,
-} from "home-assistant-js-websocket";
 import { FrontendLocaleData, NumberFormat } from "../../data/translation";
-import { EntityRegistryDisplayEntry } from "../../data/entity_registry";
 import { round } from "./round";
 
 /**
  * Returns true if the entity is considered numeric based on the attributes it has
  * @param stateObj The entity state object
  */
-export const isNumericState = (stateObj: HassEntity): boolean =>
-  isNumericFromAttributes(stateObj.attributes);
-
-export const isNumericFromAttributes = (
-  attributes: HassEntityAttributeBase
-): boolean => !!attributes.unit_of_measurement || !!attributes.state_class;
 
 export const numberFormatToLocale = (
   localeOptions: FrontendLocaleData
@@ -83,38 +72,6 @@ export const formatNumber = (
   return `${round(num, options?.maximumFractionDigits).toString()}${
     options?.style === "currency" ? ` ${options.currency}` : ""
   }`;
-};
-
-/**
- * Checks if the current entity state should be formatted as an integer based on the `state` and `step` attribute and returns the appropriate `Intl.NumberFormatOptions` object with `maximumFractionDigits` set
- * @param entityState The state object of the entity
- * @returns An `Intl.NumberFormatOptions` object with `maximumFractionDigits` set to 0, or `undefined`
- */
-export const getNumberFormatOptions = (
-  entityState: HassEntity,
-  entity?: EntityRegistryDisplayEntry
-): Intl.NumberFormatOptions | undefined => {
-  const precision = entity?.display_precision;
-  if (precision != null) {
-    return {
-      maximumFractionDigits: precision,
-      minimumFractionDigits: precision,
-    };
-  }
-  if (
-    Number.isInteger(Number(entityState.attributes?.step)) &&
-    Number.isInteger(Number(entityState.state))
-  ) {
-    return { maximumFractionDigits: 0 };
-  }
-  if (entityState.attributes.step != null) {
-    return {
-      maximumFractionDigits: Math.ceil(
-        Math.log10(1 / entityState.attributes.step)
-      ),
-    };
-  }
-  return undefined;
 };
 
 /**

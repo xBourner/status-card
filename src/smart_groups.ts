@@ -8,6 +8,40 @@ import {
 } from "./ha";
 import type { StatusCard } from "./card";
 
+export interface HAState {
+  entity_id: string;
+  state: string;
+  attributes?: Record<string, any>;
+  last_changed: number;
+  last_updated: number;
+}
+
+export interface HassObject {
+  states: HAState[];
+  callWS: (_: any) => any;
+  formatEntityState: (stateObj, state?) => string;
+  formatEntityAttributeValue: (stateObj, attribute, value?) => string;
+  formatEntityAttributeName: (stateObj, attribute) => string;
+}
+
+function cacheByProperty<T>(
+  hass: HassObject,
+  type: string,
+  property: keyof T
+): Promise<Record<string, T>> {
+  return hass
+    .callWS({ type: `config/${type}_registry/list` })
+    .then((items: T[]) => {
+      return items.reduce((acc, item) => {
+        const key = item[property];
+        if (typeof key === "string" || typeof key === "number") {
+          acc[String(key)] = item;
+        }
+        return acc;
+      }, {} as Record<string, T>);
+    });
+}
+
 const memoEntityMap = memoizeOne(
   (entities: any[] = []) => new Map(entities.map((e) => [e.entity_id, e]))
 );
@@ -82,14 +116,57 @@ export function filterEntitiesByRuleset(
   card: StatusCard,
   ruleset: any
 ): HassEntity[] {
+  const c = card as any;
+
+  const entitiesArr =
+    c.entities || c.__registryEntities || Object.values(c.hass?.states ?? {});
+  const devicesArr =
+    c.devices || c.__registryDevices || Object.values(c.hass?.devices ?? {});
+  const areasArr =
+    c.areas || c.__registryAreas || Object.values(c.hass?.areas ?? {});
+
+  if (
+    !c.__registryEntities &&
+    c.hass &&
+    typeof c.hass.callWS === "function" &&
+    !c.__registryFetchInProgress
+  ) {
+    c.__registryFetchInProgress = true;
+    Promise.all([
+      cacheByProperty<EntityRegistryEntry>(c.hass, "entity", "entity_id").catch(
+        () => ({} as Record<string, EntityRegistryEntry>)
+      ),
+      cacheByProperty<DeviceRegistryEntry>(c.hass, "device", "id").catch(
+        () => ({} as Record<string, DeviceRegistryEntry>)
+      ),
+      cacheByProperty<AreaRegistryEntry>(c.hass, "area", "area_id").catch(
+        () => ({} as Record<string, AreaRegistryEntry>)
+      ),
+    ])
+      .then(([entityMap, deviceMap, areaMap]) => {
+        try {
+          c.__registryEntities = Object.values(entityMap);
+          c.__registryDevices = Object.values(deviceMap);
+          c.__registryAreas = Object.values(areaMap);
+        } catch (_) {}
+      })
+      .catch(() => {})
+      .finally(() => {
+        c.__registryFetchInProgress = false;
+        try {
+          c.requestUpdate?.();
+        } catch (_) {}
+      });
+  }
+
   return memoFilterEntitiesByRuleset(
     card,
     ruleset,
-    card.entities || [],
-    card.devices || [],
-    card.areas || [],
-    card.hiddenEntities || [],
-    card.hass.states
+    entitiesArr,
+    devicesArr,
+    areasArr,
+    c.hiddenEntities || [],
+    c.hass?.states || {}
   ) as HassEntity[];
 }
 function compareMinutesAgo(dateStr: string, filter: string): boolean {

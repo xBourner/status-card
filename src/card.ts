@@ -35,9 +35,6 @@ import {
   actionHandler,
   applyThemesOnElement,
   LovelaceCardConfig,
-  AreaRegistryEntry,
-  DeviceRegistryEntry,
-  EntityRegistryEntry,
   STATES_OFF,
   Schema,
 } from "./ha";
@@ -47,10 +44,6 @@ import { filterEntitiesByRuleset } from "./smart_groups";
 export class StatusCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @property({ type: Object }) public _config!: LovelaceCardConfig;
-
-  @state() public areas?: AreaRegistryEntry[] = [];
-  @state() public devices: DeviceRegistryEntry[] = [];
-  @state() public entities: EntityRegistryEntry[] = [];
   @state() private entitiesByDomain: { [domain: string]: HassEntity[] } = {};
   @state() public selectedDomain: string | null = null;
   @state() public selectedDeviceClass: string | null = null;
@@ -62,10 +55,6 @@ export class StatusCard extends LitElement {
   @state() public list_mode: boolean = false;
   @state() public selectedGroup: number | null = null;
 
-  protected firstUpdated(_changedProperties: PropertyValues): void {
-    this._loadData();
-  }
-
   getCardSize() {
     return 2;
   }
@@ -76,86 +65,52 @@ export class StatusCard extends LitElement {
     };
   }
 
-  private async _loadData(): Promise<void> {
-    try {
-      const [areas, devices, entities]: [
-        AreaRegistryEntry[],
-        DeviceRegistryEntry[],
-        EntityRegistryEntry[]
-      ] = await Promise.all([
-        this.hass?.callWS<AreaRegistryEntry[]>({
-          type: "config/area_registry/list",
-        }) ?? [],
-        this.hass?.callWS<DeviceRegistryEntry[]>({
-          type: "config/device_registry/list",
-        }) ?? [],
-        this.hass?.callWS<EntityRegistryEntry[]>({
-          type: "config/entity_registry/list",
-        }) ?? [],
-      ]);
-
-      this.areas = areas;
-      this.devices = devices;
-      this.entities = entities;
-
-      this._processEntities();
-    } catch (error) {
-      console.error("Error loading data:", error);
-    }
-  }
-
   private _processEntities(): void {
-    const entitiesByDomain = this._entitiesByDomain(
-      this.entities,
-      this.devices,
-      this.areas ?? [],
-      (this.hass as HomeAssistant).states
-    );
+    const entitiesByDomain = this._entitiesByDomain();
     if (entitiesByDomain !== this.entitiesByDomain) {
       this.entitiesByDomain = entitiesByDomain;
     }
   }
 
-  private _lastEntitiesByDomainInput?: [
-    EntityRegistryEntry[],
-    DeviceRegistryEntry[],
-    AreaRegistryEntry[],
-    HomeAssistant["states"],
-    LovelaceCardConfig["area"] | null,
-    LovelaceCardConfig["floor"] | null,
-    LovelaceCardConfig["label"] | null,
-    string[],
-    string[],
-    string[]
-  ];
-  private _lastEntitiesByDomainResult?: { [domain: string]: HassEntity[] };
+  private _computeEntitiesByDomainMemo = memoizeOne(
+    (
+      entities: HomeAssistant["entities"] | undefined,
+      devices: HomeAssistant["devices"] | undefined,
+      areas: HomeAssistant["areas"] | undefined,
+      states: HomeAssistant["states"],
+      area: LovelaceCardConfig["area"] | null,
+      floor: LovelaceCardConfig["floor"] | null,
+      label: LovelaceCardConfig["label"] | null,
+      hiddenAreas: string[],
+      hiddenLabels: string[],
+      hiddenEntities: string[]
+    ) =>
+      computeEntitiesByDomain(
+        entities || {},
+        devices || {},
+        areas || {},
+        states,
+        { area, floor, label, hiddenAreas, hiddenLabels, hiddenEntities },
+        ALLOWED_DOMAINS
+      )
+  );
 
-  private _entitiesByDomain(
-    registryEntities: EntityRegistryEntry[],
-    deviceRegistry: DeviceRegistryEntry[],
-    areas: AreaRegistryEntry[],
-    states: HomeAssistant["states"]
-  ): { [domain: string]: HassEntity[] } {
-    const area = this._config.area || null;
-    const floor = this._config.floor || null;
-    const label = this._config.label || null;
+  private _entitiesByDomain(): { [domain: string]: HassEntity[] } {
+    const entities = this.hass.entities || [];
+    const devices = this.hass.devices || [];
+    const areas = this.hass.areas || [];
+    const states = this.hass?.states || {};
+
+    const area = this._config?.area || null;
+    const floor = this._config?.floor || null;
+    const label = this._config?.label || null;
     const hiddenAreas = this.hiddenAreas;
     const hiddenLabels = this.hiddenLabels;
     const hiddenEntities = this.hiddenEntities;
-    const input: [
-      EntityRegistryEntry[],
-      DeviceRegistryEntry[],
-      AreaRegistryEntry[],
-      HomeAssistant["states"],
-      LovelaceCardConfig["area"] | null,
-      LovelaceCardConfig["floor"] | null,
-      LovelaceCardConfig["label"] | null,
-      string[],
-      string[],
-      string[]
-    ] = [
-      registryEntities,
-      deviceRegistry,
+
+    return this._computeEntitiesByDomainMemo(
+      entities,
+      devices,
       areas,
       states,
       area,
@@ -163,42 +118,8 @@ export class StatusCard extends LitElement {
       label,
       hiddenAreas,
       hiddenLabels,
-      hiddenEntities,
-    ];
-    if (
-      this._lastEntitiesByDomainInput &&
-      this._shallowArrayEqual(input, this._lastEntitiesByDomainInput)
-    ) {
-      return this._lastEntitiesByDomainResult!;
-    }
-    const result = computeEntitiesByDomain(
-      registryEntities,
-      deviceRegistry,
-      areas,
-      states,
-      { area, floor, label, hiddenAreas, hiddenLabels, hiddenEntities },
-      ALLOWED_DOMAINS
+      hiddenEntities
     );
-    this._lastEntitiesByDomainInput = input;
-    this._lastEntitiesByDomainResult = result;
-    return result;
-  }
-
-  private _shallowArrayEqual(a: any[], b: any[]): boolean {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (Array.isArray(a[i]) && Array.isArray(b[i])) {
-        if (
-          a[i] !== b[i] &&
-          (a[i].length !== b[i].length ||
-            a[i].some((v: any, idx: number) => v !== b[i][idx]))
-        )
-          return false;
-      } else if (a[i] !== b[i]) {
-        return false;
-      }
-    }
-    return true;
   }
 
   private _baseEntitiesMemo = memoizeOne(
@@ -219,13 +140,7 @@ export class StatusCard extends LitElement {
   );
 
   private _baseEntities(domain: string, deviceClass?: string): HassEntity[] {
-    const all =
-      this._entitiesByDomain(
-        this.entities,
-        this.devices,
-        this.areas ?? [],
-        this.hass.states
-      )[domain] || [];
+    const all = this._entitiesByDomain()[domain] || [];
     return this._baseEntitiesMemo(all, domain, deviceClass);
   }
 
@@ -810,21 +725,20 @@ export class StatusCard extends LitElement {
 
   private _getPersonItemsMemo = memoizeOne(
     (
-      entities: EntityRegistryEntry[],
+      entities: HomeAssistant["entities"],
       hiddenEntities: string[],
       hiddenLabels: string[],
       hide_person: boolean,
       hassStates: HomeAssistant["states"]
     ): HassEntity[] => {
       if (hide_person) return [];
-      return entities
+      return Object.values(entities)
         .filter(
           (entity) =>
             entity.entity_id.startsWith("person.") &&
             !hiddenEntities.includes(entity.entity_id) &&
             !entity.labels?.some((l) => hiddenLabels.includes(l)) &&
-            !entity.hidden_by &&
-            !entity.disabled_by
+            !entity.hidden
         )
         .reverse()
         .map((entry) => hassStates[entry.entity_id])
@@ -834,7 +748,7 @@ export class StatusCard extends LitElement {
 
   private getPersonItems(): HassEntity[] {
     return this._getPersonItemsMemo(
-      this.entities,
+      this.hass.entities,
       this.hiddenEntities,
       this.hiddenLabels,
       this.hide_person,
@@ -1383,7 +1297,8 @@ export class StatusCard extends LitElement {
     };
     return html`
       <ha-card>
-        <ha-tab-group no-scroll-controls class=${classMap(noScroll)}>
+        <ha-tab-group without-scroll-controls class=${classMap(noScroll)}>
+          <ha-tab-group-tab style="display:none" active></ha-tab-group-tab>
           ${repeat(
             personEntities,
             (entity) => entity.entity_id,
@@ -1487,9 +1402,6 @@ export class StatusCard extends LitElement {
       }
       ha-tab-group::part(nav) {
         padding: 0 !important;
-      }
-      ha-tab-group::part(scroll-button) {
-        display: none !important;
       }
       ha-tab-group-tab {
         pointer-events: auto;

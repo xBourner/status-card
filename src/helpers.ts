@@ -1,10 +1,5 @@
 import type { HassEntity } from "home-assistant-js-websocket";
-import {
-  AreaRegistryEntry,
-  EntityRegistryEntry,
-  DeviceRegistryEntry,
-  caseInsensitiveStringCompare,
-} from "./ha";
+import { caseInsensitiveStringCompare, HomeAssistant } from "./ha";
 
 export interface DomainItem {
   type: "domain";
@@ -263,9 +258,9 @@ export const deviceClasses: DeviceClasses = {
 };
 
 export function computeEntitiesByDomain(
-  registryEntities: EntityRegistryEntry[],
-  deviceRegistry: DeviceRegistryEntry[],
-  areas: AreaRegistryEntry[],
+  entities: HomeAssistant["entities"],
+  devices: HomeAssistant["devices"],
+  areas: HomeAssistant["areas"],
   states: { [entity_id: string]: HassEntity },
   filters: {
     area?: string[] | null;
@@ -289,17 +284,20 @@ export function computeEntitiesByDomain(
   const hiddenLabelsSet = new Set(hiddenLabels);
   const hiddenEntitiesSet = new Set(hiddenEntities);
 
-  const deviceMap = new Map(deviceRegistry.map((d) => [d.id, d]));
+  const deviceMap = new Map(Object.values(devices).map((d) => [d.id, d]));
   const floorByArea = new Map(
-    areas.map((a) => [a.area_id, a.floor_id as string | undefined])
+    Object.values(areas).map((a) => [
+      a.area_id,
+      a.floor_id as string | undefined,
+    ])
   );
 
-  const includedEntityIds = registryEntities
+  const includedEntityIds = Object.values(entities)
     .filter((entry) => {
       const domain = entry.entity_id.split(".")[0];
       if (!allowedDomains.includes(domain)) return false;
       if (domain === "update") {
-        return !entry.hidden_by && !entry.disabled_by;
+        return !entry.hidden;
       }
 
       const device = entry.device_id
@@ -354,7 +352,7 @@ export function computeEntitiesByDomain(
       if (entry.labels?.some((l) => hiddenLabelsSet.has(l))) return false;
       if (hiddenEntitiesSet.has(entry.entity_id)) return false;
 
-      return !entry.hidden_by && !entry.disabled_by;
+      return !entry.hidden;
     })
     .map((e) => e.entity_id);
 
