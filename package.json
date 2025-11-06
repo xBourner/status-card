@@ -1,6 +1,6 @@
 {
   "name": "status-card",
-  "version": "v3.0.5",
+  "version": "v3.1",
   "type": "module",
   "devDependencies": {
     "typescript": "^4.0.0",
