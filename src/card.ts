@@ -1,11 +1,4 @@
-import {
-  LitElement,
-  html,
-  css,
-  PropertyValues,
-  TemplateResult,
-  nothing,
-} from "lit";
+import { LitElement, html, css, PropertyValues, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import { classMap } from "lit/directives/class-map.js";
