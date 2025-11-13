@@ -81,22 +81,12 @@ body:
     description: What version of the card are you running?
     options:
     - v3.1-beta
-    - v3.0.5.1-beta
-    - v3.0.5-beta
     - v3.0.5
     - v3.0.4
-    - v3.0.3-beta
     - v3.0.3
-    - v3.0.2-beta
     - v3.0.2
-    - v3.0.1-beta
     - v3.0.1
     - v3.0
-    - v3-beta
-    - v2.13.3-beta
-    - v2.13.2-beta
-    - v2.13.1-beta
-    - v2.13-beta
     - v2.12.2
     - v2.12.1
     - v2.12
