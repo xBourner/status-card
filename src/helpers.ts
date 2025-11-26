@@ -374,7 +374,7 @@ export function _formatDomain(domain: string): string {
 }
 
 export function typeKey(domain: string, deviceClass?: string): string {
-  return deviceClass ? `${_formatDomain(domain)} - ${deviceClass}` : domain;
+  return deviceClass ? `${domain} - ${deviceClass}` : domain;
 }
 
 export function getFriendlyName(

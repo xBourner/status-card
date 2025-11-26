@@ -1232,11 +1232,8 @@ function Te(i, t, e, s, o, n) {
   }
   return C;
 }
-function Ci(i) {
-  return i.split("_").map((t) => t.charAt(0).toUpperCase() + t.slice(1)).join(" ");
-}
 function H(i, t) {
-  return t ? `${Ci(i)} - ${t}` : i;
+  return t ? `${i} - ${t}` : i;
 }
 function Ae(i, t) {
   var e, s;
@@ -1391,13 +1388,13 @@ function Ut(i, t, e) {
     return (typeof a == "string" || typeof a == "number") && (o[String(a)] = n), o;
   }, {}));
 }
-const Si = A(
+const Ci = A(
   (i = []) => new Map(i.map((t) => [t.entity_id, t]))
-), xi = A(
+), Si = A(
   (i = []) => new Map(i.map((t) => [t.id, t]))
-), zi = A(
+), xi = A(
   (i = []) => new Map(i.map((t) => [t.area_id, t]))
-), ki = A(
+), zi = A(
   (i, t, e, s, o, n, a) => {
     let c = [];
     Array.isArray(t.filters) ? c = t.filters : [
@@ -1423,9 +1420,9 @@ const Si = A(
     ].forEach((h) => {
       t[h] !== void 0 && c.push({ key: h, value: t[h] });
     });
-    const r = Si(e), l = xi(s), d = zi(o);
+    const r = Ci(e), l = Si(s), d = xi(o);
     return Object.values(a).filter((h) => n.includes(h.entity_id) ? !1 : c.length ? c.every(
-      (u) => Di(i, h, u, {
+      (u) => ki(i, h, u, {
         areas: o,
         devices: s,
         entities: e,
@@ -1462,7 +1459,7 @@ function $t(i, t) {
       (d = e.requestUpdate) == null || d.call(e);
     } catch {
     }
-  })), ki(
+  })), zi(
     i,
     t,
     s,
@@ -1535,7 +1532,7 @@ function S(i, t) {
     }
   return i === t;
 }
-function Di(i, t, e, s) {
+function ki(i, t, e, s) {
   var n, a, c, r, l, d, h, u, f;
   const o = ((n = s.entityMap) == null ? void 0 : n.get(t.entity_id)) || ((a = s.entities) == null ? void 0 : a.find((m) => m.entity_id === t.entity_id));
   switch (e.key) {
@@ -1627,10 +1624,10 @@ function Di(i, t, e, s) {
       return !0;
   }
 }
-var Oi = Object.defineProperty, M = (i, t, e, s) => {
+var Di = Object.defineProperty, M = (i, t, e, s) => {
   for (var o = void 0, n = i.length - 1, a; n >= 0; n--)
     (a = i[n]) && (o = a(t, e, o) || o);
-  return o && Oi(t, e, o), o;
+  return o && Di(t, e, o), o;
 };
 const te = class te extends V {
   constructor() {
@@ -2453,10 +2450,10 @@ customElements.define(
   "status-card-popup-confirmation",
   it
 );
-var Ti = Object.defineProperty, Li = Object.getOwnPropertyDescriptor, j = (i, t, e, s) => {
-  for (var o = s > 1 ? void 0 : s ? Li(t, e) : t, n = i.length - 1, a; n >= 0; n--)
+var Oi = Object.defineProperty, Ti = Object.getOwnPropertyDescriptor, j = (i, t, e, s) => {
+  for (var o = s > 1 ? void 0 : s ? Ti(t, e) : t, n = i.length - 1, a; n >= 0; n--)
     (a = i[n]) && (o = (s ? a(t, e, o) : a(o)) || o);
-  return s && o && Ti(t, e, o), o;
+  return s && o && Oi(t, e, o), o;
 };
 let P = class extends V {
   constructor() {
@@ -3414,10 +3411,10 @@ j([
 P = j([
   Tt("status-card")
 ], P);
-var Mi = Object.defineProperty, Hi = Object.getOwnPropertyDescriptor, Pt = (i, t, e, s) => {
-  for (var o = s > 1 ? void 0 : s ? Hi(t, e) : t, n = i.length - 1, a; n >= 0; n--)
+var Li = Object.defineProperty, Mi = Object.getOwnPropertyDescriptor, Pt = (i, t, e, s) => {
+  for (var o = s > 1 ? void 0 : s ? Mi(t, e) : t, n = i.length - 1, a; n >= 0; n--)
     (a = i[n]) && (o = (s ? a(t, e, o) : a(o)) || o);
-  return s && o && Mi(t, e, o), o;
+  return s && o && Li(t, e, o), o;
 };
 class Qt extends V {
   constructor() {
@@ -3581,10 +3578,10 @@ Pt([
 Gt = Pt([
   Tt("status-items-editor")
 ], Gt);
-var Pi = Object.defineProperty, Ii = Object.getOwnPropertyDescriptor, ot = (i, t, e, s) => {
-  for (var o = s > 1 ? void 0 : s ? Ii(t, e) : t, n = i.length - 1, a; n >= 0; n--)
+var Hi = Object.defineProperty, Pi = Object.getOwnPropertyDescriptor, ot = (i, t, e, s) => {
+  for (var o = s > 1 ? void 0 : s ? Pi(t, e) : t, n = i.length - 1, a; n >= 0; n--)
     (a = i[n]) && (o = (s ? a(t, e, o) : a(o)) || o);
-  return s && o && Pi(t, e, o), o;
+  return s && o && Hi(t, e, o), o;
 };
 let W = class extends V {
   constructor() {
@@ -3797,10 +3794,10 @@ ot([
 W = ot([
   Tt("status-item-editor")
 ], W);
-var ji = Object.defineProperty, Fi = Object.getOwnPropertyDescriptor, dt = (i, t, e, s) => {
-  for (var o = s > 1 ? void 0 : s ? Fi(t, e) : t, n = i.length - 1, a; n >= 0; n--)
+var Ii = Object.defineProperty, ji = Object.getOwnPropertyDescriptor, dt = (i, t, e, s) => {
+  for (var o = s > 1 ? void 0 : s ? ji(t, e) : t, n = i.length - 1, a; n >= 0; n--)
     (a = i[n]) && (o = (s ? a(t, e, o) : a(o)) || o);
-  return s && o && ji(t, e, o), o;
+  return s && o && Ii(t, e, o), o;
 };
 let st = class extends V {
   constructor() {

@@ -16,7 +16,7 @@ import {
   Schema,
   STATES_OFF,
 } from "./ha";
-import { compareByFriendlyName, _formatDomain, typeKey } from "./helpers";
+import { compareByFriendlyName, typeKey } from "./helpers";
 import { computeLabelCallback, translateEntityState } from "./translations";
 import { filterEntitiesByRuleset } from "./smart_groups";
 
