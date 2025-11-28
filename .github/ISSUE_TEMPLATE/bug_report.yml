@@ -74,6 +74,7 @@ body:
     description: What version of the card are you running?
     options:
     - v3.1.1-beta
+    - v3.1.1
     - v3.1-beta
     - v3.1
     - v3.0.5
