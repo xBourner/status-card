@@ -37,6 +37,9 @@ body:
     description: What version of HA are you running? Please update version if you
       don't see your running verision in this list.
     options:
+    - 2025.12.0b6
+    - 2025.12.0b5
+    - 2025.12.0b4
     - 2025.12.0b3
     - 2025.12.0b2
     - 2025.12.0b1
