@@ -350,6 +350,19 @@ export const getItemAppearanceSchema = (
       ],
     },
     {
+      name: "state_content",
+      selector: { ui_state_content: { entity_id: entityId } },
+    },
+    { name: "name", selector: { text: {} } },
+    { name: "show_entity_picture", selector: { boolean: {} } },
+    { name: "icon", selector: { icon: {} } },
+    {
+      name: "icon_color",
+      selector: {
+        ui_color: { default_color: "state", include_state: true },
+      },
+    },
+    {
       name: "background_color",
       selector: {
         color_rgb: { default_color: "state", include_state: true },
