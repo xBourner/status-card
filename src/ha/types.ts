@@ -421,6 +421,7 @@ export type DomainIconDef = {
 };
 
 export interface DomainFeatureDef {
-  state_content: string[];
-  features: Record<string, unknown>[];
+  state_content: string | string[];
+  features?: Record<string, unknown>[];
+  show_entity_picture?: boolean;
 }
