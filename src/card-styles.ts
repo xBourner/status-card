@@ -22,7 +22,9 @@ export function getCustomizationForType(
   return map.get(type.toLowerCase());
 }
 
-export function getResolvedCustomizationValue<T extends keyof LovelaceCardConfig>(
+export function getResolvedCustomizationValue<
+  T extends keyof LovelaceCardConfig
+>(
   config: LovelaceCardConfig,
   key: T,
   domain: string,
@@ -134,8 +136,13 @@ export function getCustomColor(
   customizationMap?: Map<string, LovelaceCardConfig>
 ): string | undefined {
   return (
-    getResolvedCustomizationValue(config, "icon_color", domain, deviceClass, customizationMap) ||
-    config.color
+    getResolvedCustomizationValue(
+      config,
+      "icon_color",
+      domain,
+      deviceClass,
+      customizationMap
+    ) || config.color
   );
 }
 
@@ -147,8 +154,13 @@ export function getCustomName(
   customizationMap?: Map<string, LovelaceCardConfig>
 ): string | undefined {
   return (
-    getResolvedCustomizationValue(config, "name", domain, deviceClass, customizationMap) ||
-    entity?.attributes.friendly_name
+    getResolvedCustomizationValue(
+      config,
+      "name",
+      domain,
+      deviceClass,
+      customizationMap
+    ) || entity?.attributes.friendly_name
   );
 }
 
@@ -158,7 +170,13 @@ export function getCustomCSS(
   deviceClass?: string,
   customizationMap?: Map<string, LovelaceCardConfig>
 ): string | undefined {
-  return getResolvedCustomizationValue(config, "icon_css", domain, deviceClass, customizationMap);
+  return getResolvedCustomizationValue(
+    config,
+    "icon_css",
+    domain,
+    deviceClass,
+    customizationMap
+  );
 }
 
 function getStatusForDeviceTracker(
@@ -166,7 +184,11 @@ function getStatusForDeviceTracker(
   isInverted: boolean
 ): string {
   const normalState = translateEntityState(hass, "home", "device_tracker");
-  const invertedState = translateEntityState(hass, "not_home", "device_tracker");
+  const invertedState = translateEntityState(
+    hass,
+    "not_home",
+    "device_tracker"
+  );
   return isInverted ? invertedState : normalState;
 }
 

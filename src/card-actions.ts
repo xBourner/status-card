@@ -5,7 +5,7 @@ import {
   handleAction,
   STATES_OFF,
   computeDomain,
-  LovelaceCardConfig
+  LovelaceCardConfig,
 } from "./ha";
 import { HassEntity } from "home-assistant-js-websocket";
 import { TOGGLEABLE_DOMAINS } from "./const";
@@ -45,11 +45,9 @@ export function toggleDomain(
         entity_id: entity.entity_id,
       });
     } else if (domain === "alarm_control_panel") {
-      hass.callService(
-        domain,
-        isOn ? "alarm_arm_away" : "alarm_disarm",
-        { entity_id: entity.entity_id }
-      );
+      hass.callService(domain, isOn ? "alarm_arm_away" : "alarm_disarm", {
+        entity_id: entity.entity_id,
+      });
     } else if (domain === "lawn_mower") {
       hass.callService(domain, isOn ? "pause" : "start_mowing", {
         entity_id: entity.entity_id,
@@ -100,8 +98,7 @@ export function handleDomainAction(
 
   const isMoreInfo =
     (typeof actionConfig === "string" && actionConfig === "more-info") ||
-    (typeof actionConfig === "object" &&
-      actionConfig?.action === "more-info");
+    (typeof actionConfig === "object" && actionConfig?.action === "more-info");
 
   const isToggle =
     (typeof actionConfig === "string" && actionConfig === "toggle") ||

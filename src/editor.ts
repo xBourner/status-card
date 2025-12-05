@@ -42,7 +42,6 @@ import {
   SmartGroupItem,
 } from "./ha/types";
 
-
 @customElement("status-card-editor")
 export class StatusCardEditor extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -165,14 +164,14 @@ export class StatusCardEditor extends LitElement {
       const currentArea = Array.isArray(this._config.area)
         ? [...this._config.area]
         : this._config.area
-          ? [this._config.area]
-          : [];
+        ? [this._config.area]
+        : [];
 
       const currentFloor = Array.isArray(this._config.floor)
         ? [...this._config.floor]
         : this._config.floor
-          ? [this._config.floor]
-          : [];
+        ? [this._config.floor]
+        : [];
 
       const currentLabel = Array.isArray(this._config.label)
         ? [...this._config.label]
@@ -433,24 +432,22 @@ export class StatusCardEditor extends LitElement {
       },
       ...(HideFilter === "label"
         ? ([
-          {
-            name: "hidden_labels",
-            selector: { label: { multiple: true } },
-          },
-        ] as const)
+            {
+              name: "hidden_labels",
+              selector: { label: { multiple: true } },
+            },
+          ] as const)
         : []),
       ...(HideFilter === "area"
         ? ([
-          {
-            name: "hidden_areas",
-            selector: { area: { multiple: true } },
-          },
-        ] as const)
+            {
+              name: "hidden_areas",
+              selector: { area: { multiple: true } },
+            },
+          ] as const)
         : []),
     ];
   });
-
-
 
   private _valueChanged(event: CustomEvent) {
     const next = event.detail.value;
@@ -763,8 +760,9 @@ export class StatusCardEditor extends LitElement {
     goBackHandler: () => void,
     itemChangedHandler: (ev: CustomEvent<LovelaceCardConfig>) => void
   ) {
-    const editorName = `_subElementEditor${editorKey.charAt(0).toUpperCase() + editorKey.slice(1)
-      }` as keyof this;
+    const editorName = `_subElementEditor${
+      editorKey.charAt(0).toUpperCase() + editorKey.slice(1)
+    }` as keyof this;
     const editor = this[editorName] as SubElementEditor | undefined;
 
     const type =
@@ -785,14 +783,14 @@ export class StatusCardEditor extends LitElement {
         </div>
       </div>
       <status-card-item-editor
-      .hass=${this.hass}
-      .lovelace=${this.lovelace}
-      .config=${this._config?.customization?.[editor?.index ?? 0] ?? {}}
-      .getSchema=${editorKey}
-      .index=${editor?.index ?? 0}
-      @config-changed=${itemChangedHandler}
-    >
-    </status-card-item-editor>
+        .hass=${this.hass}
+        .lovelace=${this.lovelace}
+        .config=${this._config?.customization?.[editor?.index ?? 0] ?? {}}
+        .getSchema=${editorKey}
+        .index=${editor?.index ?? 0}
+        @config-changed=${itemChangedHandler}
+      >
+      </status-card-item-editor>
     `;
   }
 
@@ -903,7 +901,7 @@ export class StatusCardEditor extends LitElement {
     );
 
     fireEvent(this, "config-changed", {
-      config: this._config
+      config: this._config,
     });
   }
 
@@ -1082,9 +1080,6 @@ export class StatusCardEditor extends LitElement {
     this._updateConfigFromRulesets();
   };
 
-
-
-
   private _groupAllEntitiesByDomain(): Array<{
     domain: string;
     entities: string[];
@@ -1097,13 +1092,13 @@ export class StatusCardEditor extends LitElement {
       area: Array.isArray(this._config?.area)
         ? (this._config!.area as string[])
         : this._config?.area
-          ? [this._config.area]
-          : [],
+        ? [this._config.area]
+        : [],
       floor: Array.isArray(this._config?.floor)
         ? (this._config!.floor as string[])
         : this._config?.floor
-          ? [this._config.floor]
-          : [],
+        ? [this._config.floor]
+        : [],
       label: Array.isArray(this._config?.label)
         ? (this._config!.label as string[])
         : [],
@@ -1357,16 +1352,17 @@ export class StatusCardEditor extends LitElement {
           .active=${this._activeTab === "config"}
         >
           ${this.hass.localize(
-      "ui.panel.lovelace.editor.edit_card.tab_config"
-    ) ?? "Configuration"}
+            "ui.panel.lovelace.editor.edit_card.tab_config"
+          ) ?? "Configuration"}
         </ha-tab-group-tab>
         <ha-tab-group-tab
           slot="nav"
           panel="appearance"
           .active=${this._activeTab === "appearance"}
         >
-          ${this.hass.localize("ui.panel.lovelace.editor.card.tile.appearance") ||
-      "Appearance"}
+          ${this.hass.localize(
+            "ui.panel.lovelace.editor.card.tile.appearance"
+          ) || "Appearance"}
         </ha-tab-group-tab>
         <ha-tab-group-tab
           slot="nav"
@@ -1374,7 +1370,7 @@ export class StatusCardEditor extends LitElement {
           .active=${this._activeTab === "actions"}
         >
           ${this.hass.localize("ui.panel.lovelace.editor.card.tile.actions") ||
-      "Actions"}
+          "Actions"}
         </ha-tab-group-tab>
       </ha-tab-group>
 
@@ -1395,24 +1391,24 @@ export class StatusCardEditor extends LitElement {
                   .path=${mdiTextBoxEdit}
                 ></ha-svg-icon>
                 ${this.hass.localize(
-          "ui.panel.lovelace.editor.card.entities.name"
-        ) ?? "Entities"}
+                  "ui.panel.lovelace.editor.card.entities.name"
+                ) ?? "Entities"}
               </div>
               <div class="content">
                 <ha-form
                   .hass=${this.hass}
                   .data=${data}
                   .schema=${this._entitiesSchema(
-          this._config?.hide_filter ?? ""
-        )}
+                    this._config?.hide_filter ?? ""
+                  )}
                   .computeLabel=${this.computeLabel}
                   @value-changed=${this._valueChanged}
                 ></ha-form>
 
                 ${(this._config?.hide_filter ?? "") === "entity"
-            ? html`
+                  ? html`
                       ${this._groupAllEntitiesByDomain().map(
-              (group) => html`
+                        (group) => html`
                           <ha-expansion-panel outlined class="domain-panel">
                             <div slot="header" class="domain-header">
                               <ha-svg-icon
@@ -1424,13 +1420,13 @@ export class StatusCardEditor extends LitElement {
                             </div>
                             <div class="content">
                               ${["binary_sensor", "cover"].includes(
-                group.domain
-              )
-                  ? this._groupByDeviceClass(
-                    group.domain,
-                    group.entities
-                  ).map(
-                    (sub) => html`
+                                group.domain
+                              )
+                                ? this._groupByDeviceClass(
+                                    group.domain,
+                                    group.entities
+                                  ).map(
+                                    (sub) => html`
                                       <ha-expansion-panel
                                         outlined
                                         class="domain-panel"
@@ -1438,10 +1434,10 @@ export class StatusCardEditor extends LitElement {
                                         <div slot="header" class="dc-header">
                                           <ha-svg-icon
                                             .path=${this._domainIcon(
-                      group.domain,
-                      "on",
-                      sub.deviceClass
-                    )}
+                                              group.domain,
+                                              "on",
+                                              sub.deviceClass
+                                            )}
                                           ></ha-svg-icon>
                                           <span class="dc-title"
                                             >${sub.label}</span
@@ -1449,70 +1445,70 @@ export class StatusCardEditor extends LitElement {
                                         </div>
                                         <div class="content">
                                           ${sub.entities.map(
-                      (id) => html`
+                                            (id) => html`
                                               <div class="entity-row">
                                                 <span class="entity-name">
                                                   ${this.hass.states[id]
-                          ?.attributes
-                          ?.friendly_name || id}
+                                                    ?.attributes
+                                                    ?.friendly_name || id}
                                                 </span>
                                                 <ha-icon-button
                                                   .path=${this._isHiddenEntity(
-                            id
-                          )
-                          ? mdiEye
-                          : mdiEyeOff}
+                                                    id
+                                                  )
+                                                    ? mdiEye
+                                                    : mdiEyeOff}
                                                   .label=${this._isHiddenEntity(
-                            id
-                          )
-                          ? this.hass.localize(
-                            "ui.common.show"
-                          ) ?? "Show"
-                          : this.hass.localize(
-                            "ui.common.hide"
-                          ) ?? "Hide"}
+                                                    id
+                                                  )
+                                                    ? this.hass.localize(
+                                                        "ui.common.show"
+                                                      ) ?? "Show"
+                                                    : this.hass.localize(
+                                                        "ui.common.hide"
+                                                      ) ?? "Hide"}
                                                   @click=${() =>
-                          this._toggleEntityHidden(
-                            id
-                          )}
+                                                    this._toggleEntityHidden(
+                                                      id
+                                                    )}
                                                 ></ha-icon-button>
                                               </div>
                                             `
-                    )}
+                                          )}
                                         </div>
                                       </ha-expansion-panel>
                                     `
-                  )
-                  : group.entities.map(
-                    (id) => html`
+                                  )
+                                : group.entities.map(
+                                    (id) => html`
                                       <div class="entity-row">
                                         <span class="entity-name">
                                           ${this.hass.states[id]?.attributes
-                        ?.friendly_name || id}
+                                            ?.friendly_name || id}
                                         </span>
                                         <ha-icon-button
                                           .path=${this._isHiddenEntity(id)
-                        ? mdiEye
-                        : mdiEyeOff}
+                                            ? mdiEye
+                                            : mdiEyeOff}
                                           .label=${this._isHiddenEntity(id)
-                        ? this.hass.localize(
-                          "ui.common.show"
-                        ) ?? "Show"
-                        : this.hass.localize(
-                          "ui.common.hide"
-                        ) ?? "Hide"}
+                                            ? this.hass.localize(
+                                                "ui.common.show"
+                                              ) ?? "Show"
+                                            : this.hass.localize(
+                                                "ui.common.hide"
+                                              ) ?? "Hide"}
                                           @click=${() =>
-                        this._toggleEntityHidden(id)}
+                                            this._toggleEntityHidden(id)}
                                         ></ha-icon-button>
                                       </div>
                                     `
-                  )}
+                                  )}
                             </div>
                           </ha-expansion-panel>
                         `
-            )}
+                      )}
                     `
-            : html``}
+                  : html``}
               </div>
             </ha-expansion-panel>
 
@@ -1526,14 +1522,14 @@ export class StatusCardEditor extends LitElement {
               </div>
               <div class="content">
                 ${this.rulesets.map(
-              (group, i) => html`
+                  (group, i) => html`
                     <ha-expansion-panel class="group-panel main" outlined>
                       <div slot="header" class="group-header">
                         ${group.group_id
-                  ? group.group_id
-                  : `${this.hass.localize(
-                    "component.group.entity_component._.name"
-                  )} ${i + 1}`}
+                          ? group.group_id
+                          : `${this.hass.localize(
+                              "component.group.entity_component._.name"
+                            )} ${i + 1}`}
                         <span class="group-actions">
                           <ha-icon-button
                             slot="trigger"
@@ -1550,13 +1546,13 @@ export class StatusCardEditor extends LitElement {
                           .schema=${this.getGroupSchema(group)}
                           .computeLabel=${this.computeLabel}
                           @value-changed=${(ev: CustomEvent) =>
-                  this._groupValueChanged(ev, i)}
+                            this._groupValueChanged(ev, i)}
                           @focusout=${() => this._groupFormBlur(i)}
                         ></ha-form>
                       </div>
                     </ha-expansion-panel>
                   `
-            )}
+                )}
                 <div class="add-group-row">
                   <ha-button raised @click=${this._addRuleset}>
                     ${this.hass.localize("ui.common.add")}
@@ -1619,7 +1615,7 @@ export class StatusCardEditor extends LitElement {
       }
       ha-icon {
         display: flex;
-        }
+      }
       ha-tab-group {
         display: block;
         margin-bottom: 16px;

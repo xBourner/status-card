@@ -15,7 +15,9 @@ export class ItemEditor extends LitElement {
   @state() private _config?: LovelaceCardConfig;
   @state() private _activeTab = "appearance";
 
-  protected willUpdate(changedProps: Map<string | number | symbol, unknown>): void {
+  protected willUpdate(
+    changedProps: Map<string | number | symbol, unknown>
+  ): void {
     if (changedProps.has("config") && this.config) {
       this._config = {
         ...this.config,
@@ -59,15 +61,15 @@ export class ItemEditor extends LitElement {
           @click=${() => (this._activeTab = "appearance")}
         >
           ${this.hass.localize(
-      "ui.panel.lovelace.editor.card.tile.appearance"
-    ) || "Appearance"}
+            "ui.panel.lovelace.editor.card.tile.appearance"
+          ) || "Appearance"}
         </ha-tab-group-tab>
         <ha-tab-group-tab
           .active=${this._activeTab === "actions"}
           @click=${() => (this._activeTab = "actions")}
         >
           ${this.hass.localize("ui.panel.lovelace.editor.card.tile.actions") ||
-      "Actions"}
+          "Actions"}
         </ha-tab-group-tab>
       </ha-tab-group>
       <ha-form
@@ -75,7 +77,7 @@ export class ItemEditor extends LitElement {
         .data=${data}
         .schema=${schema}
         .computeLabel=${(schema: Schema) =>
-        computeLabelCallback(this.hass!, schema)}
+          computeLabelCallback(this.hass!, schema)}
         @value-changed=${this._valueChangedSchema}
       ></ha-form>
     `;

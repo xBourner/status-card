@@ -285,8 +285,12 @@ export interface StatusCardInterface extends StatusCardLike {
   _isOn(domain: string, deviceClass?: string): HassEntity[];
   getCustomizationForType(key: string): LovelaceCardConfig | undefined;
   list_mode: boolean;
-  _computeEntityMap(entities: EntityRegistryEntry[]): Map<string, EntityRegistryEntry>;
-  _computeDeviceMap(devices: DeviceRegistryEntry[]): Map<string, DeviceRegistryEntry>;
+  _computeEntityMap(
+    entities: EntityRegistryEntry[]
+  ): Map<string, EntityRegistryEntry>;
+  _computeDeviceMap(
+    devices: DeviceRegistryEntry[]
+  ): Map<string, DeviceRegistryEntry>;
   _computeAreaMap(areas: AreaRegistryEntry[]): Map<string, AreaRegistryEntry>;
 }
 
@@ -407,7 +411,6 @@ export interface SubElementConfig {
   type?: string;
   schemaType?: string;
 }
-
 
 export interface IconPair {
   on: string;

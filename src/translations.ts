@@ -12,7 +12,6 @@ export function translateEntityState(
   return localized || state;
 }
 
-
 const LABEL_MAP: Record<string, (hass: HomeAssistant) => string> = {
   square: (hass) => hass.localize("ui.panel.lovelace.editor.card.grid.square"),
   hide_person_name: (hass) =>
@@ -65,7 +64,9 @@ const LABEL_MAP: Record<string, (hass: HomeAssistant) => string> = {
   icon: (hass) => hass.localize("ui.components.selectors.selector.types.icon"),
   color: (hass) => hass.localize("ui.panel.lovelace.editor.card.tile.color"),
   background_color: (hass) =>
-    `${hass.localize("ui.panel.lovelace.editor.card.generic.icon")} ${hass.localize(
+    `${hass.localize(
+      "ui.panel.lovelace.editor.card.generic.icon"
+    )} ${hass.localize(
       "ui.panel.lovelace.editor.edit_view.tab_background"
     )} ${hass.localize("ui.panel.lovelace.editor.card.tile.color")}`,
   multiple_areas: (hass) =>
@@ -91,15 +92,17 @@ const LABEL_MAP: Record<string, (hass: HomeAssistant) => string> = {
     hass.localize("ui.panel.lovelace.editor.card.generic.double_tap_action"),
   popup_card: () => "Change Popup Card Type",
   group_id: (hass) =>
-    `${hass.localize("component.group.entity_component._.name")} ${hass.localize(
-      "ui.common.name"
-    )}`,
+    `${hass.localize(
+      "component.group.entity_component._.name"
+    )} ${hass.localize("ui.common.name")}`,
   group_icon: (hass) =>
-    `${hass.localize("component.group.entity_component._.name")} ${hass.localize(
-      "ui.panel.lovelace.editor.card.generic.icon"
-    )}`,
+    `${hass.localize(
+      "component.group.entity_component._.name"
+    )} ${hass.localize("ui.panel.lovelace.editor.card.generic.icon")}`,
   group_status: (hass) =>
-    `${hass.localize("component.group.entity_component._.name")} ${hass.localize(
+    `${hass.localize(
+      "component.group.entity_component._.name"
+    )} ${hass.localize(
       "ui.components.selectors.selector.types.state"
     )} (${hass.localize("ui.panel.lovelace.editor.card.config.optional")})`,
   hide: (hass) => hass.localize("ui.common.hide"),
@@ -126,29 +129,30 @@ const LABEL_MAP: Record<string, (hass: HomeAssistant) => string> = {
     hass.localize("ui.panel.lovelace.editor.card.tile.state_content"),
   hide_card_if_empty: (hass) =>
     `${hass.localize("ui.common.hide")} Status Card if empty`,
-  badge_mode: (hass) =>
-    `${hass.localize("ui.common.enable")} Badge `,
+  badge_mode: (hass) => `${hass.localize("ui.common.enable")} Badge `,
   badge_color: (hass) =>
     `Badge ${hass.localize("ui.panel.lovelace.editor.card.tile.color")}`,
   badge_text_color: (hass) =>
-    `Badge ${hass.localize("component.text.entity_component._.name")} ${hass.localize("ui.panel.lovelace.editor.card.tile.color")}`,
+    `Badge ${hass.localize(
+      "component.text.entity_component._.name"
+    )} ${hass.localize("ui.panel.lovelace.editor.card.tile.color")}`,
   person: (hass) => hass.localize("component.person.entity_component._.name"),
   person_home_color: (hass) =>
-    `${hass.localize("component.person.entity_component._.state.home")} ${hass.localize(
-      "ui.panel.lovelace.editor.card.tile.color"
-    )}`,
+    `${hass.localize(
+      "component.person.entity_component._.state.home"
+    )} ${hass.localize("ui.panel.lovelace.editor.card.tile.color")}`,
   person_away_color: (hass) =>
-    `${hass.localize("component.person.entity_component._.state.not_home")} ${hass.localize(
-      "ui.panel.lovelace.editor.card.tile.color"
-    )}`,
+    `${hass.localize(
+      "component.person.entity_component._.state.not_home"
+    )} ${hass.localize("ui.panel.lovelace.editor.card.tile.color")}`,
   person_home_icon: (hass) =>
-    `${hass.localize("component.person.entity_component._.state.home")} ${hass.localize(
-      "ui.components.selectors.selector.types.icon"
-    )}`,
+    `${hass.localize(
+      "component.person.entity_component._.state.home"
+    )} ${hass.localize("ui.components.selectors.selector.types.icon")}`,
   person_away_icon: (hass) =>
-    `${hass.localize("component.person.entity_component._.state.not_home")} ${hass.localize(
-      "ui.components.selectors.selector.types.icon"
-    )}`,
+    `${hass.localize(
+      "component.person.entity_component._.state.not_home"
+    )} ${hass.localize("ui.components.selectors.selector.types.icon")}`,
 };
 
 function getHeaderLabel(
@@ -177,9 +181,7 @@ function getHeaderLabel(
 
 function getDefaultLabel(hass: HomeAssistant, name: string): string {
   if (ALLOWED_DOMAINS.includes(name)) {
-    return (
-      hass.localize(`component.${name}.entity_component._.name`) || name
-    );
+    return hass.localize(`component.${name}.entity_component._.name`) || name;
   }
   for (const [domain, classes] of Object.entries(deviceClasses)) {
     if (classes.includes(name)) {
@@ -216,4 +218,3 @@ export function computeLabelCallback(
 
   return getDefaultLabel(hass, schema.name);
 }
-

@@ -1,8 +1,5 @@
 import type { HassEntity } from "home-assistant-js-websocket";
-import {
-  HomeAssistant,
-  LovelaceCardConfig,
-} from "./ha";
+import { HomeAssistant, LovelaceCardConfig } from "./ha";
 import {
   ExtraItem,
   GroupItem,
@@ -79,11 +76,7 @@ export const computeExtraItems = (
       const cust: LovelaceCardConfig | undefined = cfg.customization?.find(
         (c: LovelaceCardConfig) => c.type === eid
       );
-      if (
-        cust &&
-        cust.state !== undefined &&
-        cust.invert_state !== undefined
-      ) {
+      if (cust && cust.state !== undefined && cust.invert_state !== undefined) {
         const inv: boolean = cust.invert_state === "true";
         const match: boolean = entity.state === cust.state;
         if ((!inv && !match) || (inv && match)) return acc;
@@ -137,7 +130,10 @@ export const computeExtraItems = (
     .sort((a: ExtraItem, b: ExtraItem) => a.order - b.order);
 };
 
-export const computeGroupItems = (content: string[], rulesets: Ruleset[]): GroupItem[] =>
+export const computeGroupItems = (
+  content: string[],
+  rulesets: Ruleset[]
+): GroupItem[] =>
   content
     .map((id, idx) => {
       const ruleset = rulesets.find((g) => g.group_id === id);
@@ -164,16 +160,15 @@ export const computeDomainItems = (content: string[]): DomainItem[] =>
     .map((c, idx) =>
       !c.includes(" - ")
         ? ({
-          type: "domain" as const,
-          domain: c.trim().toLowerCase().replace(/\s+/g, "_"),
-          order: idx,
-        } as DomainItem)
+            type: "domain" as const,
+            domain: c.trim().toLowerCase().replace(/\s+/g, "_"),
+            order: idx,
+          } as DomainItem)
         : null
     )
     .filter((v): v is DomainItem => v !== null);
 
-export const computeDeviceClassItems = (
-  content: string[]): DeviceClassItem[] =>
+export const computeDeviceClassItems = (content: string[]): DeviceClassItem[] =>
   content
     .map((c, idx) => {
       if (!c.includes(" - ")) return null;

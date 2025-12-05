@@ -44,26 +44,28 @@ export const filterStaticEntities = (
   }
 
   if (!filters.length && !hiddenEntities.length) {
-    return entities.map(e => e.entity_id);
+    return entities.map((e) => e.entity_id);
   }
 
-  return entities.filter((entry) => {
-    if (hiddenEntities.includes(entry.entity_id)) return false;
-    if (!filters.length) return true;
+  return entities
+    .filter((entry) => {
+      if (hiddenEntities.includes(entry.entity_id)) return false;
+      if (!filters.length) return true;
 
-    const fakeEntity = { entity_id: entry.entity_id } as HassEntity;
+      const fakeEntity = { entity_id: entry.entity_id } as HassEntity;
 
-    return filters.every((rule) =>
-      matchesRule({} as StatusCardLike, fakeEntity, rule, {
-        areas,
-        devices,
-        entities,
-        entityMap,
-        deviceMap,
-        areaMap,
-      })
-    );
-  }).map(e => e.entity_id);
+      return filters.every((rule) =>
+        matchesRule({} as StatusCardLike, fakeEntity, rule, {
+          areas,
+          devices,
+          entities,
+          entityMap,
+          deviceMap,
+          areaMap,
+        })
+      );
+    })
+    .map((e) => e.entity_id);
 };
 
 export const filterDynamicEntities = (
@@ -98,19 +100,19 @@ export const filterDynamicEntities = (
 
   if (!filters.length) {
     return candidateIds
-      .map(id => states[id])
+      .map((id) => states[id])
       .filter((e): e is HassEntity => !!e);
   }
 
   return candidateIds
-    .map(id => states[id])
+    .map((id) => states[id])
     .filter((entity): entity is HassEntity => {
       if (!entity) return false;
       return filters.every((rule) =>
         matchesRule(card, entity, rule, {
           entityMap,
           deviceMap,
-          areaMap
+          areaMap,
         })
       );
     });

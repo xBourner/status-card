@@ -1,5 +1,9 @@
 import type { HassEntity } from "home-assistant-js-websocket";
-import { caseInsensitiveStringCompare, HomeAssistant, LovelaceCard } from "./ha";
+import {
+  caseInsensitiveStringCompare,
+  HomeAssistant,
+  LovelaceCard,
+} from "./ha";
 
 export function cacheByProperty<T>(
   hass: HomeAssistant,
@@ -33,21 +37,24 @@ export function getIncludedEntityIds(
   },
   allowedDomains: string[]
 ): string[] {
-  const areaSel = filters.area && filters.area.length > 0
-    ? Array.isArray(filters.area)
-      ? filters.area
-      : [filters.area]
-    : null;
-  const floorSel = filters.floor && filters.floor.length > 0
-    ? Array.isArray(filters.floor)
-      ? filters.floor
-      : [filters.floor]
-    : null;
-  const labelSel = filters.label && filters.label.length > 0
-    ? Array.isArray(filters.label)
-      ? filters.label
-      : [filters.label]
-    : null;
+  const areaSel =
+    filters.area && filters.area.length > 0
+      ? Array.isArray(filters.area)
+        ? filters.area
+        : [filters.area]
+      : null;
+  const floorSel =
+    filters.floor && filters.floor.length > 0
+      ? Array.isArray(filters.floor)
+        ? filters.floor
+        : [filters.floor]
+      : null;
+  const labelSel =
+    filters.label && filters.label.length > 0
+      ? Array.isArray(filters.label)
+        ? filters.label
+        : [filters.label]
+      : null;
 
   const hiddenAreas = filters.hiddenAreas || [];
   const hiddenLabels = filters.hiddenLabels || [];
@@ -218,7 +225,7 @@ export function toTileConfig(cardConfig: {
 
 export async function createCardElement(
   hass: HomeAssistant,
-  cardConfig: { type: string; entity?: string;[key: string]: unknown },
+  cardConfig: { type: string; entity?: string; [key: string]: unknown },
   isFallback = false
 ): Promise<LovelaceCard | HTMLElement> {
   try {
@@ -229,7 +236,7 @@ export async function createCardElement(
       el.setAttribute?.("data-hui-card", "");
       return el;
     }
-  } catch { }
+  } catch {}
 
   try {
     const type = cardConfig.type || "tile";
@@ -237,7 +244,7 @@ export async function createCardElement(
     const tag = isCustom ? type.slice(7) : `hui-${type}-card`;
 
     if (isCustom && !customElements.get(tag)) {
-      await customElements.whenDefined(tag).catch(() => { });
+      await customElements.whenDefined(tag).catch(() => {});
     }
 
     const el = document.createElement(tag) as LovelaceCard;
@@ -251,11 +258,7 @@ export async function createCardElement(
     return el;
   } catch {
     if (!isFallback) {
-      return createCardElement(
-        hass,
-        toTileConfig(cardConfig),
-        true
-      );
+      return createCardElement(hass, toTileConfig(cardConfig), true);
     }
     const empty = document.createElement("div");
     empty.setAttribute("data-hui-card", "");

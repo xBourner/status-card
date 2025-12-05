@@ -44,19 +44,19 @@ abstract class BaseItemsEditor extends LitElement {
     return html`
       <div class="customization">
         ${this.customizationkey &&
-      repeat(
-        this.customizationkey,
-        (conf) => this._getKey(conf),
-        (conf, index) => html`
+        repeat(
+          this.customizationkey,
+          (conf) => this._getKey(conf),
+          (conf, index) => html`
             <div class="customize-item">
               <ha-select
                 label=${this.hass!.localize(
-          "ui.panel.lovelace.editor.common.edit"
-        ) +
-          " " +
-          this.hass!.localize(
-            "ui.panel.lovelace.editor.card.markdown.content"
-          )}
+                  "ui.panel.lovelace.editor.common.edit"
+                ) +
+                " " +
+                this.hass!.localize(
+                  "ui.panel.lovelace.editor.card.markdown.content"
+                )}
                 name="Customize"
                 class="select-customization"
                 naturalMenuWidth
@@ -67,7 +67,7 @@ abstract class BaseItemsEditor extends LitElement {
               >
                 <mwc-list-item .value=${conf.type} selected disabled>
                   ${this.SelectOptions.find((o) => o.value === conf.type)
-            ?.label || conf.type}
+                    ?.label || conf.type}
                 </mwc-list-item>
               </ha-select>
               <ha-icon-button
@@ -86,17 +86,17 @@ abstract class BaseItemsEditor extends LitElement {
               ></ha-icon-button>
             </div>
           `
-      )}
+        )}
 
         <div class="add-item row">
           <ha-select
             label=${this.hass!.localize(
-        "ui.panel.lovelace.editor.common.edit"
-      ) +
-      " " +
-      this.hass!.localize(
-        "ui.panel.lovelace.editor.card.markdown.content"
-      )}
+              "ui.panel.lovelace.editor.common.edit"
+            ) +
+            " " +
+            this.hass!.localize(
+              "ui.panel.lovelace.editor.card.markdown.content"
+            )}
             name="Customize"
             class="add-customization"
             naturalMenuWidth
@@ -105,11 +105,11 @@ abstract class BaseItemsEditor extends LitElement {
             @click=${this._addRow}
           >
             ${availableOptions.map(
-        (option) =>
-          html`<mwc-list-item .value=${option.value}
+              (option) =>
+                html`<mwc-list-item .value=${option.value}
                   >${option.label}</mwc-list-item
                 >`
-      )}
+            )}
           </ha-select>
         </div>
       </div>
@@ -125,11 +125,13 @@ abstract class BaseItemsEditor extends LitElement {
     if (index === undefined) return;
     const newCustomization = this.customizationkey.concat();
     newCustomization[index] = { ...newCustomization[index], type: value || "" };
-    this.dispatchEvent(new CustomEvent("config-changed", {
-      detail: newCustomization,
-      bubbles: true,
-      composed: true,
-    }));
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: newCustomization,
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 
   private _removeRow(ev: Event): void {
@@ -138,11 +140,13 @@ abstract class BaseItemsEditor extends LitElement {
     if (index != undefined) {
       const customization = this.customizationkey!.concat();
       customization.splice(index, 1);
-      this.dispatchEvent(new CustomEvent("config-changed", {
-        detail: customization,
-        bubbles: true,
-        composed: true,
-      }));
+      this.dispatchEvent(
+        new CustomEvent("config-changed", {
+          detail: customization,
+          bubbles: true,
+          composed: true,
+        })
+      );
     }
   }
 
@@ -167,11 +171,13 @@ abstract class BaseItemsEditor extends LitElement {
     }
     const preset = selectElement.value;
     const newItem: LovelaceCardConfig = { type: preset };
-    this.dispatchEvent(new CustomEvent("config-changed", {
-      detail: [...this.customizationkey, newItem],
-      bubbles: true,
-      composed: true,
-    }));
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: [...this.customizationkey, newItem],
+        bubbles: true,
+        composed: true,
+      })
+    );
     selectElement.value = "";
   }
 

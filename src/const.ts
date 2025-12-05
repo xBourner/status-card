@@ -134,7 +134,6 @@ import {
 } from "@mdi/js";
 import { DomainIconDef, DomainFeatureDef } from "./ha/types";
 
-
 export const DOMAIN_ICONS: Record<string, DomainIconDef> = {
   alarm_control_panel: { on: mdiAlarmLight, off: mdiAlarmLightOff },
   siren: { on: mdiBellRing, off: mdiBellOff },
@@ -362,146 +361,144 @@ export const deviceClasses: Record<string, string[]> = {
   switch: ["switch", "outlet"],
 };
 
-
-
 export const DOMAIN_FEATURES: Record<string, DomainFeatureDef> = {
-    alarm_control_panel: {
-      state_content: ["state", "last_changed"],
-      features: [
-        {
-          type: "alarm-modes",
-          modes: [
-            "armed_home",
-            "armed_away",
-            "armed_night",
-            "armed_vacation",
-            "armed_custom_bypass",
-            "disarmed",
-          ],
-        },
-      ],
-    },
-    light: {
-      state_content: ["state", "brightness", "last_changed"],
-      features: [{ type: "light-brightness" }],
-    },
-    cover: {
-      state_content: ["state", "position", "last_changed"],
-      features: [{ type: "cover-open-close" }, { type: "cover-position" }],
-    },
-    vacuum: {
-      state_content: ["state", "last_changed"],
-      features: [
-        {
-          type: "vacuum-commands",
-          commands: [
-            "start_pause",
-            "stop",
-            "clean_spot",
-            "locate",
-            "return_home",
-          ],
-        },
-      ],
-    },
-    climate: {
-      state_content: ["state", "current_temperature", "last_changed"],
-      features: [
-        {
-          type: "climate-hvac-modes",
-          hvac_modes: [
-            "auto",
-            "heat_cool",
-            "heat",
-            "cool",
-            "dry",
-            "fan_only",
-            "off",
-          ],
-        },
-      ],
-    },
-    water_heater: {
-      state_content: ["state", "last_changed"],
-      features: [
-        {
-          type: "water-heater-operation-modes",
-          operation_modes: [
-            "electric",
-            "gas",
-            "heat_pump",
-            "eco",
-            "performance",
-            "high_demand",
-            "off",
-          ],
-        },
-      ],
-    },
-    humidifier: {
-      state_content: ["state", "current_humidity", "last_changed"],
-      features: [{ type: "target-humidity" }],
-    },
-    media_player: {
-      show_entity_picture: true,
-      state_content: ["state", "volume_level", "last_changed"],
-      features: [{ type: "media-player-playback" }],
-    },
-    lock: {
-      state_content: ["state", "last_changed"],
-      features: [{ type: "lock-commands" }],
-    },
-    fan: {
-      state_content: ["state", "percentage", "last_changed"],
-      features: [{ type: "fan-speed" }],
-    },
-    counter: {
-      state_content: ["state", "last_changed"],
-      features: [
-        {
-          type: "counter-actions",
-          actions: ["increment", "decrement", "reset"],
-        },
-      ],
-    },
-    lawn_mower: {
-      state_content: ["state", "last_changed"],
-      features: [
-        {
-          type: "lawn-mower-commands",
-          commands: ["start_pause", "dock"],
-        },
-      ],
-    },
-    update: {
-      state_content: ["state", "latest_version", "last_changed"],
-      features: [{ type: "update-actions", backup: "ask" }],
-    },
-    switch: {
-      state_content: ["state", "last_changed"],
-      features: [{ type: "toggle" }],
-    },
-    input_boolean: {
-      state_content: ["state", "last_changed"],
-      features: [{ type: "toggle" }],
-    },
-    calendar: {
-      state_content: "message",
-    },
-    timer: {
-      state_content: ["state", "remaining_time"],
-    },
-    binary_sensor: {
-      state_content: ["state", "last_changed"],
-    },
-    device_tracker: {
-      state_content: ["state", "last_changed"],
-    },
-    remote: {
-      state_content: ["state", "last_changed"],
-    },
-    valve: {
-      state_content: ["state", "last_changed"],
-      features: [{ type: "valve-open-close" }],
-    },
-  };
+  alarm_control_panel: {
+    state_content: ["state", "last_changed"],
+    features: [
+      {
+        type: "alarm-modes",
+        modes: [
+          "armed_home",
+          "armed_away",
+          "armed_night",
+          "armed_vacation",
+          "armed_custom_bypass",
+          "disarmed",
+        ],
+      },
+    ],
+  },
+  light: {
+    state_content: ["state", "brightness", "last_changed"],
+    features: [{ type: "light-brightness" }],
+  },
+  cover: {
+    state_content: ["state", "position", "last_changed"],
+    features: [{ type: "cover-open-close" }, { type: "cover-position" }],
+  },
+  vacuum: {
+    state_content: ["state", "last_changed"],
+    features: [
+      {
+        type: "vacuum-commands",
+        commands: [
+          "start_pause",
+          "stop",
+          "clean_spot",
+          "locate",
+          "return_home",
+        ],
+      },
+    ],
+  },
+  climate: {
+    state_content: ["state", "current_temperature", "last_changed"],
+    features: [
+      {
+        type: "climate-hvac-modes",
+        hvac_modes: [
+          "auto",
+          "heat_cool",
+          "heat",
+          "cool",
+          "dry",
+          "fan_only",
+          "off",
+        ],
+      },
+    ],
+  },
+  water_heater: {
+    state_content: ["state", "last_changed"],
+    features: [
+      {
+        type: "water-heater-operation-modes",
+        operation_modes: [
+          "electric",
+          "gas",
+          "heat_pump",
+          "eco",
+          "performance",
+          "high_demand",
+          "off",
+        ],
+      },
+    ],
+  },
+  humidifier: {
+    state_content: ["state", "current_humidity", "last_changed"],
+    features: [{ type: "target-humidity" }],
+  },
+  media_player: {
+    show_entity_picture: true,
+    state_content: ["state", "volume_level", "last_changed"],
+    features: [{ type: "media-player-playback" }],
+  },
+  lock: {
+    state_content: ["state", "last_changed"],
+    features: [{ type: "lock-commands" }],
+  },
+  fan: {
+    state_content: ["state", "percentage", "last_changed"],
+    features: [{ type: "fan-speed" }],
+  },
+  counter: {
+    state_content: ["state", "last_changed"],
+    features: [
+      {
+        type: "counter-actions",
+        actions: ["increment", "decrement", "reset"],
+      },
+    ],
+  },
+  lawn_mower: {
+    state_content: ["state", "last_changed"],
+    features: [
+      {
+        type: "lawn-mower-commands",
+        commands: ["start_pause", "dock"],
+      },
+    ],
+  },
+  update: {
+    state_content: ["state", "latest_version", "last_changed"],
+    features: [{ type: "update-actions", backup: "ask" }],
+  },
+  switch: {
+    state_content: ["state", "last_changed"],
+    features: [{ type: "toggle" }],
+  },
+  input_boolean: {
+    state_content: ["state", "last_changed"],
+    features: [{ type: "toggle" }],
+  },
+  calendar: {
+    state_content: "message",
+  },
+  timer: {
+    state_content: ["state", "remaining_time"],
+  },
+  binary_sensor: {
+    state_content: ["state", "last_changed"],
+  },
+  device_tracker: {
+    state_content: ["state", "last_changed"],
+  },
+  remote: {
+    state_content: ["state", "last_changed"],
+  },
+  valve: {
+    state_content: ["state", "last_changed"],
+    features: [{ type: "valve-open-close" }],
+  },
+};

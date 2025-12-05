@@ -1110,11 +1110,7 @@ async function E1(e, t, i = !1) {
     return typeof l.setConfig == "function" && l.setConfig(t), l.hass = e, (n = l.setAttribute) == null || n.call(l, "data-hui-card", ""), l;
   } catch {
     if (!i)
-      return E1(
-        e,
-        ro(t),
-        !0
-      );
+      return E1(e, ro(t), !0);
     const a = document.createElement("div");
     return a.setAttribute("data-hui-card", ""), a;
   }
@@ -1519,7 +1515,9 @@ const po = {
   )}`,
   icon: (e) => e.localize("ui.components.selectors.selector.types.icon"),
   color: (e) => e.localize("ui.panel.lovelace.editor.card.tile.color"),
-  background_color: (e) => `${e.localize("ui.panel.lovelace.editor.card.generic.icon")} ${e.localize(
+  background_color: (e) => `${e.localize(
+    "ui.panel.lovelace.editor.card.generic.icon"
+  )} ${e.localize(
     "ui.panel.lovelace.editor.edit_view.tab_background"
   )} ${e.localize("ui.panel.lovelace.editor.card.tile.color")}`,
   multiple_areas: (e) => `Multi ${e.localize("ui.panel.lovelace.editor.card.area.name")}`,
@@ -1535,13 +1533,15 @@ const po = {
   hold_action: (e) => e.localize("ui.panel.lovelace.editor.card.generic.hold_action"),
   double_tap_action: (e) => e.localize("ui.panel.lovelace.editor.card.generic.double_tap_action"),
   popup_card: () => "Change Popup Card Type",
-  group_id: (e) => `${e.localize("component.group.entity_component._.name")} ${e.localize(
-    "ui.common.name"
-  )}`,
-  group_icon: (e) => `${e.localize("component.group.entity_component._.name")} ${e.localize(
-    "ui.panel.lovelace.editor.card.generic.icon"
-  )}`,
-  group_status: (e) => `${e.localize("component.group.entity_component._.name")} ${e.localize(
+  group_id: (e) => `${e.localize(
+    "component.group.entity_component._.name"
+  )} ${e.localize("ui.common.name")}`,
+  group_icon: (e) => `${e.localize(
+    "component.group.entity_component._.name"
+  )} ${e.localize("ui.panel.lovelace.editor.card.generic.icon")}`,
+  group_status: (e) => `${e.localize(
+    "component.group.entity_component._.name"
+  )} ${e.localize(
     "ui.components.selectors.selector.types.state"
   )} (${e.localize("ui.panel.lovelace.editor.card.config.optional")})`,
   hide: (e) => e.localize("ui.common.hide"),
@@ -1562,20 +1562,22 @@ const po = {
   hide_card_if_empty: (e) => `${e.localize("ui.common.hide")} Status Card if empty`,
   badge_mode: (e) => `${e.localize("ui.common.enable")} Badge `,
   badge_color: (e) => `Badge ${e.localize("ui.panel.lovelace.editor.card.tile.color")}`,
-  badge_text_color: (e) => `Badge ${e.localize("component.text.entity_component._.name")} ${e.localize("ui.panel.lovelace.editor.card.tile.color")}`,
+  badge_text_color: (e) => `Badge ${e.localize(
+    "component.text.entity_component._.name"
+  )} ${e.localize("ui.panel.lovelace.editor.card.tile.color")}`,
   person: (e) => e.localize("component.person.entity_component._.name"),
-  person_home_color: (e) => `${e.localize("component.person.entity_component._.state.home")} ${e.localize(
-    "ui.panel.lovelace.editor.card.tile.color"
-  )}`,
-  person_away_color: (e) => `${e.localize("component.person.entity_component._.state.not_home")} ${e.localize(
-    "ui.panel.lovelace.editor.card.tile.color"
-  )}`,
-  person_home_icon: (e) => `${e.localize("component.person.entity_component._.state.home")} ${e.localize(
-    "ui.components.selectors.selector.types.icon"
-  )}`,
-  person_away_icon: (e) => `${e.localize("component.person.entity_component._.state.not_home")} ${e.localize(
-    "ui.components.selectors.selector.types.icon"
-  )}`
+  person_home_color: (e) => `${e.localize(
+    "component.person.entity_component._.state.home"
+  )} ${e.localize("ui.panel.lovelace.editor.card.tile.color")}`,
+  person_away_color: (e) => `${e.localize(
+    "component.person.entity_component._.state.not_home"
+  )} ${e.localize("ui.panel.lovelace.editor.card.tile.color")}`,
+  person_home_icon: (e) => `${e.localize(
+    "component.person.entity_component._.state.home"
+  )} ${e.localize("ui.components.selectors.selector.types.icon")}`,
+  person_away_icon: (e) => `${e.localize(
+    "component.person.entity_component._.state.not_home"
+  )} ${e.localize("ui.components.selectors.selector.types.icon")}`
 };
 function fo(e, t, i) {
   return t && i ? t === "switch" && i === "switch" ? `${e.localize(
@@ -1991,7 +1993,13 @@ const me = class me extends R {
       );
       if (d) {
         const h = t._computeEntityMap(t.__registryEntities), f = t._computeDeviceMap(t.__registryDevices), u = t._computeAreaMap(t.__registryAreas);
-        n = z1(t, d, h, f, u);
+        n = z1(
+          t,
+          d,
+          h,
+          f,
+          u
+        );
       } else
         n = [];
     } else
@@ -2554,16 +2562,38 @@ function se(e, t, i, s) {
   return "rgba(var(--rgb-primary-text-color), 0.15)";
 }
 function oe(e, t, i, s) {
-  return Zt(e, "icon_color", t, i, s) || e.color;
+  return Zt(
+    e,
+    "icon_color",
+    t,
+    i,
+    s
+  ) || e.color;
 }
 function ne(e, t, i, s, o) {
-  return Zt(e, "name", t, i, o) || (s == null ? void 0 : s.attributes.friendly_name);
+  return Zt(
+    e,
+    "name",
+    t,
+    i,
+    o
+  ) || (s == null ? void 0 : s.attributes.friendly_name);
 }
 function Co(e, t, i, s) {
-  return Zt(e, "icon_css", t, i, s);
+  return Zt(
+    e,
+    "icon_css",
+    t,
+    i,
+    s
+  );
 }
 function yo(e, t) {
-  const i = F(e, "home", "device_tracker"), s = F(e, "not_home", "device_tracker");
+  const i = F(e, "home", "device_tracker"), s = F(
+    e,
+    "not_home",
+    "device_tracker"
+  );
   return t ? s : i;
 }
 function T1(e, t) {
@@ -2700,11 +2730,9 @@ function Eo(e, t, i, s) {
       entity_id: o.entity_id
     }) : i === "vacuum" ? e.callService(i, n ? "stop" : "start", {
       entity_id: o.entity_id
-    }) : i === "alarm_control_panel" ? e.callService(
-      i,
-      n ? "alarm_arm_away" : "alarm_disarm",
-      { entity_id: o.entity_id }
-    ) : i === "lawn_mower" ? e.callService(i, n ? "pause" : "start_mowing", {
+    }) : i === "alarm_control_panel" ? e.callService(i, n ? "alarm_arm_away" : "alarm_disarm", {
+      entity_id: o.entity_id
+    }) : i === "lawn_mower" ? e.callService(i, n ? "pause" : "start_mowing", {
       entity_id: o.entity_id
     }) : i === "water_heater" ? e.callService(i, n ? "turn_off" : "turn_on", {
       entity_id: o.entity_id
@@ -2806,7 +2834,13 @@ let M = class extends R {
           if (s[l] !== a[l]) return !1;
         return !0;
       }
-    ), this._computeGroupItemsMemo = H($o), this._computeDomainItemsMemo = H(Mo), this._computeDeviceClassItemsMemo = H(wo), this._computeEntityMap = H((e) => new Map(e.map((t) => [t.entity_id, t]))), this._computeDeviceMap = H((e) => new Map(e.map((t) => [t.id, t]))), this._computeAreaMap = H((e) => new Map(e.map((t) => [t.area_id, t]))), this._computeGroupCandidatesMemo = H(
+    ), this._computeGroupItemsMemo = H($o), this._computeDomainItemsMemo = H(Mo), this._computeDeviceClassItemsMemo = H(wo), this._computeEntityMap = H(
+      (e) => new Map(e.map((t) => [t.entity_id, t]))
+    ), this._computeDeviceMap = H(
+      (e) => new Map(e.map((t) => [t.id, t]))
+    ), this._computeAreaMap = H(
+      (e) => new Map(e.map((t) => [t.area_id, t]))
+    ), this._computeGroupCandidatesMemo = H(
       (e, t, i, s, o) => {
         const n = /* @__PURE__ */ new Map(), a = this._computeEntityMap(t), c = this._computeDeviceMap(i), r = this._computeAreaMap(s);
         return e.forEach((l) => {
@@ -2972,7 +3006,13 @@ let M = class extends R {
       );
       if (r) {
         const l = this._computeEntityMap(this.__registryEntities), d = this._computeDeviceMap(this.__registryDevices), h = this._computeAreaMap(this.__registryAreas);
-        i = z1(this, r, l, d, h);
+        i = z1(
+          this,
+          r,
+          l,
+          d,
+          h
+        );
       } else
         i = [];
     } else {
@@ -3162,16 +3202,16 @@ let M = class extends R {
                   alt=${s}
                   style="border-radius:${this._config.square ? "20%" : "50%"};object-fit:cover;"
                 />` : i.startsWith("M") ? C`<ha-svg-icon
-              .path=${i}
-              style="${n || ""}"
-            ></ha-svg-icon>` : C`<ha-state-icon
-              .hass=${this.hass}
-              .stateObj=${c}
-              .icon=${i}
-              data-domain=${nt(t)}
-              data-state=${c.state}
-              style="${n || ""}"
-            ></ha-state-icon>`}
+                  .path=${i}
+                  style="${n || ""}"
+                ></ha-svg-icon>` : C`<ha-state-icon
+                  .hass=${this.hass}
+                  .stateObj=${c}
+                  .icon=${i}
+                  data-domain=${nt(t)}
+                  data-state=${c.state}
+                  style="${n || ""}"
+                ></ha-state-icon>`}
           </div>
 
           ${this.badge_mode ? "" : C`<div class="entity-info">
@@ -3316,16 +3356,12 @@ let M = class extends R {
       >
         <div class="entity ${mt(h)}">
           <div class="entity-icon" style=${T(f)}>
-          <div class="entity-icon" style=${T(f)}>
-            ${(() => {
-      const g = k1(
-        this._config,
-        t,
-        i
-      );
+            <div class="entity-icon" style=${T(f)}>
+              ${(() => {
+      const g = k1(this._config, t, i);
       return g.startsWith("M") ? C`<ha-svg-icon .path=${g}></ha-svg-icon>` : C`<ha-icon icon=${g}></ha-icon>`;
     })()}
-          </div>
+            </div>
           </div>
           ${v ? "" : C`<div class="entity-info">
                 ${this.hide_content_name ? "" : C`<div class="entity-name">${u}</div>`}
@@ -3398,14 +3434,14 @@ let M = class extends R {
                             alt=${c.attributes.friendly_name || c.entity_id}
                             style=${T(h)}
                           />` : (g = c.attributes.icon) != null && g.startsWith("M") ? C`<ha-svg-icon
-                  class="center"
-                  .path=${c.attributes.icon}
-                  style=${T(h)}
-                ></ha-svg-icon>` : C`<ha-icon
-                  class="center"
-                  icon=${c.attributes.icon || "mdi:account"}
-                  style=${T(h)}
-                ></ha-icon>`}
+                            class="center"
+                            .path=${c.attributes.icon}
+                            style=${T(h)}
+                          ></ha-svg-icon>` : C`<ha-icon
+                            class="center"
+                            icon=${c.attributes.icon || "mdi:account"}
+                            style=${T(h)}
+                          ></ha-icon>`}
                     </div>
                     ${this.badge_mode ? "" : C`<div class="entity-info">
                           ${this.hide_content_name ? "" : C`<div class="entity-name">
@@ -3550,7 +3586,7 @@ let M = class extends R {
         padding: 0 4px;
         box-sizing: border-box;
         z-index: 1;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
       }
       .person-badge {
         position: absolute;
@@ -4245,22 +4281,26 @@ class fe extends R {
     const i = t.detail.value, s = t.target.index;
     if (s === void 0) return;
     const o = this.customizationkey.concat();
-    o[s] = { ...o[s], type: i || "" }, this.dispatchEvent(new CustomEvent("config-changed", {
-      detail: o,
-      bubbles: !0,
-      composed: !0
-    }));
+    o[s] = { ...o[s], type: i || "" }, this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: o,
+        bubbles: !0,
+        composed: !0
+      })
+    );
   }
   _removeRow(t) {
     t.stopPropagation();
     const i = t.currentTarget.index;
     if (i != null) {
       const s = this.customizationkey.concat();
-      s.splice(i, 1), this.dispatchEvent(new CustomEvent("config-changed", {
-        detail: s,
-        bubbles: !0,
-        composed: !0
-      }));
+      s.splice(i, 1), this.dispatchEvent(
+        new CustomEvent("config-changed", {
+          detail: s,
+          bubbles: !0,
+          composed: !0
+        })
+      );
     }
   }
   _editRow(t) {
@@ -4277,11 +4317,13 @@ class fe extends R {
     if (!i || !i.value)
       return;
     const o = { type: i.value };
-    this.dispatchEvent(new CustomEvent("config-changed", {
-      detail: [...this.customizationkey, o],
-      bubbles: !0,
-      composed: !0
-    })), i.value = "";
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: [...this.customizationkey, o],
+        bubbles: !0,
+        composed: !0
+      })
+    ), i.value = "";
   }
   static get styles() {
     return ht`
@@ -4779,14 +4821,14 @@ let G = class extends R {
         </div>
       </div>
       <status-card-item-editor
-      .hass=${this.hass}
-      .lovelace=${this.lovelace}
-      .config=${((h = (d = this._config) == null ? void 0 : d.customization) == null ? void 0 : h[(o == null ? void 0 : o.index) ?? 0]) ?? {}}
-      .getSchema=${e}
-      .index=${(o == null ? void 0 : o.index) ?? 0}
-      @config-changed=${i}
-    >
-    </status-card-item-editor>
+        .hass=${this.hass}
+        .lovelace=${this.lovelace}
+        .config=${((h = (d = this._config) == null ? void 0 : d.customization) == null ? void 0 : h[(o == null ? void 0 : o.index) ?? 0]) ?? {}}
+        .getSchema=${e}
+        .index=${(o == null ? void 0 : o.index) ?? 0}
+        @config-changed=${i}
+      >
+      </status-card-item-editor>
     `;
   }
   _customizationChanged(e, t) {
@@ -5099,7 +5141,9 @@ let G = class extends R {
           panel="appearance"
           .active=${this._activeTab === "appearance"}
         >
-          ${this.hass.localize("ui.panel.lovelace.editor.card.tile.appearance") || "Appearance"}
+          ${this.hass.localize(
+      "ui.panel.lovelace.editor.card.tile.appearance"
+    ) || "Appearance"}
         </ha-tab-group-tab>
         <ha-tab-group-tab
           slot="nav"
@@ -5334,7 +5378,7 @@ let G = class extends R {
       }
       ha-icon {
         display: flex;
-        }
+      }
       ha-tab-group {
         display: block;
         margin-bottom: 16px;

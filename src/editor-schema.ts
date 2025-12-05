@@ -77,36 +77,36 @@ export function getConfigSchema(
         },
         ...(Filter === "area" && MultipleAreas === false
           ? ([
-            { name: "multiple_areas", selector: { boolean: {} } },
-            { name: "area", selector: { area: {} } },
-          ] as const)
+              { name: "multiple_areas", selector: { boolean: {} } },
+              { name: "area", selector: { area: {} } },
+            ] as const)
           : []),
 
         ...(Filter === "area" && MultipleAreas === true
           ? ([
-            { name: "multiple_areas", selector: { boolean: {} } },
-            { name: "area", selector: { area: { multiple: true } } },
-          ] as const)
+              { name: "multiple_areas", selector: { boolean: {} } },
+              { name: "area", selector: { area: { multiple: true } } },
+            ] as const)
           : []),
 
         ...(Filter === "floor" && MultipleFloors === false
           ? ([
-            { name: "multiple_floors", selector: { boolean: {} } },
-            { name: "floor", selector: { floor: {} } },
-          ] as const)
+              { name: "multiple_floors", selector: { boolean: {} } },
+              { name: "floor", selector: { floor: {} } },
+            ] as const)
           : []),
 
         ...(Filter === "floor" && MultipleFloors === true
           ? ([
-            { name: "multiple_floors", selector: { boolean: {} } },
-            { name: "floor", selector: { floor: { multiple: true } } },
-          ] as const)
+              { name: "multiple_floors", selector: { boolean: {} } },
+              { name: "floor", selector: { floor: { multiple: true } } },
+            ] as const)
           : []),
 
         ...(LabelFilter
           ? ([
-            { name: "label", selector: { label: { multiple: true } } },
-          ] as const)
+              { name: "label", selector: { label: { multiple: true } } },
+            ] as const)
           : []),
       ],
     },
@@ -121,7 +121,6 @@ export function getConfigSchema(
           name: "",
           type: "grid",
           schema: [
-
             {
               name: "ungroup_areas",
               selector: { boolean: {} },
@@ -185,26 +184,26 @@ export function getAppearanceSchema(
       ],
     },
     ...(BadgeMode
-      ? ([
-        {
-          name: "",
-          type: "grid",
-          schema: [
-            {
-              name: "badge_color",
-              selector: {
-                ui_color: { default_color: "state", include_state: true },
+      ? [
+          {
+            name: "",
+            type: "grid",
+            schema: [
+              {
+                name: "badge_color",
+                selector: {
+                  ui_color: { default_color: "state", include_state: true },
+                },
               },
-            },
-            {
-              name: "badge_text_color",
-              selector: {
-                ui_color: { default_color: "state", include_state: true },
+              {
+                name: "badge_text_color",
+                selector: {
+                  ui_color: { default_color: "state", include_state: true },
+                },
               },
-            },
-          ],
-        },
-      ])
+            ],
+          },
+        ]
       : []),
     {
       name: "",
@@ -279,19 +278,19 @@ export const getItemAppearanceSchema = (
           { name: "badge_mode", selector: { boolean: {} } },
           ...(badgeMode
             ? ([
-              {
-                name: "badge_color",
-                selector: {
-                  ui_color: { default_color: "state", include_state: true },
+                {
+                  name: "badge_color",
+                  selector: {
+                    ui_color: { default_color: "state", include_state: true },
+                  },
                 },
-              },
-              {
-                name: "badge_text_color",
-                selector: {
-                  ui_color: { default_color: "state", include_state: true },
+                {
+                  name: "badge_text_color",
+                  selector: {
+                    ui_color: { default_color: "state", include_state: true },
+                  },
                 },
-              },
-            ] as const)
+              ] as const)
             : []),
           { name: "show_total_number", selector: { boolean: {} } },
           { name: "show_total_entities", selector: { boolean: {} } },
