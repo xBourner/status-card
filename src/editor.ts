@@ -1,53 +1,58 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import {
-  HomeAssistant,
   computeDomain,
   caseInsensitiveStringCompare,
   LovelaceCardConfig,
   fireEvent,
   SelectOption,
   Schema,
-  UiAction,
+  HomeAssistant,
+  AreaRegistryEntry,
 } from "./ha";
 import { computeLabelCallback } from "./translations";
 import memoizeOne from "memoize-one";
 import {
-  SubElementConfig,
-  SubElementEditor,
-  SmartGroupItem,
   computeEntitiesByDomain,
   arraysEqualUnordered,
   compareByFriendlyName,
-  ALLOWED_DOMAINS,
-  DOMAIN_ICONS,
 } from "./helpers";
+import { ALLOWED_DOMAINS, DOMAIN_ICONS } from "./const";
 import {
+  mdiChevronLeft,
   mdiFormatListGroupPlus,
   mdiTextBoxEdit,
   mdiClose,
-  mdiChevronLeft,
   mdiEyeOff,
   mdiEye,
+  mdiHelpCircle,
 } from "@mdi/js";
-import "./items-editor";
 import "./item-editor";
+import "./items-editor";
+import {
+  getConfigSchema,
+  getAppearanceSchema,
+  getActionsSchema,
+} from "./editor-schema";
+import {
+  SubElementEditor,
+  SubElementConfig,
+  Ruleset,
+  FilterConfig,
+  SmartGroupItem,
+} from "./ha/types";
+
 
 @customElement("status-card-editor")
 export class StatusCardEditor extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
-  @property({ attribute: false }) public lovelace?: any;
+  @property({ attribute: false }) public lovelace?: unknown;
   @property({ type: Object }) public _config!: LovelaceCardConfig;
   @state() private _subElementEditorDomain: SubElementConfig | undefined =
     undefined;
   @state() private _subElementEditorEntity: SubElementConfig | undefined =
     undefined;
-  @state() private rulesets: Array<{
-    group_id: string;
-    group_icon: string;
-    group_status?: string;
-    rules: Array<{ key: string; value: any }>;
-  }> = [
+  @state() private rulesets: SmartGroupItem[] = [
     {
       group_id: "",
       group_icon: "",
@@ -55,6 +60,7 @@ export class StatusCardEditor extends LitElement {
       rules: [{ key: "", value: "" }],
     },
   ];
+  @state() private _activeTab = "config";
 
   private computeLabel = memoizeOne(
     (schema: Schema, domain?: string, deviceClass?: string): string => {
@@ -103,7 +109,7 @@ export class StatusCardEditor extends LitElement {
   }
 
   private _filterInitialized = false;
-  private _lastFilter: { area: string[]; floor: string[]; label: string[] } = {
+  private _lastFilter: FilterConfig = {
     area: [],
     floor: [],
     label: [],
@@ -145,28 +151,28 @@ export class StatusCardEditor extends LitElement {
         ]);
         const mapped = map.get(this._config.hide_filter);
         if (mapped) {
-          this._config = { ...this._config, hide_filter: mapped as any };
+          this._config = { ...this._config, hide_filter: mapped };
           updated = true;
         }
       }
 
-      const oldConfig = changedProperties.get("_config") as typeof this._config;
-      const oldExtraEntities = oldConfig?.extra_entities ?? [];
-      const newExtraEntities = this._config.extra_entities ?? [];
-      const oldContent = oldConfig?.content ?? [];
-      const newContent = this._config.content ?? [];
+      const oldConfig = changedProperties.get("_config") as LovelaceCardConfig;
+      const oldExtraEntities = (oldConfig?.extra_entities ?? []) as string[];
+      const newExtraEntities = (this._config.extra_entities ?? []) as string[];
+      const oldContent = (oldConfig?.content ?? []) as string[];
+      const newContent = (this._config.content ?? []) as string[];
 
       const currentArea = Array.isArray(this._config.area)
         ? [...this._config.area]
         : this._config.area
-        ? [this._config.area]
-        : [];
+          ? [this._config.area]
+          : [];
 
       const currentFloor = Array.isArray(this._config.floor)
         ? [...this._config.floor]
         : this._config.floor
-        ? [this._config.floor]
-        : [];
+          ? [this._config.floor]
+          : [];
 
       const currentLabel = Array.isArray(this._config.label)
         ? [...this._config.label]
@@ -316,195 +322,28 @@ export class StatusCardEditor extends LitElement {
 
   private _schema = memoizeOne(
     (
+      tab: string,
       Filter: string,
       LabelFilter: boolean,
       MultipleAreas: boolean,
-      MultipleFloors: boolean
+      MultipleFloors: boolean,
+      BadgeMode: boolean
     ) => {
-      const area = this.computeLabel({ name: "area" });
-      const floor = this.computeLabel({ name: "floor" });
-      const name = this.computeLabel({ name: "name" });
-      const state = this.computeLabel({ name: "state" });
-
-      const actions: UiAction[] = [
-        "more-info",
-        "toggle",
-        "navigate",
-        "url",
-        "perform-action",
-        "none",
-      ];
-
-      return [
-        {
-          name: "appearance",
-          flatten: true,
-          type: "expandable",
-          icon: "mdi:palette",
-          schema: [
-            {
-              name: "",
-              type: "grid",
-              schema: [
-                { name: "hide_person", selector: { boolean: {} } },
-
-                { name: "hide_content_name", selector: { boolean: {} } },
-                {
-                  name: "show_total_number",
-                  selector: { boolean: {} },
-                },
-                {
-                  name: "square",
-                  selector: { boolean: {} },
-                },
-                {
-                  name: "show_total_entities",
-                  selector: { boolean: {} },
-                },
-                {
-                  name: "no_scroll",
-                  selector: { boolean: {} },
-                },
-                {
-                  name: "hide_card_if_empty",
-                  selector: { boolean: {} },
-                },
-              ],
-            },
-            {
-              name: "",
-              type: "grid",
-              schema: [
-                { name: "theme", required: false, selector: { theme: {} } },
-              ],
-            },
-
-            {
-              name: "content_layout",
-              required: true,
-              selector: {
-                select: {
-                  mode: "box",
-                  options: ["vertical", "horizontal"].map((value) => ({
-                    label: this.hass!.localize(
-                      `ui.panel.lovelace.editor.card.tile.content_layout_options.${value}`
-                    ),
-                    value,
-                    image: {
-                      src: `/static/images/form/tile_content_layout_${value}.svg`,
-                      src_dark: `/static/images/form/tile_content_layout_${value}_dark.svg`,
-                      flip_rtl: true,
-                    },
-                  })),
-                },
-              },
-            },
-            {
-              name: "color",
-              selector: {
-                ui_color: { default_color: "state", include_state: true },
-              },
-            },
-            {
-              name: "background_color",
-              selector: {
-                color_rgb: {},
-              },
-            },
-            { name: "tap_action", selector: { ui_action: { actions } } },
-            { name: "double_tap_action", selector: { ui_action: { actions } } },
-            { name: "hold_action", selector: { ui_action: { actions } } },
-          ],
-        },
-        {
-          name: "edit_filters",
-          flatten: true,
-          type: "expandable",
-          icon: "mdi:filter-cog",
-          schema: [
-            {
-              name: "",
-              type: "grid",
-              schema: [
-                {
-                  name: "filter",
-                  selector: {
-                    select: {
-                      options: [
-                        { value: "area", label: area },
-                        { value: "floor", label: floor },
-                      ],
-                    },
-                  },
-                },
-                { name: "label_filter", selector: { boolean: {} } },
-              ],
-            },
-            ...(Filter === "area" && MultipleAreas === false
-              ? ([
-                  { name: "multiple_areas", selector: { boolean: {} } },
-                  { name: "area", selector: { area: {} } },
-                ] as const)
-              : []),
-
-            ...(Filter === "area" && MultipleAreas === true
-              ? ([
-                  { name: "multiple_areas", selector: { boolean: {} } },
-                  { name: "area", selector: { area: { multiple: true } } },
-                ] as const)
-              : []),
-
-            ...(Filter === "floor" && MultipleFloors === false
-              ? ([
-                  { name: "multiple_floors", selector: { boolean: {} } },
-                  { name: "floor", selector: { floor: {} } },
-                ] as const)
-              : []),
-
-            ...(Filter === "floor" && MultipleFloors === true
-              ? ([
-                  { name: "multiple_floors", selector: { boolean: {} } },
-                  { name: "floor", selector: { floor: { multiple: true } } },
-                ] as const)
-              : []),
-
-            ...(LabelFilter
-              ? ([
-                  { name: "label", selector: { label: { multiple: true } } },
-                ] as const)
-              : []),
-          ],
-        },
-        {
-          name: "popup",
-          flatten: true,
-          type: "expandable",
-          icon: "mdi:arrange-bring-forward",
-          schema: [
-            {
-              name: "ungroup_areas",
-              selector: { boolean: {} },
-            },
-            {
-              name: "popup_sort",
-              selector: {
-                select: {
-                  options: [
-                    { value: "name", label: name },
-                    { value: "state", label: state },
-                  ],
-                },
-              },
-            },
-            { name: "list_mode", selector: { boolean: {} } },
-            {
-              name: "columns",
-              required: false,
-              selector: { number: { min: 1, max: 4, mode: "box" } },
-            },
-          ],
-        },
-      ];
+      switch (tab) {
+        case "appearance":
+          return getAppearanceSchema(this.hass, BadgeMode);
+        case "actions":
+          return getActionsSchema(this.hass);
+        case "config":
+        default:
+          return getConfigSchema(
+            this.hass,
+            Filter,
+            LabelFilter,
+            MultipleAreas,
+            MultipleFloors
+          );
+      }
     }
   );
 
@@ -594,22 +433,24 @@ export class StatusCardEditor extends LitElement {
       },
       ...(HideFilter === "label"
         ? ([
-            {
-              name: "hidden_labels",
-              selector: { label: { multiple: true } },
-            },
-          ] as const)
+          {
+            name: "hidden_labels",
+            selector: { label: { multiple: true } },
+          },
+        ] as const)
         : []),
       ...(HideFilter === "area"
         ? ([
-            {
-              name: "hidden_areas",
-              selector: { area: { multiple: true } },
-            },
-          ] as const)
+          {
+            name: "hidden_areas",
+            selector: { area: { multiple: true } },
+          },
+        ] as const)
         : []),
     ];
   });
+
+
 
   private _valueChanged(event: CustomEvent) {
     const next = event.detail.value;
@@ -630,7 +471,10 @@ export class StatusCardEditor extends LitElement {
     return this._memoizedClassesForArea(
       this._config?.area || [],
       this._config?.floor || [],
-      this._config?.label || []
+      this._config?.label || [],
+      this.hass.entities,
+      this.hass.devices,
+      this.hass.areas
     );
   }
 
@@ -711,57 +555,57 @@ export class StatusCardEditor extends LitElement {
   }
 
   private _memoizedClassesForArea = memoizeOne(
-    (area: string[], floor: string[], label: string[]): string[] => {
-      return this._classesForArea(area, floor, label);
+    (
+      area: string[],
+      floor: string[],
+      label: string[],
+      entities: HomeAssistant["entities"],
+      devices: HomeAssistant["devices"],
+      areas: HomeAssistant["areas"]
+    ): string[] => {
+      return this._classesForArea(area, floor, label, entities, devices, areas);
     }
   );
 
   private _classesForArea(
     area: string[] | undefined,
     floor: string[] | undefined,
-    label: string[] | undefined
+    label: string[] | undefined,
+    entitiesReg: HomeAssistant["entities"],
+    devices: HomeAssistant["devices"],
+    areas: HomeAssistant["areas"]
   ): string[] {
     const extraEntities = this._config?.extra_entities || [];
 
-    let entities = Object.values(this.hass!.entities).filter(
-      (e) => !e.hidden && ALLOWED_DOMAINS.includes(computeDomain(e.entity_id))
+    const entitiesByDomain = computeEntitiesByDomain(
+      entitiesReg,
+      devices,
+      areas,
+      this.hass.states,
+      { area, floor, label },
+      ALLOWED_DOMAINS
     );
 
-    if (area && area.length > 0) {
-      entities = entities.filter(
-        (e) =>
-          area.includes(e.area_id as string) ||
-          (e.device_id &&
-            area.includes(this.hass!.devices[e.device_id]?.area_id as string))
-      );
-    } else if (floor && floor.length > 0) {
-      const areasInFloor = Object.values(this.hass!.areas)
-        .filter(
-          (a) =>
-            a.floor_id !== undefined && floor.includes(a.floor_id as string)
-        )
-        .map((a) => a.area_id);
-      entities = entities.filter(
-        (e) =>
-          (e.area_id !== undefined && areasInFloor.includes(e.area_id)) ||
-          (e.device_id &&
-            this.hass!.devices[e.device_id]?.area_id !== undefined &&
-            areasInFloor.includes(
-              this.hass!.devices[e.device_id]!.area_id as string
-            ))
-      );
-    }
+    const domains = new Set<string>();
+    const deviceClassDomainPairs = new Set<string>();
 
-    if (label && label.length > 0) {
-      entities = entities.filter(
-        (e) =>
-          e.labels?.some((l) => label.includes(l)) ||
-          (e.device_id &&
-            Array.isArray(this.hass!.devices[e.device_id]?.labels) &&
-            this.hass!.devices[e.device_id]!.labels!.some((l) =>
-              label.includes(l)
-            ))
-      );
+    for (const domain in entitiesByDomain) {
+      if (!Object.prototype.hasOwnProperty.call(entitiesByDomain, domain)) {
+        continue;
+      }
+
+      const entities = entitiesByDomain[domain];
+
+      if (["binary_sensor", "cover", "switch"].includes(domain)) {
+        entities.forEach((entity) => {
+          const deviceClass = entity.attributes.device_class;
+          if (deviceClass) {
+            deviceClassDomainPairs.add(`${domain} - ${deviceClass}`);
+          }
+        });
+      } else {
+        domains.add(domain);
+      }
     }
 
     const dynamicOrder: string[] = [];
@@ -774,29 +618,6 @@ export class StatusCardEditor extends LitElement {
       }
       dynamicOrder.push(domain);
     }
-
-    const domains = new Set(
-      entities
-        .map((e) => computeDomain(e.entity_id))
-        .filter((d) => d !== "binary_sensor" && d !== "cover" && d !== "switch")
-        .map((d) => d)
-    );
-
-    const deviceClassDomainPairs = new Set<string>();
-    entities
-      .filter((e) =>
-        ["binary_sensor", "cover", "switch"].includes(
-          computeDomain(e.entity_id)
-        )
-      )
-      .forEach((e) => {
-        const dom = computeDomain(e.entity_id);
-        const deviceClass =
-          this.hass!.states[e.entity_id]?.attributes.device_class || "";
-        if (deviceClass) {
-          deviceClassDomainPairs.add(`${dom} - ${deviceClass}`);
-        }
-      });
 
     const formattedDeviceClasses = [...deviceClassDomainPairs];
 
@@ -942,9 +763,8 @@ export class StatusCardEditor extends LitElement {
     goBackHandler: () => void,
     itemChangedHandler: (ev: CustomEvent<LovelaceCardConfig>) => void
   ) {
-    const editorName = `_subElementEditor${
-      editorKey.charAt(0).toUpperCase() + editorKey.slice(1)
-    }` as keyof this;
+    const editorName = `_subElementEditor${editorKey.charAt(0).toUpperCase() + editorKey.slice(1)
+      }` as keyof this;
     const editor = this[editorName] as SubElementEditor | undefined;
 
     const type =
@@ -964,15 +784,15 @@ export class StatusCardEditor extends LitElement {
           <span slot="title">${localizedType}</span>
         </div>
       </div>
-      <status-item-editor
-        .hass=${this.hass}
-        .lovelace=${this.lovelace}
-        .config=${this._config?.customization?.[editor?.index ?? 0] ?? {}}
-        .getSchema=${editorKey}
-        .index=${editor?.index ?? 0}
-        @config-changed=${itemChangedHandler}
-      >
-      </status-item-editor>
+      <status-card-item-editor
+      .hass=${this.hass}
+      .lovelace=${this.lovelace}
+      .config=${this._config?.customization?.[editor?.index ?? 0] ?? {}}
+      .getSchema=${editorKey}
+      .index=${editor?.index ?? 0}
+      @config-changed=${itemChangedHandler}
+    >
+    </status-card-item-editor>
     `;
   }
 
@@ -999,7 +819,7 @@ export class StatusCardEditor extends LitElement {
   }
 
   private _loadRulesetsFromConfig(): void {
-    this.rulesets = (this._config.rulesets ?? []).map((group: any) => {
+    this.rulesets = (this._config.rulesets ?? []).map((group: Ruleset) => {
       const rules = Object.keys(group)
         .filter(
           (key) =>
@@ -1038,7 +858,7 @@ export class StatusCardEditor extends LitElement {
           acc[rule.key] = rule.value ?? "";
         }
         return acc;
-      }, {} as Record<string, any>);
+      }, {} as Record<string, unknown>);
 
       return {
         group_id: group.group_id ?? "",
@@ -1049,7 +869,7 @@ export class StatusCardEditor extends LitElement {
     });
 
     const contentOrig = Array.isArray(this._config?.content)
-      ? [...(this._config.content as any[])]
+      ? [...(this._config.content as string[])]
       : [];
 
     const idMap = new Map<string, string>();
@@ -1082,7 +902,9 @@ export class StatusCardEditor extends LitElement {
       this._groupPreviousIds.set(i, rs.group_id ?? "")
     );
 
-    fireEvent(this, "config-changed", { config: this._config });
+    fireEvent(this, "config-changed", {
+      config: this._config
+    });
   }
 
   private _updateConfigFromRulesets(): void {
@@ -1154,7 +976,7 @@ export class StatusCardEditor extends LitElement {
     };
   }
 
-  private filterValueSelector: { [key: string]: any } = {
+  private filterValueSelector: { [key: string]: Record<string, unknown> } = {
     attributes: { object: {} },
     area: { area: {} },
     device: { device: {} },
@@ -1172,7 +994,7 @@ export class StatusCardEditor extends LitElement {
   };
 
   private _groupFormData(group: SmartGroupItem) {
-    const data: Record<string, any> = {
+    const data: Record<string, unknown> = {
       group_id: group.group_id,
       group_icon: group.group_icon,
       group_status: group.group_status ?? "",
@@ -1185,10 +1007,23 @@ export class StatusCardEditor extends LitElement {
   }
 
   private _groupValueChanged(ev: CustomEvent, idx: number): void {
-    const { value } = ev.detail;
+    const { value: formValue } = ev.detail;
+    const currentGroup = this.rulesets[idx] ?? {
+      group_id: "",
+      group_icon: "",
+      group_status: "",
+      rules: [],
+    };
+    const currentForm = this._groupFormData(currentGroup as SmartGroupItem);
+    const value = { ...currentForm, ...formValue };
 
     const rules = Object.keys(value)
       .filter((key) => key.startsWith("key_"))
+      .sort((a, b) => {
+        const indexA = parseInt(a.split("_")[1], 10);
+        const indexB = parseInt(b.split("_")[1], 10);
+        return indexA - indexB;
+      })
       .map((key) => {
         const index = key.split("_")[1];
         return {
@@ -1212,16 +1047,9 @@ export class StatusCardEditor extends LitElement {
       groupIndex === idx ? newGroup : group
     );
 
-    const currentGroup = this.rulesets[idx] ?? {
-      group_id: "",
-      group_icon: "",
-      group_status: "",
-      rules: [],
-    };
-    const currentForm = this._groupFormData(currentGroup as SmartGroupItem);
     const otherFieldsChanged = Object.keys(value).some((k) => {
       if (k === "group_id") return false;
-      return value[k] !== (currentForm as any)[k];
+      return value[k] !== currentForm[k];
     });
 
     if (!otherFieldsChanged) {
@@ -1254,25 +1082,28 @@ export class StatusCardEditor extends LitElement {
     this._updateConfigFromRulesets();
   };
 
+
+
+
   private _groupAllEntitiesByDomain(): Array<{
     domain: string;
     entities: string[];
   }> {
-    const regEntities = Object.values((this.hass as any)?.entities || {});
-    const devices = Object.values((this.hass as any)?.devices || {});
-    const areas = this.hass?.areas ? Object.values(this.hass.areas) : [];
+    const regEntities = this.hass.entities || {};
+    const devices = this.hass.devices || {};
+    const areas = this.hass.areas || {};
 
     const filters = {
       area: Array.isArray(this._config?.area)
         ? (this._config!.area as string[])
         : this._config?.area
-        ? [this._config.area]
-        : [],
+          ? [this._config.area]
+          : [],
       floor: Array.isArray(this._config?.floor)
         ? (this._config!.floor as string[])
         : this._config?.floor
-        ? [this._config.floor]
-        : [],
+          ? [this._config.floor]
+          : [],
       label: Array.isArray(this._config?.label)
         ? (this._config!.label as string[])
         : [],
@@ -1282,9 +1113,9 @@ export class StatusCardEditor extends LitElement {
     };
 
     const byDomain = computeEntitiesByDomain(
-      regEntities as any,
-      devices as any,
-      areas as any,
+      regEntities,
+      devices,
+      areas,
       this.hass?.states || {},
       filters,
       ALLOWED_DOMAINS
@@ -1338,7 +1169,7 @@ export class StatusCardEditor extends LitElement {
     else current.add(entity_id);
     const hidden_entities = Array.from(current);
     this._config = {
-      ...(this._config || ({} as any)),
+      ...(this._config || ({} as LovelaceCardConfig)),
       hidden_entities,
     } as LovelaceCardConfig;
     fireEvent(this, "config-changed", { config: { ...this._config } });
@@ -1385,8 +1216,8 @@ export class StatusCardEditor extends LitElement {
       : [];
     if (hidden.length === 0) return res;
 
-    const entitiesReg = (this.hass as any)?.entities || {};
-    const devices = (this.hass as any)?.devices || {};
+    const entitiesReg = this.hass.entities || {};
+    const devices = this.hass.devices || {};
     const areasArrAll = this.hass?.areas ? Object.values(this.hass.areas) : [];
 
     const areaFilter = this._config?.area;
@@ -1413,8 +1244,8 @@ export class StatusCardEditor extends LitElement {
       const domain = computeDomain(id);
       if (!ALLOWED_DOMAINS.includes(domain)) continue;
 
-      const reg = (entitiesReg as any)[id];
-      const dev = reg?.device_id ? (devices as any)[reg.device_id] : undefined;
+      const reg = entitiesReg[id];
+      const dev = reg?.device_id ? devices[reg.device_id] : undefined;
 
       const hasAnyArea = reg?.area_id != null || dev?.area_id != null;
       if (!hasAnyArea) continue;
@@ -1439,18 +1270,18 @@ export class StatusCardEditor extends LitElement {
         const regAreaOk =
           reg?.area_id &&
           areasArrAll.some(
-            (a) =>
+            (a: AreaRegistryEntry) =>
               a.area_id === reg.area_id &&
               a.floor_id &&
-              floorsSel.includes(a.floor_id as any)
+              floorsSel.includes(a.floor_id)
           );
         const devAreaOk =
           dev?.area_id &&
           areasArrAll.some(
-            (a) =>
+            (a: AreaRegistryEntry) =>
               a.area_id === dev.area_id &&
               a.floor_id &&
-              floorsSel.includes(a.floor_id as any)
+              floorsSel.includes(a.floor_id)
           );
         if (!regAreaOk && !devAreaOk) continue;
       }
@@ -1467,17 +1298,25 @@ export class StatusCardEditor extends LitElement {
     state: string = "on",
     deviceClass?: string
   ): string {
-    const icons: any = DOMAIN_ICONS as any;
+    const icons = DOMAIN_ICONS;
     if (domain in icons) {
       const def = icons[domain];
       if (typeof def === "string") return def;
-      if (deviceClass && def[deviceClass])
-        return (
-          def[deviceClass][state === "off" ? "off" : "on"] || def[deviceClass]
-        );
-      return def[state === "off" ? "off" : "on"] || Object.values(def)[0];
+      if (deviceClass && def[deviceClass]) {
+        const dc = def[deviceClass];
+        if (typeof dc === "string") return dc;
+        return dc[state === "off" ? "off" : "on"] || dc.on;
+      }
+      return def[state === "off" ? "off" : "on"] || def.on;
     }
-    return "mdi:help-circle";
+    return mdiHelpCircle;
+  }
+
+  private _handleTabSelected(ev: CustomEvent): void {
+    if (!ev.detail.name) {
+      return;
+    }
+    this._activeTab = ev.detail.name;
   }
 
   render() {
@@ -1485,13 +1324,13 @@ export class StatusCardEditor extends LitElement {
       return html`<div>Loading...</div>`;
     }
 
-    const toggleschema = this._toggleschema(this.toggleSelectOptions);
-
     const schema = this._schema(
+      this._activeTab,
       this._config!.filter ?? "",
       this._config!.label_filter ?? false,
       this._config!.multiple_areas ?? false,
-      this._config!.multiple_floors ?? false
+      this._config!.multiple_floors ?? false,
+      this._config!.badge_mode ?? false
     );
 
     const possibleToggleDomains = this.possibleToggleDomains;
@@ -1507,6 +1346,38 @@ export class StatusCardEditor extends LitElement {
       return this._renderSubElementEditorEntity();
 
     return html`
+      <ha-tab-group
+        .hass=${this.hass}
+        id="tab-group"
+        @wa-tab-show=${this._handleTabSelected}
+      >
+        <ha-tab-group-tab
+          slot="nav"
+          panel="config"
+          .active=${this._activeTab === "config"}
+        >
+          ${this.hass.localize(
+      "ui.panel.lovelace.editor.edit_card.tab_config"
+    ) ?? "Configuration"}
+        </ha-tab-group-tab>
+        <ha-tab-group-tab
+          slot="nav"
+          panel="appearance"
+          .active=${this._activeTab === "appearance"}
+        >
+          ${this.hass.localize("ui.panel.lovelace.editor.card.tile.appearance") ||
+      "Appearance"}
+        </ha-tab-group-tab>
+        <ha-tab-group-tab
+          slot="nav"
+          panel="actions"
+          .active=${this._activeTab === "actions"}
+        >
+          ${this.hass.localize("ui.panel.lovelace.editor.card.tile.actions") ||
+      "Actions"}
+        </ha-tab-group-tab>
+      </ha-tab-group>
+
       <ha-form
         .hass=${this.hass}
         .data=${data}
@@ -1515,185 +1386,213 @@ export class StatusCardEditor extends LitElement {
         @value-changed=${this._valueChanged}
       ></ha-form>
 
-      <ha-expansion-panel outlined class="main">
-        <div slot="header" role="heading" aria-level="3">
-          <ha-svg-icon class="secondary" .path=${mdiTextBoxEdit}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.lovelace.editor.card.entities.name") ??
-          "Entities"}
-        </div>
-        <div class="content">
-          <ha-form
-            .hass=${this.hass}
-            .data=${data}
-            .schema=${this._entitiesSchema(this._config?.hide_filter ?? "")}
-            .computeLabel=${this.computeLabel}
-            @value-changed=${this._valueChanged}
-          ></ha-form>
+      ${this._activeTab === "config"
+        ? html`
+            <ha-expansion-panel outlined class="main">
+              <div slot="header" role="heading" aria-level="3">
+                <ha-svg-icon
+                  class="secondary"
+                  .path=${mdiTextBoxEdit}
+                ></ha-svg-icon>
+                ${this.hass.localize(
+          "ui.panel.lovelace.editor.card.entities.name"
+        ) ?? "Entities"}
+              </div>
+              <div class="content">
+                <ha-form
+                  .hass=${this.hass}
+                  .data=${data}
+                  .schema=${this._entitiesSchema(
+          this._config?.hide_filter ?? ""
+        )}
+                  .computeLabel=${this.computeLabel}
+                  @value-changed=${this._valueChanged}
+                ></ha-form>
 
-          ${(this._config?.hide_filter ?? "") === "entity"
+                ${(this._config?.hide_filter ?? "") === "entity"
             ? html`
-                ${this._groupAllEntitiesByDomain().map(
-                  (group) => html`
-                    <ha-expansion-panel outlined class="domain-panel">
-                      <div slot="header" class="domain-header">
-                        <ha-icon
-                          .icon=${this._domainIcon(group.domain, "on")}
-                        ></ha-icon>
-                        <span class="domain-title"
-                          >${this._domainLabel(group.domain)}</span
-                        >
+                      ${this._groupAllEntitiesByDomain().map(
+              (group) => html`
+                          <ha-expansion-panel outlined class="domain-panel">
+                            <div slot="header" class="domain-header">
+                              <ha-svg-icon
+                                .path=${this._domainIcon(group.domain, "on")}
+                              ></ha-svg-icon>
+                              <span class="domain-title"
+                                >${this._domainLabel(group.domain)}</span
+                              >
+                            </div>
+                            <div class="content">
+                              ${["binary_sensor", "cover"].includes(
+                group.domain
+              )
+                  ? this._groupByDeviceClass(
+                    group.domain,
+                    group.entities
+                  ).map(
+                    (sub) => html`
+                                      <ha-expansion-panel
+                                        outlined
+                                        class="domain-panel"
+                                      >
+                                        <div slot="header" class="dc-header">
+                                          <ha-svg-icon
+                                            .path=${this._domainIcon(
+                      group.domain,
+                      "on",
+                      sub.deviceClass
+                    )}
+                                          ></ha-svg-icon>
+                                          <span class="dc-title"
+                                            >${sub.label}</span
+                                          >
+                                        </div>
+                                        <div class="content">
+                                          ${sub.entities.map(
+                      (id) => html`
+                                              <div class="entity-row">
+                                                <span class="entity-name">
+                                                  ${this.hass.states[id]
+                          ?.attributes
+                          ?.friendly_name || id}
+                                                </span>
+                                                <ha-icon-button
+                                                  .path=${this._isHiddenEntity(
+                            id
+                          )
+                          ? mdiEye
+                          : mdiEyeOff}
+                                                  .label=${this._isHiddenEntity(
+                            id
+                          )
+                          ? this.hass.localize(
+                            "ui.common.show"
+                          ) ?? "Show"
+                          : this.hass.localize(
+                            "ui.common.hide"
+                          ) ?? "Hide"}
+                                                  @click=${() =>
+                          this._toggleEntityHidden(
+                            id
+                          )}
+                                                ></ha-icon-button>
+                                              </div>
+                                            `
+                    )}
+                                        </div>
+                                      </ha-expansion-panel>
+                                    `
+                  )
+                  : group.entities.map(
+                    (id) => html`
+                                      <div class="entity-row">
+                                        <span class="entity-name">
+                                          ${this.hass.states[id]?.attributes
+                        ?.friendly_name || id}
+                                        </span>
+                                        <ha-icon-button
+                                          .path=${this._isHiddenEntity(id)
+                        ? mdiEye
+                        : mdiEyeOff}
+                                          .label=${this._isHiddenEntity(id)
+                        ? this.hass.localize(
+                          "ui.common.show"
+                        ) ?? "Show"
+                        : this.hass.localize(
+                          "ui.common.hide"
+                        ) ?? "Hide"}
+                                          @click=${() =>
+                        this._toggleEntityHidden(id)}
+                                        ></ha-icon-button>
+                                      </div>
+                                    `
+                  )}
+                            </div>
+                          </ha-expansion-panel>
+                        `
+            )}
+                    `
+            : html``}
+              </div>
+            </ha-expansion-panel>
+
+            <ha-expansion-panel outlined class="main">
+              <div slot="header" role="heading" aria-level="3">
+                <ha-svg-icon
+                  class="secondary"
+                  .path=${mdiFormatListGroupPlus}
+                ></ha-svg-icon>
+                Smart Groups
+              </div>
+              <div class="content">
+                ${this.rulesets.map(
+              (group, i) => html`
+                    <ha-expansion-panel class="group-panel main" outlined>
+                      <div slot="header" class="group-header">
+                        ${group.group_id
+                  ? group.group_id
+                  : `${this.hass.localize(
+                    "component.group.entity_component._.name"
+                  )} ${i + 1}`}
+                        <span class="group-actions">
+                          <ha-icon-button
+                            slot="trigger"
+                            .label=${this.hass.localize("ui.common.remove")}
+                            .path=${mdiClose}
+                            @click=${() => this._removeRuleset(i)}
+                          ></ha-icon-button>
+                        </span>
                       </div>
                       <div class="content">
-                        ${["binary_sensor", "cover"].includes(group.domain)
-                          ? this._groupByDeviceClass(
-                              group.domain,
-                              group.entities
-                            ).map(
-                              (sub) => html`
-                                <ha-expansion-panel
-                                  outlined
-                                  class="domain-panel"
-                                >
-                                  <div slot="header" class="dc-header">
-                                    <ha-icon
-                                      .icon=${this._domainIcon(
-                                        group.domain,
-                                        "on"
-                                      )}
-                                    ></ha-icon>
-                                    <span class="dc-title">${sub.label}</span>
-                                  </div>
-                                  <div class="content">
-                                    ${sub.entities.map(
-                                      (id) => html`
-                                        <div class="entity-row">
-                                          <span class="entity-name">
-                                            ${this.hass.states[id]?.attributes
-                                              ?.friendly_name || id}
-                                          </span>
-                                          <ha-icon-button
-                                            .path=${this._isHiddenEntity(id)
-                                              ? mdiEye
-                                              : mdiEyeOff}
-                                            .label=${this._isHiddenEntity(id)
-                                              ? this.hass.localize(
-                                                  "ui.common.show"
-                                                ) ?? "Show"
-                                              : this.hass.localize(
-                                                  "ui.common.hide"
-                                                ) ?? "Hide"}
-                                            @click=${() =>
-                                              this._toggleEntityHidden(id)}
-                                          ></ha-icon-button>
-                                        </div>
-                                      `
-                                    )}
-                                  </div>
-                                </ha-expansion-panel>
-                              `
-                            )
-                          : group.entities.map(
-                              (id) => html`
-                                <div class="entity-row">
-                                  <span class="entity-name">
-                                    ${this.hass.states[id]?.attributes
-                                      ?.friendly_name || id}
-                                  </span>
-                                  <ha-icon-button
-                                    .path=${this._isHiddenEntity(id)
-                                      ? mdiEye
-                                      : mdiEyeOff}
-                                    .label=${this._isHiddenEntity(id)
-                                      ? this.hass.localize("ui.common.show") ??
-                                        "Show"
-                                      : this.hass.localize("ui.common.hide") ??
-                                        "Hide"}
-                                    @click=${() => this._toggleEntityHidden(id)}
-                                  ></ha-icon-button>
-                                </div>
-                              `
-                            )}
+                        <ha-form
+                          .hass=${this.hass}
+                          .data=${this._groupFormData(group)}
+                          .schema=${this.getGroupSchema(group)}
+                          .computeLabel=${this.computeLabel}
+                          @value-changed=${(ev: CustomEvent) =>
+                  this._groupValueChanged(ev, i)}
+                          @focusout=${() => this._groupFormBlur(i)}
+                        ></ha-form>
                       </div>
                     </ha-expansion-panel>
                   `
-                )}
-              `
-            : html``}
-        </div>
-      </ha-expansion-panel>
-
-      <ha-expansion-panel outlined class="main">
-        <div slot="header" role="heading" aria-level="3">
-          <ha-svg-icon
-            class="secondary"
-            .path=${mdiFormatListGroupPlus}
-          ></ha-svg-icon>
-          Smart Groups
-        </div>
-        <div class="content">
-          ${this.rulesets.map(
-            (group, i) => html`
-              <ha-expansion-panel class="group-panel main" outlined>
-                <div slot="header" class="group-header">
-                  ${group.group_id
-                    ? group.group_id
-                    : `${this.hass.localize(
-                        "component.group.entity_component._.name"
-                      )} ${i + 1}`}
-                  <span class="group-actions">
-                    <ha-icon-button
-                      slot="trigger"
-                      .label=${this.hass.localize("ui.common.remove")}
-                      .path=${mdiClose}
-                      @click=${() => this._removeRuleset(i)}
-                    ></ha-icon-button>
-                  </span>
+            )}
+                <div class="add-group-row">
+                  <ha-button raised @click=${this._addRuleset}>
+                    ${this.hass.localize("ui.common.add")}
+                  </ha-button>
                 </div>
-                <div class="content">
-                  <ha-form
-                    .hass=${this.hass}
-                    .data=${this._groupFormData(group)}
-                    .schema=${this.getGroupSchema(group)}
-                    .computeLabel=${this.computeLabel}
-                    @value-changed=${(ev: CustomEvent) =>
-                      this._groupValueChanged(ev, i)}
-                    @focusout=${() => this._groupFormBlur(i)}
-                  ></ha-form>
-                </div>
-              </ha-expansion-panel>
-            `
-          )}
-          <div class="add-group-row">
-            <ha-button raised @click=${this._addRuleset}>
-              ${this.hass.localize("ui.common.add")}
-            </ha-button>
-          </div>
-        </div>
-      </ha-expansion-panel>
+              </div>
+            </ha-expansion-panel>
 
-      <ha-expansion-panel outlined class="main">
-        <div slot="header" role="heading" aria-level="3">
-          <ha-svg-icon class="secondary" .path=${mdiTextBoxEdit}></ha-svg-icon>
-          ${this.computeLabel.bind(this)({ name: "edit_domains_dc" })}
-        </div>
-        <div class="content">
-          <ha-form
-            .hass=${this.hass}
-            .data=${data}
-            .schema=${toggleschema}
-            .computeLabel=${this.computeLabel}
-            @value-changed=${this._valueChanged}
-          ></ha-form>
-          <status-items-editor
-            .hass=${this.hass}
-            .customization=${this._config.customization}
-            .SelectOptions=${this.contentSelectOptions}
-            @edit-item=${this._edit_itemDomain}
-            @config-changed=${this._customizationChangedDomain}
-          >
-          </status-items-editor>
-        </div>
-      </ha-expansion-panel>
+            <ha-expansion-panel outlined class="main">
+              <div slot="header" role="heading" aria-level="3">
+                <ha-svg-icon
+                  class="secondary"
+                  .path=${mdiTextBoxEdit}
+                ></ha-svg-icon>
+                ${this.computeLabel.bind(this)({ name: "edit_domains_dc" })}
+              </div>
+              <div class="content">
+                <ha-form
+                  .hass=${this.hass}
+                  .data=${data}
+                  .schema=${this._toggleschema(this.toggleSelectOptions)}
+                  .computeLabel=${this.computeLabel}
+                  @value-changed=${this._valueChanged}
+                ></ha-form>
+                <status-items-editor
+                  .hass=${this.hass}
+                  .customization=${this._config.customization}
+                  .SelectOptions=${this.contentSelectOptions}
+                  @edit-item=${this._edit_itemDomain}
+                  @config-changed=${this._customizationChangedDomain}
+                >
+                </status-items-editor>
+              </div>
+            </ha-expansion-panel>
+          `
+        : ""}
     `;
   }
 
@@ -1703,9 +1602,8 @@ export class StatusCardEditor extends LitElement {
         color: var(--secondary-text-color);
       }
       .main {
-        margin: 5px 0;
         --ha-card-border-radius: 6px;
-        margin-top: 16px;
+        margin-top: 24px;
       }
       .content {
         margin: 10px 0px;
@@ -1721,6 +1619,18 @@ export class StatusCardEditor extends LitElement {
       }
       ha-icon {
         display: flex;
+        }
+      ha-tab-group {
+        display: block;
+        margin-bottom: 16px;
+        padding: 0 1em;
+      }
+      ha-tab-group-tab {
+        flex: 1;
+      }
+      ha-tab-group-tab::part(base) {
+        width: 100%;
+        justify-content: center;
       }
       .header {
         margin-bottom: 0.5em;

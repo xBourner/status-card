@@ -14,7 +14,8 @@ import type {
   TranslationCategory,
 } from "./data/translation";
 import type { Themes } from "./data/ws-themes";
-import type { LovelaceCardConfig } from "../ha";
+import type { LovelaceCardConfig, EntityRegistryEntry } from "../ha";
+import { TemplateResult } from "lit";
 
 export interface ConfigChangedEvent {
   config: LovelaceCardConfig;
@@ -34,9 +35,18 @@ declare global {
   var __SUPERVISOR__: boolean;
   /* eslint-enable no-var, no-redeclare */
 
+  interface CustomCardEntry {
+    type: string;
+    name: string;
+    preview?: boolean;
+    description?: string;
+  }
+
   interface Window {
     // Custom panel entry point url
     customPanelJS: string;
+    customCards: CustomCardEntry[];
+    loadCardHelpers?(): Promise<any>;
     ShadyCSS: {
       nativeCss: boolean;
       nativeShadow: boolean;
@@ -69,6 +79,7 @@ export interface Schema {
   required?: boolean;
   default?: any;
   type?: string;
+  schema?: Schema[];
 }
 
 interface EntityRegistryDisplayEntry {
@@ -253,4 +264,163 @@ export interface HomeAssistant {
     value?: any
   ): string;
   formatEntityAttributeName(stateObj: HassEntity, attribute: string): string;
+}
+
+export interface StatusCardLike {
+  hass: { states: HomeAssistant["states"] };
+  entities?: { [key: string]: HassEntity };
+  devices?: { [key: string]: DeviceRegistryEntry };
+  areas?: { [key: string]: AreaRegistryEntry };
+  __registryEntities?: EntityRegistryEntry[];
+  __registryDevices?: DeviceRegistryEntry[];
+  __registryAreas?: AreaRegistryEntry[];
+  hiddenEntities?: string[];
+  labels?: { label_id: string; name: string }[];
+}
+
+export interface StatusCardInterface extends StatusCardLike {
+  _config: LovelaceCardConfig;
+  _shouldShowTotalEntities(domain: string, deviceClass?: string): boolean;
+  _totalEntities(domain: string, deviceClass?: string): HassEntity[];
+  _isOn(domain: string, deviceClass?: string): HassEntity[];
+  getCustomizationForType(key: string): LovelaceCardConfig | undefined;
+  list_mode: boolean;
+  _computeEntityMap(entities: EntityRegistryEntry[]): Map<string, EntityRegistryEntry>;
+  _computeDeviceMap(devices: DeviceRegistryEntry[]): Map<string, DeviceRegistryEntry>;
+  _computeAreaMap(areas: AreaRegistryEntry[]): Map<string, AreaRegistryEntry>;
+}
+
+export interface StatusCardPopupDialogParams {
+  title: string;
+  hass: HomeAssistant;
+  entities: HassEntity[];
+  selectedDomain?: string;
+  selectedDeviceClass?: string;
+  selectedGroup?: number;
+  card: StatusCardInterface;
+  content?: string | TemplateResult;
+}
+
+export interface PopupCardConfigCache {
+  hash: string;
+  config: LovelaceCardConfig;
+}
+
+export interface CardElementCache {
+  hash: string;
+  el: HTMLElement;
+}
+
+export interface FilterConfig {
+  area: string[];
+  floor: string[];
+  label: string[];
+}
+
+export interface DomainItem {
+  type: "domain";
+  domain: string;
+  order: number;
+}
+
+export interface DeviceClassItem {
+  type: "deviceClass";
+  domain: string;
+  deviceClass: string;
+  order: number;
+}
+
+export interface ExtraItem {
+  type: "extra";
+  panel: string;
+  entity: HassEntity;
+  order: number;
+  icon: string;
+  name: string;
+  color?: string;
+  icon_css?: string;
+  background_color?: string;
+}
+
+export type RuleValue =
+  | string
+  | number
+  | boolean
+  | Record<string, unknown>
+  | (string | number | boolean)[]
+  | Rule[];
+
+export interface Rule {
+  key: string;
+  value: RuleValue;
+}
+
+export interface Ruleset {
+  group_id: string;
+  group_icon?: string;
+  group_status?: string;
+  filters?: Rule[];
+  area?: RuleValue;
+  floor?: RuleValue;
+  label?: RuleValue;
+  domain?: RuleValue;
+  entity_id?: RuleValue;
+  state?: RuleValue;
+  name?: RuleValue;
+  attributes?: Record<string, unknown>;
+  device?: RuleValue;
+  integration?: RuleValue;
+  entity_category?: RuleValue;
+  hidden_by?: RuleValue;
+  device_manufacturer?: RuleValue;
+  device_model?: RuleValue;
+  last_changed?: RuleValue;
+  last_updated?: RuleValue;
+  last_triggered?: RuleValue;
+  level?: RuleValue;
+  group?: RuleValue;
+  [key: string]: RuleValue | Record<string, unknown> | Rule[] | undefined;
+}
+
+export interface GroupItem {
+  type: "group";
+  group_id: string;
+  order: number;
+  ruleset: Ruleset;
+}
+
+export interface SmartGroupItem {
+  group_id: string;
+  group_icon: string;
+  group_status?: string;
+  rules: Rule[];
+}
+
+export type AnyItem = DomainItem | DeviceClassItem | ExtraItem | GroupItem;
+
+export interface SubElementEditor {
+  index?: number;
+}
+
+export interface SubElementConfig {
+  index?: number;
+  type?: string;
+  schemaType?: string;
+}
+
+
+export interface IconPair {
+  on: string;
+  off: string;
+}
+
+export type DomainIconDef = {
+  on: string;
+  off: string;
+  [key: string]: string | IconPair;
+};
+
+export interface DomainFeatureDef {
+  state_content: string[];
+  features: Record<string, unknown>[];
 }

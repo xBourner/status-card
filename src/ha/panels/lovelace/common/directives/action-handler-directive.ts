@@ -188,7 +188,9 @@ const getActionHandler = (): ActionHandlerType => {
     ) as ActionHandlerType;
   }
 
-  const actionhandler = document.createElement("action-handler-status-card");
+  const actionhandler = document.createElement(
+    "action-handler-status-card"
+  );
   body.appendChild(actionhandler);
 
   return actionhandler as ActionHandlerType;
@@ -212,7 +214,7 @@ export const actionHandler = directive(
       return noChange;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    render(_options?: ActionHandlerOptions) {}
+
+    render(_options?: ActionHandlerOptions) { }
   }
 );

@@ -1,173 +1,156 @@
 import type { HassEntity } from "home-assistant-js-websocket";
-import memoizeOne from "memoize-one";
 import {
   AreaRegistryEntry,
   EntityRegistryEntry,
   DeviceRegistryEntry,
   computeDomain,
 } from "./ha";
-import type { StatusCard } from "./card";
+import { Ruleset, Rule, RuleValue, StatusCardLike } from "./ha/types";
 
-export interface HAState {
-  entity_id: string;
-  state: string;
-  attributes?: Record<string, any>;
-  last_changed: number;
-  last_updated: number;
-}
+const STATIC_KEYS = [
+  "area",
+  "floor",
+  "label",
+  "domain",
+  "entity_id",
+  "device",
+  "integration",
+  "entity_category",
+  "hidden_by",
+  "device_manufacturer",
+  "device_model",
+];
 
-export interface HassObject {
-  states: HAState[];
-  callWS: (_: any) => any;
-  formatEntityState: (stateObj, state?) => string;
-  formatEntityAttributeValue: (stateObj, attribute, value?) => string;
-  formatEntityAttributeName: (stateObj, attribute) => string;
-}
-
-function cacheByProperty<T>(
-  hass: HassObject,
-  type: string,
-  property: keyof T
-): Promise<Record<string, T>> {
-  return hass
-    .callWS({ type: `config/${type}_registry/list` })
-    .then((items: T[]) => {
-      return items.reduce((acc, item) => {
-        const key = item[property];
-        if (typeof key === "string" || typeof key === "number") {
-          acc[String(key)] = item;
-        }
-        return acc;
-      }, {} as Record<string, T>);
+export const filterStaticEntities = (
+  ruleset: Ruleset,
+  entities: EntityRegistryEntry[],
+  devices: DeviceRegistryEntry[],
+  areas: AreaRegistryEntry[],
+  hiddenEntities: string[],
+  entityMap: Map<string, EntityRegistryEntry>,
+  deviceMap: Map<string, DeviceRegistryEntry>,
+  areaMap: Map<string, AreaRegistryEntry>
+): string[] => {
+  let filters: Rule[] = [];
+  if (Array.isArray(ruleset.filters)) {
+    filters = ruleset.filters.filter((f) => STATIC_KEYS.includes(f.key));
+  } else {
+    const rulesetAsRecord = ruleset as Record<string, unknown>;
+    STATIC_KEYS.forEach((key) => {
+      if (rulesetAsRecord[key] !== undefined) {
+        filters.push({ key, value: rulesetAsRecord[key] as RuleValue });
+      }
     });
-}
+  }
 
-const memoEntityMap = memoizeOne(
-  (entities: any[] = []) => new Map(entities.map((e) => [e.entity_id, e]))
-);
-const memoDeviceMap = memoizeOne(
-  (devices: any[] = []) => new Map(devices.map((d) => [d.id, d]))
-);
-const memoAreaMap = memoizeOne(
-  (areas: any[] = []) => new Map(areas.map((a) => [a.area_id, a]))
-);
+  if (!filters.length && !hiddenEntities.length) {
+    return entities.map(e => e.entity_id);
+  }
 
-const memoFilterEntitiesByRuleset = memoizeOne(
-  (
-    card: StatusCard,
-    ruleset: any,
-    entities: any[],
-    devices: any[],
-    areas: any[],
-    hiddenEntities: string[],
-    states: any
-  ) => {
-    let filters: { key: string; value: any }[] = [];
-    if (Array.isArray(ruleset.filters)) {
-      filters = ruleset.filters;
-    } else {
-      [
-        "area",
-        "floor",
-        "label",
-        "domain",
-        "entity_id",
-        "state",
-        "name",
-        "attributes",
-        "device",
-        "integration",
-        "entity_category",
-        "hidden_by",
-        "device_manufacturer",
-        "device_model",
-        "last_changed",
-        "last_updated",
-        "last_triggered",
-        "level",
-        "group",
-      ].forEach((key) => {
-        if (ruleset[key] !== undefined) {
-          filters.push({ key, value: ruleset[key] });
-        }
-      });
-    }
-    const entityMap = memoEntityMap(entities);
-    const deviceMap = memoDeviceMap(devices);
-    const areaMap = memoAreaMap(areas);
-    return (Object.values(states) as HassEntity[]).filter((entity) => {
-      if (hiddenEntities.includes(entity.entity_id)) return false;
-      if (!filters.length) return true;
+  return entities.filter((entry) => {
+    if (hiddenEntities.includes(entry.entity_id)) return false;
+    if (!filters.length) return true;
+
+    const fakeEntity = { entity_id: entry.entity_id } as HassEntity;
+
+    return filters.every((rule) =>
+      matchesRule({} as StatusCardLike, fakeEntity, rule, {
+        areas,
+        devices,
+        entities,
+        entityMap,
+        deviceMap,
+        areaMap,
+      })
+    );
+  }).map(e => e.entity_id);
+};
+
+export const filterDynamicEntities = (
+  card: StatusCardLike,
+  ruleset: Ruleset,
+  candidateIds: string[],
+  states: { [entity_id: string]: HassEntity },
+  entityMap: Map<string, EntityRegistryEntry>,
+  deviceMap: Map<string, DeviceRegistryEntry>,
+  areaMap: Map<string, AreaRegistryEntry>
+): HassEntity[] => {
+  let filters: Rule[] = [];
+  if (Array.isArray(ruleset.filters)) {
+    filters = ruleset.filters.filter((f) => !STATIC_KEYS.includes(f.key));
+  } else {
+    const rulesetAsRecord = ruleset as Record<string, unknown>;
+    [
+      "state",
+      "name",
+      "attributes",
+      "last_changed",
+      "last_updated",
+      "last_triggered",
+      "level",
+      "group",
+    ].forEach((key) => {
+      if (rulesetAsRecord[key] !== undefined) {
+        filters.push({ key, value: rulesetAsRecord[key] as RuleValue });
+      }
+    });
+  }
+
+  if (!filters.length) {
+    return candidateIds
+      .map(id => states[id])
+      .filter((e): e is HassEntity => !!e);
+  }
+
+  return candidateIds
+    .map(id => states[id])
+    .filter((entity): entity is HassEntity => {
+      if (!entity) return false;
       return filters.every((rule) =>
         matchesRule(card, entity, rule, {
-          areas,
-          devices,
-          entities,
           entityMap,
           deviceMap,
-          areaMap,
+          areaMap
         })
       );
     });
-  }
-);
+};
 
 export function filterEntitiesByRuleset(
-  card: StatusCard,
-  ruleset: any
+  card: StatusCardLike,
+  ruleset: Ruleset,
+  entityMap?: Map<string, EntityRegistryEntry>,
+  deviceMap?: Map<string, DeviceRegistryEntry>,
+  areaMap?: Map<string, AreaRegistryEntry>
 ): HassEntity[] {
-  const c = card as any;
+  const entitiesArr = card.__registryEntities || [];
+  const devicesArr = card.__registryDevices || [];
+  const areasArr = card.__registryAreas || [];
 
-  const entitiesArr =
-    c.entities || c.__registryEntities || Object.values(c.hass?.states ?? {});
-  const devicesArr =
-    c.devices || c.__registryDevices || Object.values(c.hass?.devices ?? {});
-  const areasArr =
-    c.areas || c.__registryAreas || Object.values(c.hass?.areas ?? {});
+  const eMap = entityMap || new Map(entitiesArr.map((e) => [e.entity_id, e]));
+  const dMap = deviceMap || new Map(devicesArr.map((d) => [d.id, d]));
+  const aMap = areaMap || new Map(areasArr.map((a) => [a.area_id, a]));
 
-  if (
-    !c.__registryEntities &&
-    c.hass &&
-    typeof c.hass.callWS === "function" &&
-    !c.__registryFetchInProgress
-  ) {
-    c.__registryFetchInProgress = true;
-    Promise.all([
-      cacheByProperty<EntityRegistryEntry>(c.hass, "entity", "entity_id").catch(
-        () => ({} as Record<string, EntityRegistryEntry>)
-      ),
-      cacheByProperty<DeviceRegistryEntry>(c.hass, "device", "id").catch(
-        () => ({} as Record<string, DeviceRegistryEntry>)
-      ),
-      cacheByProperty<AreaRegistryEntry>(c.hass, "area", "area_id").catch(
-        () => ({} as Record<string, AreaRegistryEntry>)
-      ),
-    ])
-      .then(([entityMap, deviceMap, areaMap]) => {
-        try {
-          c.__registryEntities = Object.values(entityMap);
-          c.__registryDevices = Object.values(deviceMap);
-          c.__registryAreas = Object.values(areaMap);
-        } catch (_) {}
-      })
-      .catch(() => {})
-      .finally(() => {
-        c.__registryFetchInProgress = false;
-        try {
-          c.requestUpdate?.();
-        } catch (_) {}
-      });
-  }
-
-  return memoFilterEntitiesByRuleset(
-    card,
+  const candidateIds = filterStaticEntities(
     ruleset,
     entitiesArr,
     devicesArr,
     areasArr,
-    c.hiddenEntities || [],
-    c.hass?.states || {}
-  ) as HassEntity[];
+    card.hiddenEntities || [],
+    eMap,
+    dMap,
+    aMap
+  );
+
+  return filterDynamicEntities(
+    card,
+    ruleset,
+    candidateIds,
+    card.hass?.states || {},
+    eMap,
+    dMap,
+    aMap
+  );
 }
 function compareMinutesAgo(dateStr: string, filter: string): boolean {
   if (!dateStr) return false;
@@ -193,7 +176,7 @@ function compareMinutesAgo(dateStr: string, filter: string): boolean {
   }
 }
 
-function match(actual: any, expected: any): boolean {
+function match(actual: unknown, expected: unknown): boolean {
   if (Array.isArray(expected)) {
     return expected.some((v) => match(actual, v));
   }
@@ -208,7 +191,7 @@ function match(actual: any, expected: any): boolean {
       expected.match(/^([<>]=?)\s*(-?\d+(\.\d+)?)([mhd])$/) || [];
     const num = parseFloat(numStr);
     const now = Date.now();
-    const actualTime = new Date(actual).getTime();
+    const actualTime = new Date(actual as string | number | Date).getTime();
     if (isNaN(actualTime)) return false;
     let diff = (now - actualTime) / 60000;
     if (unit === "h") diff /= 60;
@@ -231,7 +214,7 @@ function match(actual: any, expected: any): boolean {
   ) {
     const [, op, numStr] = expected.match(/^([<>]=?)\s*(-?\d+(\.\d+)?)$/) || [];
     const num = parseFloat(numStr);
-    const val = parseFloat(actual);
+    const val = parseFloat(actual as string);
     switch (op) {
       case ">":
         return val > num;
@@ -270,10 +253,122 @@ function match(actual: any, expected: any): boolean {
   return actual === expected;
 }
 
+interface MatcherHelpers {
+  areas?: AreaRegistryEntry[];
+  devices?: DeviceRegistryEntry[];
+  entities?: EntityRegistryEntry[];
+  entityMap?: Map<string, EntityRegistryEntry>;
+  deviceMap?: Map<string, DeviceRegistryEntry>;
+  areaMap?: Map<string, AreaRegistryEntry>;
+  card: StatusCardLike;
+}
+
+const matchers: {
+  [key: string]: (
+    entity: HassEntity,
+    value: unknown,
+    helpers: MatcherHelpers,
+    entry?: EntityRegistryEntry
+  ) => boolean;
+} = {
+  area: (entity, value, { entityMap, deviceMap }, entry) => {
+    let areaId = entry?.area_id;
+    if (!areaId && entry?.device_id) {
+      const device = deviceMap?.get(entry.device_id);
+      areaId = device?.area_id;
+    }
+    if (Array.isArray(value)) {
+      return value.includes(areaId);
+    }
+    return areaId === value;
+  },
+  domain: (entity, value) => match(computeDomain(entity.entity_id), value),
+  entity_id: (entity, value) => match(entity.entity_id, value),
+  state: (entity, value) => match(entity.state, value),
+  name: (entity, value) => match(entity.attributes.friendly_name ?? "", value),
+  attributes: (entity, value) => {
+    if (!value || typeof value !== "object") return false;
+    return Object.entries(value).every(([attrKey, expected]) => {
+      const attrPath = attrKey.split(":");
+      let attrValue = entity.attributes;
+      for (const key of attrPath) {
+        if (attrValue === undefined) break;
+        attrValue = attrValue[key];
+      }
+      return attrValue !== undefined ? match(attrValue, expected) : false;
+    });
+  },
+  device: (entity, value, _, entry) => match(entry?.device_id, value),
+  integration: (entity, value, _, entry) =>
+    !!entry &&
+    (match(entry.platform, value) || match(entry.config_entry_id, value)),
+  entity_category: (entity, value, _, entry) =>
+    match(entry?.entity_category, value),
+  label: (entity, value, { deviceMap, card }, entry) => {
+    const allLabels = card.labels;
+    const match_label = (lbl: string) => {
+      if (match(lbl, value)) return true;
+      if (allLabels) {
+        const labelObj = allLabels.find((l) => l.label_id === lbl);
+        if (labelObj && match(labelObj.name, value)) return true;
+      }
+      return false;
+    };
+    if (entry?.labels?.some(match_label)) return true;
+    if (entry?.device_id) {
+      const device = deviceMap?.get(entry.device_id);
+      if (device?.labels?.some(match_label)) return true;
+    }
+    return false;
+  },
+  floor: (entity, value, { entityMap, deviceMap, areaMap }, entry) => {
+    let areaId = entry?.area_id;
+    if (!areaId && entry?.device_id) {
+      areaId = deviceMap?.get(entry.device_id)?.area_id;
+    }
+    if (!areaId) return false;
+    const areaObj = areaMap?.get(areaId);
+    return match(areaObj?.floor_id, value);
+  },
+  hidden_by: (entity, value, _, entry) => match(entry?.hidden_by, value),
+  device_manufacturer: (entity, value, { deviceMap }, entry) => {
+    if (!entry?.device_id) return false;
+    const device = deviceMap?.get(entry.device_id);
+    return match(device?.manufacturer, value);
+  },
+  device_model: (entity, value, { deviceMap }, entry) => {
+    if (!entry?.device_id) return false;
+    const device = deviceMap?.get(entry.device_id);
+    return match(device?.model, value);
+  },
+  last_changed: (entity, value) => {
+    if (typeof value === "string" && /^[<>]=?\s*\d+$/.test(value)) {
+      return compareMinutesAgo(entity.last_changed, value);
+    }
+    return match(entity.last_changed, value);
+  },
+  last_updated: (entity, value) => {
+    if (typeof value === "string" && /^[<>]=?\s*\d+$/.test(value)) {
+      return compareMinutesAgo(entity.last_updated, value);
+    }
+    return match(entity.last_updated, value);
+  },
+  last_triggered: (entity, value) => {
+    if (typeof value === "string" && /^[<>]=?\s*\d+$/.test(value)) {
+      return compareMinutesAgo(entity.attributes.last_triggered, value);
+    }
+    return match(entity.attributes.last_triggered, value);
+  },
+  group: (entity, value, { card }) => {
+    const group = card.hass.states[value as string];
+    return !!group?.attributes?.entity_id?.includes(entity.entity_id);
+  },
+};
+
 function matchesRule(
-  card: StatusCard,
+  card: StatusCardLike,
   entity: HassEntity,
-  rule: { key: string; value: any },
+  rule: { key: string; value: unknown },
   helpers: {
     areas?: AreaRegistryEntry[];
     devices?: DeviceRegistryEntry[];
@@ -287,155 +382,10 @@ function matchesRule(
     helpers.entityMap?.get(entity.entity_id) ||
     helpers.entities?.find((e) => e.entity_id === entity.entity_id);
 
-  switch (rule.key) {
-    case "area": {
-      let areaId = entry?.area_id;
-      if (!areaId && entry?.device_id) {
-        const device =
-          (helpers.deviceMap && entry?.device_id
-            ? helpers.deviceMap.get(entry.device_id)
-            : undefined) ||
-          helpers.devices?.find((d) => d.id === entry.device_id);
-        areaId = device?.area_id;
-      }
-      return match(areaId, rule.value);
-    }
-    case "domain":
-      return match(computeDomain(entity.entity_id), rule.value);
-
-    case "entity_id":
-      return match(entity.entity_id, rule.value);
-
-    case "state":
-      return match(entity.state, rule.value);
-
-    case "name": {
-      const name = entity.attributes.friendly_name ?? "";
-      return match(name, rule.value);
-    }
-
-    case "attributes": {
-      if (!rule.value || typeof rule.value !== "object") return false;
-      return Object.entries(rule.value).every(([attrKey, expected]) => {
-        const attrPath = attrKey.split(":");
-        let attrValue = entity.attributes;
-        for (const key of attrPath) {
-          attrValue = attrValue?.[key];
-          if (attrValue === undefined) break;
-        }
-        if (attrValue === undefined) return false;
-        return match(attrValue, expected);
-      });
-    }
-
-    case "device":
-      return match(entry?.device_id, rule.value);
-
-    case "integration":
-      if (!entry) return false;
-      return (
-        match(entry.platform, rule.value) ||
-        match(entry.config_entry_id, rule.value)
-      );
-
-    case "entity_category":
-      return match(entry?.entity_category, rule.value);
-
-    case "label": {
-      const allLabels = (helpers as any).labels as
-        | { label_id: string; name: string }[]
-        | undefined;
-      const match_label = (lbl: string) => {
-        if (match(lbl, rule.value)) return true;
-        if (allLabels) {
-          const labelObj = allLabels.find((l) => l.label_id === lbl);
-          if (labelObj && match(labelObj.name, rule.value)) return true;
-        }
-        return false;
-      };
-
-      if (entry?.labels && entry.labels.some(match_label)) return true;
-
-      if (entry?.device_id) {
-        const device =
-          (helpers.deviceMap && entry?.device_id
-            ? helpers.deviceMap.get(entry.device_id)
-            : undefined) ||
-          helpers.devices?.find((d) => d.id === entry.device_id);
-        if (device?.labels && device.labels.some(match_label)) return true;
-      }
-      return false;
-    }
-
-    case "floor": {
-      let areaId = entry?.area_id;
-      if (!areaId && entry?.device_id) {
-        const device =
-          (helpers.deviceMap && entry?.device_id
-            ? helpers.deviceMap.get(entry.device_id)
-            : undefined) ||
-          helpers.devices?.find((d) => d.id === entry.device_id);
-        areaId = device?.area_id;
-      }
-      if (!areaId) return false;
-      const areaObj =
-        (helpers.areaMap ? helpers.areaMap.get(areaId) : undefined) ||
-        helpers.areas?.find((a) => a.area_id === areaId);
-      return match(areaObj?.floor_id, rule.value);
-    }
-
-    case "hidden_by":
-      return match(entry?.hidden_by, rule.value);
-
-    case "device_manufacturer": {
-      if (entry?.device_id) {
-        const device =
-          (helpers.deviceMap && entry?.device_id
-            ? helpers.deviceMap.get(entry.device_id)
-            : undefined) ||
-          helpers.devices?.find((d) => d.id === entry.device_id);
-        return match(device?.manufacturer, rule.value);
-      }
-      return false;
-    }
-
-    case "device_model": {
-      if (entry?.device_id) {
-        const device =
-          (helpers.deviceMap && entry?.device_id
-            ? helpers.deviceMap.get(entry.device_id)
-            : undefined) ||
-          helpers.devices?.find((d) => d.id === entry.device_id);
-        return match(device?.model, rule.value);
-      }
-      return false;
-    }
-
-    case "last_changed":
-      if (typeof rule.value === "string" && /^[<>]=?\s*\d+$/.test(rule.value)) {
-        return compareMinutesAgo(entity.last_changed, rule.value);
-      }
-      return match(entity.last_changed, rule.value);
-
-    case "last_updated":
-      if (typeof rule.value === "string" && /^[<>]=?\s*\d+$/.test(rule.value)) {
-        return compareMinutesAgo(entity.last_updated, rule.value);
-      }
-      return match(entity.last_updated, rule.value);
-
-    case "last_triggered":
-      if (typeof rule.value === "string" && /^[<>]=?\s*\d+$/.test(rule.value)) {
-        return compareMinutesAgo(entity.attributes.last_triggered, rule.value);
-      }
-      return match(entity.attributes.last_triggered, rule.value);
-
-    case "group": {
-      const group = card.hass.states[rule.value];
-      if (!group || !Array.isArray(group.attributes?.entity_id)) return false;
-      return group.attributes.entity_id.includes(entity.entity_id);
-    }
-
-    default:
-      return true;
+  const matcher = matchers[rule.key];
+  if (matcher) {
+    return matcher(entity, rule.value, { ...helpers, card }, entry);
   }
+
+  return true;
 }

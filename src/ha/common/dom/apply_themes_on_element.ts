@@ -22,7 +22,6 @@ export const applyThemesOnElement = (
   let cacheKey = themeToApply || "";
   let themeRules: Record<string, string> = {};
 
-  // Default theme: only use provided primary/accent colors, do not wipe inline styles
   if (themeToApply === "default") {
     const primaryColor = themeSettings?.primaryColor;
     const accentColor = themeSettings?.accentColor;
@@ -36,7 +35,6 @@ export const applyThemesOnElement = (
       themeRules["accent-color"] = String(accentColor);
     }
 
-    // If nothing changes and we already applied the same config, skip
     if (
       !primaryColor &&
       !accentColor &&
@@ -46,7 +44,6 @@ export const applyThemesOnElement = (
     }
   }
 
-  // Custom theme: merge base rules with dark/light mode specific overrides if present
   if (
     themeToApply &&
     themeToApply !== "default" &&
@@ -66,25 +63,20 @@ export const applyThemesOnElement = (
     (!element.__themes?.keys ||
       (element.__themes.keys as Set<string>).size === 0)
   ) {
-    // No theme to apply and nothing set previously
     return;
   }
-
   const prevKeys: Set<string> = element.__themes?.keys || new Set<string>();
   const newKeys = new Set<string>(Object.keys(themeRules));
-
-  // If default theme with no explicit colors provided, clear previously set vars
   if (themeToApply === "default" && newKeys.size === 0) {
     for (const key of prevKeys) {
       try {
         element.style.removeProperty(`--${key}`);
-      } catch {}
+      } catch { }
     }
     element.__themes = { cacheKey: "default", keys: new Set<string>() };
     return;
   }
 
-  // If cacheKey unchanged and keys are identical, skip reapplying
   if (element.__themes?.cacheKey === cacheKey) {
     let same = true;
     if (prevKeys.size !== newKeys.size) {
@@ -100,20 +92,17 @@ export const applyThemesOnElement = (
     if (same) return;
   }
 
-  // Remove variables that are no longer present
   for (const key of prevKeys) {
     if (!newKeys.has(key)) {
       try {
         element.style.removeProperty(`--${key}`);
-      } catch {}
+      } catch { }
     }
   }
 
-  // Apply new variables
   for (const [key, value] of Object.entries(themeRules)) {
     element.style.setProperty(`--${key}`, String(value));
   }
-
   element.__themes.cacheKey = cacheKey || null;
   element.__themes.keys = newKeys;
 };

@@ -1,4 +1,3 @@
-/** States that we consider "off". */
 export const STATES_OFF = [
   "closed",
   "locked",
@@ -13,15 +12,12 @@ export const STATES_OFF = [
   "0",
 ];
 
-/** Binary States */
 export const BINARY_STATE_ON = "on";
 export const BINARY_STATE_OFF = "off";
 
-/** Temperature units. */
 export const UNIT_C = "°C";
 export const UNIT_F = "°F";
 
-/** Domains where we allow toggle in Lovelace. */
 export const DOMAINS_TOGGLE = new Set([
   "fan",
   "input_boolean",

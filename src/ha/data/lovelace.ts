@@ -1,11 +1,13 @@
 import { HassServiceTarget } from "home-assistant-js-websocket";
 import { HASSDomEvent } from "../common/dom/fire_event";
+import { Ruleset } from "../types";
 
 export interface LovelaceCardConfig {
   index?: number;
   view_index?: number;
   view_layout?: any;
   type: string;
+  rulesets?: Ruleset[];
   [key: string]: any;
 }
 
@@ -15,11 +17,11 @@ export interface ToggleActionConfig extends BaseActionConfig {
 
 export interface CallServiceActionConfig extends BaseActionConfig {
   action: "call-service" | "perform-action";
-  /** @deprecated "service" is kept for backwards compatibility. Replaced by "perform_action". */
+
   service?: string;
   perform_action: string;
   target?: HassServiceTarget;
-  /** @deprecated "service_data" is kept for backwards compatibility. Replaced by "data". */
+
   service_data?: Record<string, unknown>;
   data?: Record<string, unknown>;
 }

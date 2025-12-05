@@ -8,8 +8,8 @@ console.info(
   "color: white ; background: dimgray; font-weight: bold;"
 );
 
-(window as any).customCards = (window as any).customCards || [];
-(window as any).customCards.push({
+window.customCards = window.customCards || [];
+window.customCards.push({
   type: "status-card",
   name: "Status Card",
   preview: true,
