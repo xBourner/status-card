@@ -37,6 +37,7 @@ body:
     description: What version of HA are you running? Please update version if you
       don't see your running verision in this list.
     options:
+    - 2025.12.1
     - 2025.12.0b9
     - 2025.12.0b8
     - 2025.12.0b7
@@ -81,8 +82,6 @@ body:
     label: Card Version
     description: What version of the card are you running?
     options:
-    - v3.2.2-beta
-    - v3.2.1-beta
     - v3.2-beta
     - v3.1.1-beta
     - v3.1.1
