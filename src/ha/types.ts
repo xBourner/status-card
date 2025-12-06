@@ -46,6 +46,7 @@ declare global {
     // Custom panel entry point url
     customPanelJS: string;
     customCards: CustomCardEntry[];
+    customBadges: CustomCardEntry[];
     loadCardHelpers?(): Promise<any>;
     ShadyCSS: {
       nativeCss: boolean;

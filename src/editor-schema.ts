@@ -181,6 +181,7 @@ export function getAppearanceSchema(
           selector: { boolean: {} },
         },
         { name: "badge_mode", selector: { boolean: {} } },
+        { name: "no_background", selector: { boolean: {} } },
       ],
     },
     ...(BadgeMode

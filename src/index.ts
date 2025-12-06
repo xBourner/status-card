@@ -16,3 +16,12 @@ window.customCards.push({
   description:
     "A custom card that displays active entities grouped by domain/device class.",
 });
+
+window.customBadges = window.customBadges || [];
+window.customBadges.push({
+  type: "status-card",
+  name: "Status Card",
+  preview: true,
+  description:
+    "A custom card that displays active entities grouped by domain/device class.",
+});

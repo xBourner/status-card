@@ -78,6 +78,7 @@ export class StatusCard extends LitElement {
   @state() private hide_content_name: boolean = true;
   @state() public list_mode: boolean = false;
   @state() public badge_mode: boolean = false;
+  @state() public no_background: boolean = false;
   @state() public badge_color: string = "";
   @state() public badge_text_color: string = "";
   @state() public selectedGroup: number | null = null;
@@ -446,6 +447,7 @@ export class StatusCard extends LitElement {
       config.hide_content_name !== undefined ? config.hide_content_name : false;
     this.list_mode = config.list_mode !== undefined ? config.list_mode : false;
     this.badge_mode = !!config.badge_mode;
+    this.no_background = !!config.no_background;
     this.badge_color = config.badge_color || "";
     this.badge_text_color = config.badge_text_color || "";
     this.hiddenEntities = config.hidden_entities || [];
@@ -811,19 +813,19 @@ export class StatusCard extends LitElement {
         <div class="extra-entity ${classMap(contentClasses)}">
           <div class="entity-icon" style=${styleMap(iconStyles)}>
             ${icon.startsWith("/") || icon.startsWith("http")
-              ? html`<img
+        ? html`<img
                   src=${icon}
                   alt=${name}
                   style="border-radius:${this._config.square
-                    ? "20%"
-                    : "50%"};object-fit:cover;"
+            ? "20%"
+            : "50%"};object-fit:cover;"
                 />`
-              : icon.startsWith("M")
-              ? html`<ha-svg-icon
+        : icon.startsWith("M")
+          ? html`<ha-svg-icon
                   .path=${icon}
                   style="${icon_css || ""}"
                 ></ha-svg-icon>`
-              : html`<ha-state-icon
+          : html`<ha-state-icon
                   .hass=${this.hass}
                   .stateObj=${stateObj}
                   .icon=${icon}
@@ -834,10 +836,10 @@ export class StatusCard extends LitElement {
           </div>
 
           ${!this.badge_mode
-            ? html`<div class="entity-info">
+        ? html`<div class="entity-info">
                 ${!this.hide_content_name
-                  ? html`<div class="entity-name">${name}</div>`
-                  : ""}
+            ? html`<div class="entity-name">${name}</div>`
+            : ""}
                 <div class="entity-state">
                   <state-display
                     .stateObj=${stateObj}
@@ -847,7 +849,7 @@ export class StatusCard extends LitElement {
                   ></state-display>
                 </div>
               </div>`
-            : ""}
+        : ""}
         </div>
       </ha-tab-group-tab>
     `;
@@ -876,8 +878,7 @@ export class StatusCard extends LitElement {
 
     const groupId =
       ruleset.group_id ||
-      `${this.hass!.localize("component.group.entity_component._.name")} ${
-        index + 1
+      `${this.hass!.localize("component.group.entity_component._.name")} ${index + 1
       }`;
     const groupIcon = ruleset.group_icon || mdiFormatListGroup;
     const color = getCustomColor(
@@ -930,28 +931,28 @@ export class StatusCard extends LitElement {
         class=${this.badge_mode ? "badge-mode" : ""}
         style=${styleMap(badgeStyles)}
         data-badge=${ifDefined(
-          this.badge_mode && entities.length > 0
-            ? String(entities.length)
-            : undefined
-        )}
+      this.badge_mode && entities.length > 0
+        ? String(entities.length)
+        : undefined
+    )}
       >
         <div class="entity ${classMap(contentClasses)}">
           <div class="entity-icon" style=${styleMap(iconStyles)}>
             ${groupIcon.startsWith("M")
-              ? html`<ha-svg-icon .path=${groupIcon}></ha-svg-icon>`
-              : html`<ha-icon icon=${groupIcon}></ha-icon>`}
+        ? html`<ha-svg-icon .path=${groupIcon}></ha-svg-icon>`
+        : html`<ha-icon icon=${groupIcon}></ha-icon>`}
           </div>
           ${!this.badge_mode
-            ? html`<div class="entity-info">
+        ? html`<div class="entity-info">
                 ${!this.hide_content_name
-                  ? html`<div class="entity-name">${groupId}</div>`
-                  : ""}
+            ? html`<div class="entity-name">${groupId}</div>`
+            : ""}
                 <div class="entity-state">
                   ${entities.length}
                   ${ruleset.group_status ? ` ${ruleset.group_status}` : ""}
                 </div>
               </div>`
-            : ""}
+        : ""}
         </div>
       </ha-tab-group-tab>
     `;
@@ -1050,28 +1051,28 @@ export class StatusCard extends LitElement {
         class=${showBadge ? "badge-mode" : ""}
         style=${styleMap(badgeStyles)}
         data-badge=${ifDefined(
-          showBadge && entities.length > 0 ? String(entities.length) : undefined
-        )}
+      showBadge && entities.length > 0 ? String(entities.length) : undefined
+    )}
       >
         <div class="entity ${classMap(contentClasses)}">
           <div class="entity-icon" style=${styleMap(iconStyles)}>
             <div class="entity-icon" style=${styleMap(iconStyles)}>
               ${(() => {
-                const icon = getCustomIcon(this._config, domain, deviceClass);
-                return icon.startsWith("M")
-                  ? html`<ha-svg-icon .path=${icon}></ha-svg-icon>`
-                  : html`<ha-icon icon=${icon}></ha-icon>`;
-              })()}
+        const icon = getCustomIcon(this._config, domain, deviceClass);
+        return icon.startsWith("M")
+          ? html`<ha-svg-icon .path=${icon}></ha-svg-icon>`
+          : html`<ha-icon icon=${icon}></ha-icon>`;
+      })()}
             </div>
           </div>
           ${!showBadge
-            ? html`<div class="entity-info">
+        ? html`<div class="entity-info">
                 ${!this.hide_content_name
-                  ? html`<div class="entity-name">${name}</div>`
-                  : ""}
+            ? html`<div class="entity-name">${name}</div>`
+            : ""}
                 <div class="entity-state">${stateText}</div>
               </div>`
-            : ""}
+        : ""}
         </div>
       </ha-tab-group-tab>
     `;
@@ -1126,39 +1127,40 @@ export class StatusCard extends LitElement {
     const noScroll = {
       "no-scroll": !!this._config.no_scroll,
       "badge-mode": this.badge_mode,
+      "no-background": this.no_background,
     };
     return html`
-      <ha-card>
+      <ha-card class=${classMap(noScroll)}>
         <ha-tab-group without-scroll-controls class=${classMap(noScroll)}>
           <ha-tab-group-tab style="display:none" active></ha-tab-group-tab>
           ${repeat(
-            personEntities,
-            (entity) => entity.entity_id,
-            (entity) => {
-              const entityState = this.hass!.states[entity.entity_id];
-              const isNotHome = entityState?.state !== "home";
-              const contentClasses = {
-                horizontal: this._config.content_layout === "horizontal",
-              };
-              const iconStyles = {
-                "border-radius": this._config?.square ? "20%" : "50%",
-                filter: isNotHome ? "grayscale(100%)" : "none",
-              };
+      personEntities,
+      (entity) => entity.entity_id,
+      (entity) => {
+        const entityState = this.hass!.states[entity.entity_id];
+        const isNotHome = entityState?.state !== "home";
+        const contentClasses = {
+          horizontal: this._config.content_layout === "horizontal",
+        };
+        const iconStyles = {
+          "border-radius": this._config?.square ? "20%" : "50%",
+          filter: isNotHome ? "grayscale(100%)" : "none",
+        };
 
-              const personHomeColor = this._config.person_home_color;
-              const personAwayColor = this._config.person_away_color;
-              const personHomeIcon =
-                this._config.person_home_icon || "mdi:home";
-              const personAwayIcon =
-                this._config.person_away_icon || "mdi:home-export-outline";
+        const personHomeColor = this._config.person_home_color;
+        const personAwayColor = this._config.person_away_color;
+        const personHomeIcon =
+          this._config.person_home_icon || "mdi:home";
+        const personAwayIcon =
+          this._config.person_away_icon || "mdi:home-export-outline";
 
-              const badgeColor = isNotHome
-                ? personAwayColor || "red"
-                : personHomeColor || "green";
+        const badgeColor = isNotHome
+          ? personAwayColor || "red"
+          : personHomeColor || "green";
 
-              const badgeIcon = isNotHome ? personAwayIcon : personHomeIcon;
+        const badgeIcon = isNotHome ? personAwayIcon : personHomeIcon;
 
-              return html`
+        return html`
                 <ha-tab-group-tab
                   slot="nav"
                   panel=${entity.entity_id}
@@ -1166,83 +1168,83 @@ export class StatusCard extends LitElement {
                   class=${this.badge_mode ? "badge-mode" : ""}
                 >
                   ${this.badge_mode
-                    ? html`<div
+            ? html`<div
                         class="person-badge"
                         style=${styleMap({
-                          "--status-card-badge-color": badgeColor
-                            ? `var(--${badgeColor}-color)`
-                            : undefined,
-                          "--status-card-badge-text-color": this
-                            .badge_text_color
-                            ? `var(--${this.badge_text_color}-color)`
-                            : undefined,
-                        })}
+              "--status-card-badge-color": badgeColor
+                ? `var(--${badgeColor}-color)`
+                : undefined,
+              "--status-card-badge-text-color": this
+                .badge_text_color
+                ? `var(--${this.badge_text_color}-color)`
+                : undefined,
+            })}
                       >
                         ${badgeIcon.startsWith("M")
-                          ? html`<ha-svg-icon .path=${badgeIcon}></ha-svg-icon>`
-                          : html`<ha-icon icon=${badgeIcon}></ha-icon>`}
+                ? html`<ha-svg-icon .path=${badgeIcon}></ha-svg-icon>`
+                : html`<ha-icon icon=${badgeIcon}></ha-icon>`}
                       </div>`
-                    : ""}
+            : ""}
                   <div class="entity ${classMap(contentClasses)}">
                     <div class="entity-icon" style=${styleMap(iconStyles)}>
                       ${entity.attributes.entity_picture
-                        ? html`<img
+            ? html`<img
                             src=${entity.attributes.entity_picture}
                             alt=${entity.attributes.friendly_name ||
-                            entity.entity_id}
+              entity.entity_id}
                             style=${styleMap(iconStyles)}
                           />`
-                        : entity.attributes.icon?.startsWith("M")
-                        ? html`<ha-svg-icon
+            : entity.attributes.icon?.startsWith("M")
+              ? html`<ha-svg-icon
                             class="center"
                             .path=${entity.attributes.icon}
                             style=${styleMap(iconStyles)}
                           ></ha-svg-icon>`
-                        : html`<ha-icon
+              : html`<ha-icon
                             class="center"
                             icon=${entity.attributes.icon || "mdi:account"}
                             style=${styleMap(iconStyles)}
                           ></ha-icon>`}
                     </div>
                     ${!this.badge_mode
-                      ? html`<div class="entity-info">
+            ? html`<div class="entity-info">
                           ${!this.hide_content_name
-                            ? html`<div class="entity-name">
+                ? html`<div class="entity-name">
                                 ${entity.attributes.friendly_name?.split(
-                                  " "
-                                )[0] || ""}
+                  " "
+                )[0] || ""}
                               </div>`
-                            : ""}
+                : ""}
                           <div class="entity-state">
                             ${getStatusProperty(
-                              this.hass!,
-                              this._config,
-                              "person",
-                              undefined,
-                              entityState?.state
-                            )}
+                  this.hass!,
+                  this._config,
+                  "person",
+                  undefined,
+                  entityState?.state
+                )}
                           </div>
                         </div>`
-                      : ""}
+            : ""}
                   </div>
                 </ha-tab-group-tab>
               `;
-            }
-          )}
+      }
+    )}
           ${repeat(
-            sorted,
-            (i) =>
-              i.type === "extra"
-                ? i.panel
-                : i.type === "domain"
-                ? i.domain
-                : i.type === "deviceClass"
-                ? `${i.domain}-${i.deviceClass}`
-                : i.type === "group"
+      sorted,
+      (i) =>
+        i.type === "extra"
+          ? i.panel
+          : i.type === "domain"
+            ? i.domain
+            : i.type === "deviceClass"
+              ? `${i.domain}-${i.deviceClass}`
+              : i.type === "group"
                 ? `group-${i.group_id}`
                 : "",
-            (i) => this.renderTab(i)
-          )}
+      (i) => this.renderTab(i)
+    )}
         </ha-tab-group>
       </ha-card>
     `;
@@ -1250,11 +1252,22 @@ export class StatusCard extends LitElement {
 
   static get styles() {
     return css`
+      :host-context(hui-badge[preview]) {
+        max-width: 500px;
+        overflow: hidden;
+        display: block;
+      }
       ha-card {
         overflow: hidden;
         position: relative;
         height: 100%;
         align-content: center;
+        max-width: 100%;
+      }
+      ha-card.no-background {
+        background: none;
+        border: none;
+        box-shadow: none;
       }
       ha-tab-group {
         --track-width: unset !important;

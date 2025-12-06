@@ -153,6 +153,10 @@ const LABEL_MAP: Record<string, (hass: HomeAssistant) => string> = {
     `${hass.localize(
       "component.person.entity_component._.state.not_home"
     )} ${hass.localize("ui.components.selectors.selector.types.icon")}`,
+  no_background: (hass) =>
+    `${hass.localize(
+      "ui.common.hide"
+    )} ${hass.localize("ui.panel.lovelace.editor.edit_view.tab_background")}`,
 };
 
 function getHeaderLabel(
