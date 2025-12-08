@@ -17,9 +17,8 @@ import {
   Schema,
   STATES_OFF,
 } from "./ha";
-import { compareByFriendlyName, typeKey, createCardElement } from "./helpers";
+import { compareByFriendlyName, typeKey, createCardElement, createCardElementSynchronous, ensureHelpersLoaded } from "./helpers";
 import { computeLabelCallback, translateEntityState } from "./translations";
-import { filterEntitiesByRuleset } from "./smart_groups";
 import { DOMAIN_FEATURES } from "./const";
 import { StatusCard } from "./card";
 import { PopupCardConfigCache, CardElementCache } from "./ha/types";
@@ -37,11 +36,15 @@ export class StatusCardPopup extends LitElement {
   @state() public selectedGroup?: number;
   private _cardEls: Map<string, HTMLElement> = new Map();
   private _lastEntityIds: string[] = [];
+  private _activeEntities: HassEntity[] = [];
+  private _allEntities: HassEntity[] = [];
+
 
   public async showDialog(params: {
     title?: string;
     hass: HomeAssistant;
     entities?: HassEntity[];
+    allEntities?: HassEntity[];
     content?: string;
     selectedDomain?: string;
     selectedDeviceClass?: string;
@@ -50,6 +53,12 @@ export class StatusCardPopup extends LitElement {
   }): Promise<void> {
     this.title = params.title ?? this.title;
     this.hass = params.hass;
+    this._activeEntities = params.entities ?? [];
+    this._allEntities = params.allEntities ?? []; 
+    if (!params.allEntities || params.allEntities.length === 0) {
+        this._allEntities = this._activeEntities;
+    }
+    
     this.entities = params.entities ?? [];
     if (params.content !== undefined) this.content = params.content;
     this.selectedDomain = params.selectedDomain;
@@ -58,6 +67,12 @@ export class StatusCardPopup extends LitElement {
     this.card = params.card as StatusCard;
     this._cardEls.clear();
     this.open = true;
+    await ensureHelpersLoaded();
+    if (!customElements.get("hui-tile-card")) {
+        try {
+            await customElements.whenDefined("hui-tile-card");
+        } catch {}
+    }
     this.requestUpdate();
     try {
       await this.updateComplete;
@@ -150,6 +165,7 @@ export class StatusCardPopup extends LitElement {
     const deviceClass = this.selectedDomain
       ? this.selectedDeviceClass
       : this.hass?.states?.[entity.entity_id]?.attributes?.device_class;
+
     const key = typeKey(domain, deviceClass);
     const customization =
       typeof card?.getCustomizationForType === "function"
@@ -174,6 +190,7 @@ export class StatusCardPopup extends LitElement {
       ...baseOptions,
       ...overrideOptions,
     } as LovelaceCardConfig;
+
     const hash = this._configHash(finalConfig);
     const cache = this._popupCardConfigCache.get(entity.entity_id);
     if (cache && cache.hash === hash) {
@@ -223,6 +240,17 @@ export class StatusCardPopup extends LitElement {
       (cached.el as LovelaceCard).hass = this.hass;
       return cached.el;
     }
+
+    const syncEl = createCardElementSynchronous(this.hass!, cfg);
+    if (syncEl) {
+        if ((syncEl as LovelaceCard).hass !== this.hass) {
+            (syncEl as LovelaceCard).hass = this.hass;
+        }
+        this._cardEls.set(id, syncEl);
+        this._cardElementCache.set(id, { hash, el: syncEl });
+        return syncEl;
+    }
+
     const placeholder = document.createElement("div");
     placeholder.classList.add("card-placeholder");
     placeholder.setAttribute("data-hui-card", "");
@@ -248,7 +276,8 @@ export class StatusCardPopup extends LitElement {
       changedProps.has("open") ||
       changedProps.has("hass") ||
       changedProps.has("selectedDomain") ||
-      changedProps.has("selectedGroup")
+      changedProps.has("selectedGroup") ||
+      changedProps.has("_showAll")
     ) {
       this._entities = this._getCurrentEntities();
     }
@@ -257,49 +286,9 @@ export class StatusCardPopup extends LitElement {
   @state() private _entities: HassEntity[] = [];
 
   private _getCurrentEntities(): HassEntity[] {
-    const card = this.card;
-    const domain = this.selectedDomain!;
-    const deviceClass = this.selectedDeviceClass;
-    const group = this.selectedGroup;
-
-    let ents: HassEntity[] = [];
-
-    if (group !== undefined && card._config?.content?.[group]) {
-      const groupId = card._config.content[group];
-      const ruleset = card._config.rulesets?.find(
-        (g) => g.group_id === groupId
-      );
-      if (ruleset) {
-        const entityMap = card._computeEntityMap(card.__registryEntities);
-        const deviceMap = card._computeDeviceMap(card.__registryDevices);
-        const areaMap = card._computeAreaMap(card.__registryAreas);
-        ents = filterEntitiesByRuleset(
-          card,
-          ruleset,
-          entityMap,
-          deviceMap,
-          areaMap
-        );
-      } else {
-        ents = [];
-      }
-    } else {
-      if (domain) {
-        const shouldShowTotal =
-          typeof card?._shouldShowTotalEntities === "function"
-            ? card._shouldShowTotalEntities(domain, deviceClass)
-            : false;
-        const showAllEntities = shouldShowTotal ? true : this._showAll;
-
-        ents = showAllEntities
-          ? card._totalEntities(domain, deviceClass)
-          : card._isOn(domain, deviceClass);
-      } else {
-        ents = Array.isArray(this.entities) ? this.entities : [];
-      }
-    }
-    return ents;
+    return this._showAll ? this._allEntities : this._activeEntities;
   }
+
 
   private toggleAllOrOn(): void {
     this._showAll = !this._showAll;
@@ -343,17 +332,13 @@ export class StatusCardPopup extends LitElement {
   }
 
   private getAreaForEntity(entity: HassEntity): string {
-    const entry = Object.values(this.hass!.entities)?.find(
-      (e) => e.entity_id === entity.entity_id
-    );
+    const entry = this.hass?.entities[entity.entity_id];
     if (entry) {
       if (entry.area_id) {
         return entry.area_id;
       }
       if (entry.device_id) {
-        const device = Object.values(this.hass!.devices)?.find(
-          (d) => d.id === entry.device_id
-        );
+        const device = this.hass?.devices[entry.device_id];
         if (device && device.area_id) {
           return device.area_id;
         }
@@ -452,12 +437,6 @@ export class StatusCardPopup extends LitElement {
     const deviceClass = this.selectedDeviceClass;
     const group = this.selectedGroup;
     const card = this.card;
-    const shouldShowTotal =
-      typeof card?._shouldShowTotalEntities === "function"
-        ? card._shouldShowTotalEntities(domain, deviceClass)
-        : false;
-    const showAllEntities = shouldShowTotal ? true : this._showAll;
-
     const areaMap = new Map<string, string>();
 
     const hassAreas = this.hass?.areas ?? [];

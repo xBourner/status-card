@@ -299,6 +299,7 @@ export interface StatusCardPopupDialogParams {
   title: string;
   hass: HomeAssistant;
   entities: HassEntity[];
+  allEntities?: HassEntity[];
   selectedDomain?: string;
   selectedDeviceClass?: string;
   selectedGroup?: number;

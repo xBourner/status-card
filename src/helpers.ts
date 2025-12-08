@@ -223,13 +223,54 @@ export function toTileConfig(cardConfig: {
   };
 }
 
+let cachedHelpers: any = null;
+
+export function createCardElementSynchronous(
+  hass: HomeAssistant,
+  cardConfig: { type: string; entity?: string; [key: string]: unknown }
+): LovelaceCard | undefined {
+  try {
+    const type = cardConfig.type || "tile";
+    const isCustom = typeof type === "string" && type.startsWith("custom:");
+    const tag = isCustom ? type.slice(7) : `hui-${type}-card`;
+
+    if (customElements.get(tag)) {
+      const el = document.createElement(tag) as LovelaceCard;
+      if (typeof el.setConfig === "function") {
+        el.setConfig(cardConfig);
+      }
+      el.hass = hass;
+      el.setAttribute?.("data-hui-card", "");
+      return el;
+    }
+  } catch {}
+
+  if (cachedHelpers?.createCardElement) {
+    try {
+      const el = cachedHelpers.createCardElement(cardConfig) as LovelaceCard;
+      if (el instanceof Promise) return undefined;
+      
+      el.hass = hass;
+      el.setAttribute?.("data-hui-card", "");
+      return el;
+    } catch {
+      return undefined;
+    }
+  }
+
+  return undefined;
+}
+
 export async function createCardElement(
   hass: HomeAssistant,
   cardConfig: { type: string; entity?: string; [key: string]: unknown },
   isFallback = false
 ): Promise<LovelaceCard | HTMLElement> {
   try {
-    const helpers = await window.loadCardHelpers?.();
+    if (!cachedHelpers) {
+        cachedHelpers = await window.loadCardHelpers?.();
+    }
+    const helpers = cachedHelpers;
     if (helpers?.createCardElement) {
       const el = helpers.createCardElement(cardConfig) as LovelaceCard;
       el.hass = hass;
@@ -265,3 +306,12 @@ export async function createCardElement(
     return empty;
   }
 }
+
+export async function ensureHelpersLoaded(): Promise<void> {
+    if (cachedHelpers) return;
+    try {
+        cachedHelpers = await window.loadCardHelpers?.();
+    } catch {}
+}
+
+

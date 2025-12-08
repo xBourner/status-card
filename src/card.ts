@@ -238,7 +238,7 @@ export class StatusCard extends LitElement {
       if (newCfg !== oldCfg || newCustMap !== oldCustMap) return false;
 
       const extraEntities = newCfg.extra_entities as string[] | undefined;
-      if (!extraEntities) return true; // No extra entities, no need to update
+      if (!extraEntities) return true;
 
       for (const id of extraEntities) {
         if (newStates[id] !== oldStates[id]) return false;
@@ -490,6 +490,8 @@ export class StatusCard extends LitElement {
     }
 
     let entities: HassEntity[] = [];
+    let allEntities: HassEntity[] = [];
+
     if (typeof domain === "number") {
       const groupId = this._config.content?.[domain];
       const ruleset = this._config.rulesets?.find(
@@ -499,22 +501,30 @@ export class StatusCard extends LitElement {
         const entityMap = this._computeEntityMap(this.__registryEntities);
         const deviceMap = this._computeDeviceMap(this.__registryDevices);
         const areaMap = this._computeAreaMap(this.__registryAreas);
-        entities = filterEntitiesByRuleset(
+        allEntities = filterEntitiesByRuleset(
           this,
           ruleset,
           entityMap,
           deviceMap,
           areaMap
         );
+        entities = allEntities.filter((e) => {
+          if (computeDomain(e.entity_id) === "climate") {
+            const hvacAction = e.attributes.hvac_action;
+            if (hvacAction !== undefined) {
+              return !["idle", "off"].includes(hvacAction);
+            }
+          }
+          return !STATES_OFF.includes(e.state);
+        });
       } else {
         entities = [];
+        allEntities = [];
       }
     } else {
       const deviceClass = this.selectedDeviceClass || undefined;
-      const showAll = this._shouldShowTotalEntities(domain, deviceClass);
-      entities = showAll
-        ? this._totalEntities(domain, deviceClass)
-        : this._isOn(domain, deviceClass);
+      allEntities = this._totalEntities(domain, deviceClass);
+      entities = this._isOn(domain, deviceClass);
     }
 
     const dialogTag = "status-card-popup";
@@ -522,6 +532,7 @@ export class StatusCard extends LitElement {
       title,
       hass: this.hass,
       entities,
+      allEntities, 
       selectedDomain: typeof domain === "string" ? domain : undefined,
       selectedDeviceClass: this.selectedDeviceClass || undefined,
       selectedGroup: this.selectedGroup || undefined,
@@ -1056,14 +1067,12 @@ export class StatusCard extends LitElement {
       >
         <div class="entity ${classMap(contentClasses)}">
           <div class="entity-icon" style=${styleMap(iconStyles)}>
-            <div class="entity-icon" style=${styleMap(iconStyles)}>
-              ${(() => {
-        const icon = getCustomIcon(this._config, domain, deviceClass);
-        return icon.startsWith("M")
-          ? html`<ha-svg-icon .path=${icon}></ha-svg-icon>`
-          : html`<ha-icon icon=${icon}></ha-icon>`;
-      })()}
-            </div>
+            ${(() => {
+              const icon = getCustomIcon(this._config, domain, deviceClass);
+              return icon.startsWith("M")
+                ? html`<ha-svg-icon .path=${icon}></ha-svg-icon>`
+                : html`<ha-icon icon=${icon}></ha-icon>`;
+            })()}
           </div>
           ${!showBadge
         ? html`<div class="entity-info">
