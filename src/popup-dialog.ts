@@ -54,11 +54,11 @@ export class StatusCardPopup extends LitElement {
     this.title = params.title ?? this.title;
     this.hass = params.hass;
     this._activeEntities = params.entities ?? [];
-    this._allEntities = params.allEntities ?? []; 
+    this._allEntities = params.allEntities ?? [];
     if (!params.allEntities || params.allEntities.length === 0) {
-        this._allEntities = this._activeEntities;
+      this._allEntities = this._activeEntities;
     }
-    
+
     this.entities = params.entities ?? [];
     if (params.content !== undefined) this.content = params.content;
     this.selectedDomain = params.selectedDomain;
@@ -69,14 +69,14 @@ export class StatusCardPopup extends LitElement {
     this.open = true;
     await ensureHelpersLoaded();
     if (!customElements.get("hui-tile-card")) {
-        try {
-            await customElements.whenDefined("hui-tile-card");
-        } catch {}
+      try {
+        await customElements.whenDefined("hui-tile-card");
+      } catch { }
     }
     this.requestUpdate();
     try {
       await this.updateComplete;
-    } catch (_) {}
+    } catch (_) { }
     this._applyDialogStyleAfterRender();
   }
 
@@ -85,12 +85,12 @@ export class StatusCardPopup extends LitElement {
       requestAnimationFrame(() => {
         try {
           this._applyDialogStyle();
-        } catch (_) {}
+        } catch (_) { }
       });
     } catch (_) {
       try {
         this._applyDialogStyle();
-      } catch (_) {}
+      } catch (_) { }
     }
   }
 
@@ -206,18 +206,47 @@ export class StatusCardPopup extends LitElement {
     if (!this.open) {
       return changedProps.has("open");
     }
-    if (changedProps.size === 1 && changedProps.has("hass")) {
-      const currentIds = this._getCurrentEntities()
-        .map((e) => e.entity_id)
-        .sort();
-      const lastIds = (this._lastEntityIds || []).slice().sort();
-      const same =
-        currentIds.length === lastIds.length &&
-        currentIds.every((id, i) => id === lastIds[i]);
-      this._updateCardsHass();
-      return !same;
+
+    if (changedProps.has("hass")) {
+      const oldHass = changedProps.get("hass") as HomeAssistant;
+      const newHass = this.hass;
+
+      // Check if any relevant entity changed state
+      if (
+        !newHass ||
+        !oldHass ||
+        oldHass.themes !== newHass.themes ||
+        oldHass.language !== newHass.language ||
+        oldHass.localize !== newHass.localize ||
+        this._hasRelevantStateChanged(oldHass, newHass)
+      ) {
+        const currentIds = this._getCurrentEntities()
+          .map((e) => e.entity_id)
+          .sort();
+        const lastIds = (this._lastEntityIds || []).slice().sort();
+        const same =
+          currentIds.length === lastIds.length &&
+          currentIds.every((id, i) => id === lastIds[i]);
+        this._updateCardsHass();
+        return !same;
+      }
+      return false;
     }
     return true;
+  }
+
+  private _hasRelevantStateChanged(
+    oldHass: HomeAssistant,
+    newHass: HomeAssistant
+  ): boolean {
+    for (const entity of this._allEntities) {
+      if (
+        oldHass.states[entity.entity_id] !== newHass.states[entity.entity_id]
+      ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private _updateCardsHass(): void {
@@ -226,7 +255,7 @@ export class StatusCardPopup extends LitElement {
       if ((el as LovelaceCard).hass !== this.hass) {
         try {
           (el as LovelaceCard).hass = this.hass;
-        } catch (_) {}
+        } catch (_) { }
       }
     });
   }
@@ -238,17 +267,18 @@ export class StatusCardPopup extends LitElement {
     const cached = this._cardElementCache.get(id);
     if (cached && cached.hash === hash) {
       (cached.el as LovelaceCard).hass = this.hass;
+      this._cardEls.set(id, cached.el);
       return cached.el;
     }
 
     const syncEl = createCardElementSynchronous(this.hass!, cfg);
     if (syncEl) {
-        if ((syncEl as LovelaceCard).hass !== this.hass) {
-            (syncEl as LovelaceCard).hass = this.hass;
-        }
-        this._cardEls.set(id, syncEl);
-        this._cardElementCache.set(id, { hash, el: syncEl });
-        return syncEl;
+      if ((syncEl as LovelaceCard).hass !== this.hass) {
+        (syncEl as LovelaceCard).hass = this.hass;
+      }
+      this._cardEls.set(id, syncEl);
+      this._cardElementCache.set(id, { hash, el: syncEl });
+      return syncEl;
     }
 
     const placeholder = document.createElement("div");
@@ -264,7 +294,7 @@ export class StatusCardPopup extends LitElement {
           this._cardElementCache.set(id, { hash, el: el });
         }
         (el as LovelaceCard).hass = this.hass;
-      } catch (_) {}
+      } catch (_) { }
     });
     this._cardElementCache.set(id, { hash, el: placeholder });
     return placeholder;
@@ -285,8 +315,52 @@ export class StatusCardPopup extends LitElement {
 
   @state() private _entities: HassEntity[] = [];
 
+  private _getUpdatedEntity(entity: HassEntity): HassEntity {
+    return this.hass?.states[entity.entity_id] || entity;
+  }
+
+  private _isEntityActive(entity: HassEntity): boolean {
+    const domain = this.selectedDomain || computeDomain(entity.entity_id);
+    const deviceClass =
+      this.selectedDeviceClass || entity.attributes.device_class;
+    const key = typeKey(domain, deviceClass);
+    const customization =
+      typeof this.card?.getCustomizationForType === "function"
+        ? this.card.getCustomizationForType(key)
+        : undefined;
+    const isInverted = customization?.invert === true;
+
+    if (domain === "climate") {
+      const hvacAction = entity.attributes.hvac_action;
+      if (hvacAction !== undefined) {
+        const active = !["idle", "off"].includes(hvacAction);
+        return isInverted ? !active : active;
+      }
+    }
+
+    if (domain === "humidifier") {
+      const humAction = entity.attributes.action;
+      if (humAction !== undefined) {
+        const active = !["idle", "off"].includes(humAction);
+        return isInverted ? !active : active;
+      }
+    }
+
+    const isOn = !STATES_OFF.includes(entity.state);
+    return isInverted ? !isOn : isOn;
+  }
+
   private _getCurrentEntities(): HassEntity[] {
-    return this._showAll ? this._allEntities : this._activeEntities;
+    if (!this.hass)
+      return this._showAll ? this._allEntities : this._activeEntities;
+
+    const updatedAll = this._allEntities.map((e) => this._getUpdatedEntity(e));
+
+    if (this._showAll) {
+      return updatedAll;
+    }
+
+    return updatedAll.filter((e) => this._isEntityActive(e));
   }
 
 
@@ -501,33 +575,33 @@ export class StatusCardPopup extends LitElement {
           ></ha-icon-button>
           <h3>
             ${(() => {
-              const group = this.selectedGroup;
-              const card = this.card;
-              if (group !== undefined && card._config?.content?.[group]) {
-                const groupId = card._config.content[group];
-                return (
-                  this.hass!.localize(
-                    "ui.panel.lovelace.editor.card.entities.name"
-                  ) +
-                  " in " +
-                  groupId
-                );
-              }
-              return this.selectedDomain && this.selectedDeviceClass
-                ? this.computeLabel(
-                    { name: "header" },
-                    this.selectedDomain,
-                    this.selectedDeviceClass
-                  )
-                : this.computeLabel(
-                    { name: "header" },
-                    this.selectedDomain || undefined
-                  );
-            })()}
+        const group = this.selectedGroup;
+        const card = this.card;
+        if (group !== undefined && card._config?.content?.[group]) {
+          const groupId = card._config.content[group];
+          return (
+            this.hass!.localize(
+              "ui.panel.lovelace.editor.card.entities.name"
+            ) +
+            " in " +
+            groupId
+          );
+        }
+        return this.selectedDomain && this.selectedDeviceClass
+          ? this.computeLabel(
+            { name: "header" },
+            this.selectedDomain,
+            this.selectedDeviceClass
+          )
+          : this.computeLabel(
+            { name: "header" },
+            this.selectedDomain || undefined
+          );
+      })()}
           </h3>
 
           ${isNoGroup
-            ? html`
+        ? html`
                 <ha-button-menu
                   class="menu-button"
                   slot="actionItems"
@@ -548,8 +622,8 @@ export class StatusCardPopup extends LitElement {
                     @closed=${this._stopPropagation}
                   >
                     ${isInverted
-                      ? this.hass!.localize("ui.card.common.turn_on")
-                      : this.hass!.localize("ui.card.common.turn_off")}
+            ? this.hass!.localize("ui.card.common.turn_on")
+            : this.hass!.localize("ui.card.common.turn_off")}
                     <ha-svg-icon
                       slot="graphic"
                       .path=${mdiToggleSwitchOffOutline}
@@ -562,14 +636,14 @@ export class StatusCardPopup extends LitElement {
                     @closed=${this._stopPropagation}
                   >
                     ${this.hass!.localize("ui.card.common.toggle") +
-                    " " +
-                    this.hass!.localize(
-                      "component.sensor.entity_component._.state_attributes.state_class.state.total"
-                    ) +
-                    " " +
-                    this.hass!.localize(
-                      "ui.panel.lovelace.editor.card.entities.name"
-                    )}
+          " " +
+          this.hass!.localize(
+            "component.sensor.entity_component._.state_attributes.state_class.state.total"
+          ) +
+          " " +
+          this.hass!.localize(
+            "ui.panel.lovelace.editor.card.entities.name"
+          )}
                     <ha-svg-icon
                       slot="graphic"
                       .path=${mdiSwapHorizontal}
@@ -577,83 +651,83 @@ export class StatusCardPopup extends LitElement {
                   </ha-list-item>
                 </ha-button-menu>
               `
-            : ""}
+        : ""}
         </div>
         <div class="dialog-content scrollable">
           ${this.card?.list_mode
-            ? !ungroupAreas
-              ? html`
+        ? !ungroupAreas
+          ? html`
                   <ul class="entity-list">
                     ${repeat(
-                      sortedGroups,
-                      ([areaId]) => areaId,
-                      ([areaId, groupEntities]) => {
-                        const areaName =
-                          areaMap.get(areaId) ??
-                          (areaId === "unassigned" ? "Unassigned" : areaId);
-                        return html`
+            sortedGroups,
+            ([areaId]) => areaId,
+            ([areaId, groupEntities]) => {
+              const areaName =
+                areaMap.get(areaId) ??
+                (areaId === "unassigned" ? "Unassigned" : areaId);
+              return html`
                           <li class="entity-item">
                             <h4>${areaName}:</h4>
                             <ul>
                               ${repeat(
-                                groupEntities,
-                                (entity) => entity.entity_id,
-                                (entity) =>
-                                  html`<li class="entity-item">
+                groupEntities,
+                (entity) => entity.entity_id,
+                (entity) =>
+                  html`<li class="entity-item">
                                     - ${entity.entity_id}
                                   </li>`
-                              )}
+              )}
                             </ul>
                           </li>
                         `;
-                      }
-                    )}
+            }
+          )}
                   </ul>
                 `
-              : html`
+          : html`
                   <ul class="entity-list">
                     ${repeat(
-                      flatSorted,
-                      (entity) => entity.entity_id,
-                      (entity) =>
-                        html`<li class="entity-item">- ${entity.entity_id}</li>`
-                    )}
+            flatSorted,
+            (entity) => entity.entity_id,
+            (entity) =>
+              html`<li class="entity-item">- ${entity.entity_id}</li>`
+          )}
                   </ul>
                 `
-            : !ungroupAreas
-            ? html`${sortedGroups.map(([areaId, groupEntities]) => {
-                const areaName =
-                  areaMap.get(areaId) ??
-                  (areaId === "unassigned" ? "Unassigned" : areaId);
-                return html`
+        : !ungroupAreas
+          ? html`${sortedGroups.map(([areaId, groupEntities]) => {
+            const areaName =
+              areaMap.get(areaId) ??
+              (areaId === "unassigned" ? "Unassigned" : areaId);
+            return html`
                   <div class="cards-wrapper">
                     <h4>${areaName}</h4>
                     <div class="entity-cards">
                       ${repeat(
-                        groupEntities,
-                        (entity) => entity.entity_id,
-                        (entity) => html`
+              groupEntities,
+              (entity) => entity.entity_id,
+              (entity) => html`
                           <div class="entity-card">
                             ${this._getOrCreateCard(entity)}
                           </div>
                         `
-                      )}
+            )}
                     </div>
                   </div>
                 `;
-              })}`
-            : html`
+          })}`
+          : html`
                 <h4></h4>
                 <div class="entity-cards">
                   ${repeat(
-                    flatSorted,
-                    (entity) => entity.entity_id,
-                    (entity) => html`
+            flatSorted,
+            (entity) => entity.entity_id,
+            (entity) => html`
                       <div class="entity-card">
                         ${this._getOrCreateCard(entity)}
                       </div>
                     `
-                  )}
+          )}
                 </div>
               `}
           ${ents.length === 0 ? this.content : ""}
@@ -845,7 +919,7 @@ class StatusCardPopupConfirmation extends LitElement {
   private _confirm = () => {
     try {
       this.card?.toggleDomain?.(this.selectedDomain, this.selectedDeviceClass);
-    } catch (_) {}
+    } catch (_) { }
     this._onClosed();
   };
 
@@ -862,19 +936,19 @@ class StatusCardPopupConfirmation extends LitElement {
       <ha-dialog
         .open=${this.open}
         heading="${isInverted
-          ? this.hass.localize("ui.card.common.turn_on") + "?"
-          : this.hass.localize("ui.card.common.turn_off") + "?"}"
+        ? this.hass.localize("ui.card.common.turn_on") + "?"
+        : this.hass.localize("ui.card.common.turn_off") + "?"}"
         @closed=${this._onClosed}
       >
         <div>
           ${this.hass.localize(
-            "ui.panel.lovelace.cards.actions.action_confirmation",
-            {
-              action: isInverted
-                ? this.hass.localize("ui.card.common.turn_on")
-                : this.hass.localize("ui.card.common.turn_off"),
-            }
-          )}
+          "ui.panel.lovelace.cards.actions.action_confirmation",
+          {
+            action: isInverted
+              ? this.hass.localize("ui.card.common.turn_on")
+              : this.hass.localize("ui.card.common.turn_off"),
+          }
+        )}
         </div>
         <ha-button
           appearance="plain"
