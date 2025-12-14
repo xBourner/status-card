@@ -305,15 +305,14 @@ export const getItemAppearanceSchema = (
           ui_color: { default_color: "state", include_state: true },
         },
       },
-      {
-        name: "background_color",
-        selector: {
-          color_rgb: { default_color: "state", include_state: true },
-        },
-      },
-      { name: "popup_card", selector: { object: {} } },
-    ];
-  }
+          {
+            name: "background_color",
+            selector: {
+              color_rgb: { default_color: "state", include_state: true },
+            },
+          },
+        ];
+      }
 
   return [
     {
