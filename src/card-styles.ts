@@ -3,11 +3,123 @@ import { LovelaceCardConfig, HomeAssistant } from "./ha";
 import { DOMAIN_ICONS, OPENABLE_DEVICE_CLASSES } from "./const";
 import { typeKey } from "./helpers";
 import { translateEntityState } from "./translations";
+import memoizeOne from "memoize-one";
+import { css } from "lit";
+
+export const parseCss = (
+  css?: string | Record<string, any>,
+  styleCache?: Map<string, Record<string, string>>
+): Record<string, string> => {
+  if (!css) return {};
+
+  if (typeof css === "object") {
+    return Object.entries(css).reduce((acc, [key, value]) => {
+      const finalKey = key.startsWith("--")
+        ? key
+        : key.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+      acc[finalKey] = String(value);
+      return acc;
+    }, {} as Record<string, string>);
+  }
+
+  const key = css.trim();
+  if (styleCache && styleCache.has(key)) return styleCache.get(key)!;
+
+  // Remove comments and replace newlines with spaces to handle multiline values
+  const normalized = css
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\n/g, " ");
+
+  const obj = normalized
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s && s.includes(":")) // Only process valid rules
+    .reduce((acc: Record<string, string>, rule: string) => {
+      const parts = rule.split(":");
+      const keyPart = parts[0];
+      const valuePart = parts.slice(1).join(":"); // Rejoin value in case it had colons (e.g. url)
+
+      if (keyPart && valuePart !== undefined) {
+        const trimmed = keyPart.trim();
+        const finalKey = trimmed.startsWith("--")
+          ? trimmed
+          : trimmed.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+        acc[finalKey] = valuePart.trim();
+      }
+      return acc;
+    }, {} as Record<string, string>);
+
+  if (styleCache) {
+    styleCache.set(key, obj);
+  }
+  return obj;
+};
+
+export const getParsedCss = (
+  source?: string | Record<string, any>,
+  customization?: any,
+  styleCache?: Map<string, Record<string, string>>
+): Record<string, string> => {
+  if (customization && customization._parsedCss)
+    return customization._parsedCss;
+  if (!source) return {};
+  return parseCss(source, styleCache);
+};
+
+export const cardStyles = css`
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  @keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+  }
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+`;
 
 export const customizationIndex = (list?: LovelaceCardConfig[]) => {
   const map = new Map<string, LovelaceCardConfig>();
   (list ?? []).forEach((c) => {
-    if (c.type) map.set(c.type.toLowerCase(), c);
+    if (c.type) {
+      const copy = { ...c };
+      if (copy.styles?.card) copy._parsedCss = parseCss(copy.styles.card);
+      // Support 'button' alias for card styles if present
+      if (copy.styles?.button) {
+        const buttonStyles = parseCss(copy.styles.button);
+        copy._parsedCss = { ...copy._parsedCss, ...buttonStyles };
+      }
+      if (copy.styles?.icon) copy._parsedIconCss = parseCss(copy.styles.icon);
+      map.set(copy.type.toLowerCase(), copy);
+    }
   });
   return map;
 };

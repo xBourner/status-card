@@ -61,6 +61,9 @@ import {
   getStatusProperty,
   getIconStyles,
   customizationIndex,
+  parseCss,
+  getParsedCss,
+  cardStyles,
 } from "./card-styles";
 import { handleDomainAction, toggleDomain } from "./card-actions";
 import { mdiFormatListGroup } from "@mdi/js";
@@ -90,6 +93,11 @@ export class StatusCard extends LitElement {
   @state() public __registryDevices: DeviceRegistryEntry[] = [];
   @state() public __registryAreas: AreaRegistryEntry[] = [];
   @state() private __registryFetchInProgress: boolean = false;
+  @state() private _parsedGlobalCss: Record<string, string> = {};
+  @state() private _parsedGlobalIconCss: Record<string, string> = {};
+  @state() private _parsedGlobalCardCss: Record<string, string> = {};
+  @state() private _parsedGlobalNameCss: Record<string, string> = {};
+  @state() private _parsedGlobalStateCss: Record<string, string> = {};
 
   private _ensureRegistryData(): void {
     if (
@@ -453,7 +461,30 @@ export class StatusCard extends LitElement {
     this.hiddenEntities = config.hidden_entities || [];
     this.hiddenLabels = config.hidden_labels || [];
     this.hiddenAreas = config.hidden_areas || [];
+
+    if (this._config.customization) {
+      // Customization index will handle parsing
+    }
+
+    if (this._config.styles) {
+      if (this._config.styles.card) {
+        this._parsedGlobalCardCss = parseCss(this._config.styles.card);
+      }
+      if (this._config.styles.button) {
+        this._parsedGlobalCss = parseCss(this._config.styles.button);
+      }
+      if (this._config.styles.icon) {
+        this._parsedGlobalIconCss = parseCss(this._config.styles.icon);
+      }
+      if (this._config.styles.name) {
+        this._parsedGlobalNameCss = parseCss(this._config.styles.name);
+      }
+      if (this._config.styles.state) {
+        this._parsedGlobalStateCss = parseCss(this._config.styles.state);
+      }
+    }
   }
+
 
   private _showPopup(
     element: HTMLElement,
@@ -522,22 +553,29 @@ export class StatusCard extends LitElement {
         allEntities = [];
       }
     } else {
-      const deviceClass = this.selectedDeviceClass || undefined;
+    const deviceClass = this.selectedDeviceClass || undefined;
       allEntities = this._totalEntities(domain, deviceClass);
-      entities = this._isOn(domain, deviceClass);
+      entities = this._shouldShowTotalEntities(domain, deviceClass)
+        ? allEntities
+        : this._isOn(domain, deviceClass);
     }
+
+    const showAll = typeof domain === "string"
+      ? this._shouldShowTotalEntities(domain, this.selectedDeviceClass || undefined)
+      : false;
 
     const dialogTag = "status-card-popup";
     this._showPopup(this, dialogTag, {
       title,
       hass: this.hass,
       entities,
-      allEntities, 
+      allEntities,
       selectedDomain: typeof domain === "string" ? domain : undefined,
       selectedDeviceClass: this.selectedDeviceClass || undefined,
       selectedGroup: this.selectedGroup || undefined,
       card: this,
       content: entities.length ? undefined : `Keine Entitäten`,
+      initialShowAll: showAll,
     });
   }
 
@@ -811,6 +849,15 @@ export class StatusCard extends LitElement {
         : undefined,
     };
 
+    const itemStyles = getParsedCss(
+      customization?.styles?.button || customization?.styles?.card,
+      customization
+    );
+    const buttonStyles = { ...this._parsedGlobalCss, ...itemStyles };
+
+    const itemIconStyles = customization?._parsedIconCss || parseCss(customization?.styles?.icon);
+    const customIconStyles = { ...this._parsedGlobalIconCss, ...itemIconStyles };
+
     return html`
       <ha-tab-group-tab
         slot="nav"
@@ -821,8 +868,8 @@ export class StatusCard extends LitElement {
         style=${styleMap(badgeStyles)}
         data-badge=${ifDefined(showBadge ? "1" : undefined)}
       >
-        <div class="extra-entity ${classMap(contentClasses)}">
-          <div class="entity-icon" style=${styleMap(iconStyles)}>
+        <div class="extra-entity ${classMap(contentClasses)}" style=${styleMap(buttonStyles)}>
+          <div class="entity-icon" style=${styleMap({ ...iconStyles, ...customIconStyles })}>
             ${icon.startsWith("/") || icon.startsWith("http")
         ? html`<img
                   src=${icon}
@@ -849,9 +896,9 @@ export class StatusCard extends LitElement {
           ${!this.badge_mode
         ? html`<div class="entity-info">
                 ${!this.hide_content_name
-            ? html`<div class="entity-name">${name}</div>`
+            ? html`<div class="entity-name" style=${styleMap(this._parsedGlobalNameCss)}>${name}</div>`
             : ""}
-                <div class="entity-state">
+                <div class="entity-state" style=${styleMap(this._parsedGlobalStateCss)}>
                   <state-display
                     .stateObj=${stateObj}
                     .hass=${this.hass}
@@ -932,6 +979,17 @@ export class StatusCard extends LitElement {
         ? `var(--${this.badge_text_color}-color)`
         : undefined,
     };
+    
+    // Groups might not have customization entry in the same way, but let's check
+    const customization = this.getCustomizationForType(groupId);
+    const itemStyles = getParsedCss(
+      customization?.styles?.button || customization?.styles?.card,
+      customization
+    );
+    const buttonStyles = { ...this._parsedGlobalCss, ...itemStyles };
+
+    const itemIconStyles = customization?._parsedIconCss || parseCss(customization?.styles?.icon);
+    const customIconStyles = { ...this._parsedGlobalIconCss, ...itemIconStyles };
 
     return html`
       <ha-tab-group-tab
@@ -947,8 +1005,8 @@ export class StatusCard extends LitElement {
         : undefined
     )}
       >
-        <div class="entity ${classMap(contentClasses)}">
-          <div class="entity-icon" style=${styleMap(iconStyles)}>
+        <div class="entity ${classMap(contentClasses)}" style=${styleMap(buttonStyles)}>
+          <div class="entity-icon" style=${styleMap({ ...iconStyles, ...customIconStyles })}>
             ${groupIcon.startsWith("M")
         ? html`<ha-svg-icon .path=${groupIcon}></ha-svg-icon>`
         : html`<ha-icon icon=${groupIcon}></ha-icon>`}
@@ -956,9 +1014,9 @@ export class StatusCard extends LitElement {
           ${!this.badge_mode
         ? html`<div class="entity-info">
                 ${!this.hide_content_name
-            ? html`<div class="entity-name">${groupId}</div>`
+            ? html`<div class="entity-name" style=${styleMap(this._parsedGlobalNameCss)}>${groupId}</div>`
             : ""}
-                <div class="entity-state">
+                <div class="entity-state" style=${styleMap(this._parsedGlobalStateCss)}>
                   ${entities.length}
                   ${ruleset.group_status ? ` ${ruleset.group_status}` : ""}
                 </div>
@@ -1053,6 +1111,15 @@ export class StatusCard extends LitElement {
 
     const showBadge = customization?.badge_mode ?? this.badge_mode;
 
+    const itemStyles = getParsedCss(
+      customization?.styles?.button || customization?.styles?.card,
+      customization
+    );
+    const buttonStyles = { ...this._parsedGlobalCss, ...itemStyles };
+
+    const itemIconStyles = customization?._parsedIconCss || parseCss(customization?.styles?.icon);
+    const customIconStyles = { ...this._parsedGlobalIconCss, ...itemIconStyles };
+
     return html`
       <ha-tab-group-tab
         slot="nav"
@@ -1065,8 +1132,8 @@ export class StatusCard extends LitElement {
       showBadge && entities.length > 0 ? String(entities.length) : undefined
     )}
       >
-        <div class="entity ${classMap(contentClasses)}">
-          <div class="entity-icon" style=${styleMap(iconStyles)}>
+        <div class="entity ${classMap(contentClasses)}" style=${styleMap(buttonStyles)}>
+          <div class="entity-icon" style=${styleMap({ ...iconStyles, ...customIconStyles })}>
             ${(() => {
               const icon = getCustomIcon(this._config, domain, deviceClass);
               return icon.startsWith("M")
@@ -1077,9 +1144,9 @@ export class StatusCard extends LitElement {
           ${!showBadge
         ? html`<div class="entity-info">
                 ${!this.hide_content_name
-            ? html`<div class="entity-name">${name}</div>`
+            ? html`<div class="entity-name" style=${styleMap(this._parsedGlobalNameCss)}>${name}</div>`
             : ""}
-                <div class="entity-state">${stateText}</div>
+                <div class="entity-state" style=${styleMap(this._parsedGlobalStateCss)}>${stateText}</div>
               </div>`
         : ""}
         </div>
@@ -1139,7 +1206,8 @@ export class StatusCard extends LitElement {
       "no-background": this.no_background,
     };
     return html`
-      <ha-card class=${classMap(noScroll)}>
+      <ha-card class=${classMap(noScroll)} style=${styleMap(this._parsedGlobalCardCss)}>
+
         <ha-tab-group without-scroll-controls class=${classMap(noScroll)}>
           <ha-tab-group-tab style="display:none" active></ha-tab-group-tab>
           ${repeat(
@@ -1260,7 +1328,9 @@ export class StatusCard extends LitElement {
   }
 
   static get styles() {
-    return css`
+    return [
+      cardStyles,
+      css`
       :host-context(hui-badge[preview]) {
         max-width: 500px;
         overflow: hidden;
@@ -1430,7 +1500,7 @@ export class StatusCard extends LitElement {
         color: var(--secondary-text-color);
         font-size: 0.9em;
       }
-    `;
+    `];
   }
 
   static getConfigElement() {

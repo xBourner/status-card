@@ -2,7 +2,7 @@ import { LitElement, TemplateResult, html, css, CSSResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, LovelaceCardConfig, Schema } from "./ha";
 import { computeLabelCallback } from "./translations";
-import { getItemAppearanceSchema, getItemActionsSchema } from "./editor-schema";
+import { getItemAppearanceSchema, getItemActionsSchema, getItemStyleSchema } from "./editor-schema";
 
 @customElement("status-card-item-editor")
 export class ItemEditor extends LitElement {
@@ -46,6 +46,8 @@ export class ItemEditor extends LitElement {
         this.hass,
         this._config?.badge_mode ?? false
       );
+    } else if (this._activeTab === "style") {
+      schema = getItemStyleSchema();
     }
 
     const data = {
@@ -68,6 +70,12 @@ export class ItemEditor extends LitElement {
         >
           ${this.hass.localize("ui.panel.lovelace.editor.card.generic.actions")}
         </ha-tab-group-tab>
+        <ha-tab-group-tab
+          .active=${this._activeTab === "style"}
+          @click=${() => (this._activeTab = "style")}
+        >
+          Style
+        </ha-tab-group-tab>
         ${this.getSchema === "domain"
         ? html`
               <ha-tab-group-tab
@@ -79,6 +87,35 @@ export class ItemEditor extends LitElement {
             `
         : ""}
       </ha-tab-group>
+      ${this._activeTab === "style"
+        ? html`
+            <ha-alert alert-type="info" title="Style Guide">
+              <p>
+                You can use standard CSS per identifier. <br />
+                <strong>Identifiers:</strong>
+              </p>
+              <ul>
+                <li><b>button</b>: Item Container (Background, Border)</li>
+                <li><b>icon</b>: Item Icon</li>
+                <li><b>name</b>: Entity Name</li>
+                <li><b>state</b>: Entity State Value</li>
+                ${this.getSchema === "entity"
+                  ? html`<li><b>name</b>: Item Name (Label)</li>`
+                  : html``}
+              </ul>
+              <p>
+                <strong>Animations:</strong> <br />
+                spin, pulse, shake, blink
+              </p>
+              <p><strong>Example:</strong></p>
+              <pre>
+button:
+  --mdc-icon-size: 24px
+  color: green</pre
+              >
+            </ha-alert>
+          `
+        : ""}
       ${this._activeTab === "popup"
         ? this._renderPopupTab()
         : html`
@@ -86,8 +123,10 @@ export class ItemEditor extends LitElement {
               .hass=${this.hass}
               .data=${data}
               .schema=${schema}
-              .computeLabel=${(schema: Schema) =>
-            computeLabelCallback(this.hass!, schema)}
+              .computeLabel=${(schema: Schema) => {
+                if (schema.name === "styles") return "Styles";
+                return computeLabelCallback(this.hass!, schema);
+              }}
               @value-changed=${this._valueChangedSchema}
             ></ha-form>
           `}

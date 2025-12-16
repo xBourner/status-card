@@ -50,6 +50,7 @@ export class StatusCardPopup extends LitElement {
     selectedDeviceClass?: string;
     selectedGroup?: number;
     card?: StatusCard;
+    initialShowAll?: boolean;
   }): Promise<void> {
     this.title = params.title ?? this.title;
     this.hass = params.hass;
@@ -66,6 +67,7 @@ export class StatusCardPopup extends LitElement {
     this.selectedGroup = params.selectedGroup;
     this.card = params.card as StatusCard;
     this._cardEls.clear();
+    this._showAll = params.initialShowAll ?? false;
     this.open = true;
     await ensureHelpersLoaded();
     if (!customElements.get("hui-tile-card")) {

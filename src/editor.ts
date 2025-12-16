@@ -33,6 +33,7 @@ import {
   getConfigSchema,
   getAppearanceSchema,
   getActionsSchema,
+  getStyleSchema,
 } from "./editor-schema";
 import {
   SubElementEditor,
@@ -333,6 +334,8 @@ export class StatusCardEditor extends LitElement {
           return getAppearanceSchema(this.hass, BadgeMode);
         case "actions":
           return getActionsSchema(this.hass);
+        case "style":
+          return getStyleSchema();
         case "config":
         default:
           return getConfigSchema(
@@ -1370,7 +1373,42 @@ export class StatusCardEditor extends LitElement {
         >
           ${this.hass.localize("ui.panel.lovelace.editor.card.generic.actions")}
         </ha-tab-group-tab>
+        <ha-tab-group-tab
+          slot="nav"
+          panel="style"
+          .active=${this._activeTab === "style"}
+        >
+          Style
+        </ha-tab-group-tab>
       </ha-tab-group>
+
+      ${this._activeTab === "style"
+        ? html`
+            <ha-alert alert-type="info" title="Style Guide">
+              <p>
+                You can use standard CSS per identifier. <br />
+                <strong>Identifiers:</strong>
+              </p>
+              <ul>
+                <li><b>card</b>: Card Container (Background, Border)</li>
+                <li><b>button</b>: Item Container (Background, Border)</li>
+                <li><b>icon</b>: Item Icon</li>
+                <li><b>name</b>: Entity Name</li>
+                <li><b>state</b>: Entity State Value</li>
+              </ul>
+              <p>
+                <strong>Animations:</strong> <br />
+                spin, pulse, shake, blink
+              </p>
+              <p><strong>Example:</strong></p>
+              <pre>
+button:
+  --mdc-icon-size: 24px
+  color: green</pre
+              >
+            </ha-alert>
+          `
+        : ""}
 
       <ha-form
         .hass=${this.hass}
@@ -1454,8 +1492,8 @@ export class StatusCardEditor extends LitElement {
                                                   .path=${this._isHiddenEntity(
                             id
                           )
-                          ? mdiEye
-                          : mdiEyeOff}
+                          ? mdiEyeOff
+                          : mdiEye}
                                                   .label=${this._isHiddenEntity(
                             id
                           )
@@ -1486,8 +1524,8 @@ export class StatusCardEditor extends LitElement {
                                         </span>
                                         <ha-icon-button
                                           .path=${this._isHiddenEntity(id)
-                        ? mdiEye
-                        : mdiEyeOff}
+                        ? mdiEyeOff
+                        : mdiEye}
                                           .label=${this._isHiddenEntity(id)
                         ? this.hass.localize(
                           "ui.common.show"

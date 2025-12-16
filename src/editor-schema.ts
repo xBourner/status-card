@@ -391,3 +391,25 @@ export const getItemActionsSchema = (
     { name: "hold_action", selector: { ui_action: { actions } } },
   ];
 };
+
+export const getItemStyleSchema = (): Schema[] => {
+  return [
+    {
+      name: "styles",
+      selector: {
+        object: {},
+      },
+    },
+  ];
+};
+
+export const getStyleSchema = (): Schema[] => {
+  return [
+    {
+      name: "styles",
+      selector: {
+        object: {},
+      },
+    },
+  ];
+};

@@ -305,6 +305,7 @@ export interface StatusCardPopupDialogParams {
   selectedGroup?: number;
   card: StatusCardInterface;
   content?: string | TemplateResult;
+  initialShowAll?: boolean;
 }
 
 export interface PopupCardConfigCache {
