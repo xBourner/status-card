@@ -463,7 +463,6 @@ export class StatusCard extends LitElement {
     this.hiddenAreas = config.hidden_areas || [];
 
     if (this._config.customization) {
-      // Customization index will handle parsing
     }
 
     if (this._config.styles) {
@@ -484,7 +483,6 @@ export class StatusCard extends LitElement {
       }
     }
   }
-
 
   private _showPopup(
     element: HTMLElement,
@@ -553,16 +551,20 @@ export class StatusCard extends LitElement {
         allEntities = [];
       }
     } else {
-    const deviceClass = this.selectedDeviceClass || undefined;
+      const deviceClass = this.selectedDeviceClass || undefined;
       allEntities = this._totalEntities(domain, deviceClass);
       entities = this._shouldShowTotalEntities(domain, deviceClass)
         ? allEntities
         : this._isOn(domain, deviceClass);
     }
 
-    const showAll = typeof domain === "string"
-      ? this._shouldShowTotalEntities(domain, this.selectedDeviceClass || undefined)
-      : false;
+    const showAll =
+      typeof domain === "string"
+        ? this._shouldShowTotalEntities(
+            domain,
+            this.selectedDeviceClass || undefined
+          )
+        : false;
 
     const dialogTag = "status-card-popup";
     this._showPopup(this, dialogTag, {
@@ -855,8 +857,12 @@ export class StatusCard extends LitElement {
     );
     const buttonStyles = { ...this._parsedGlobalCss, ...itemStyles };
 
-    const itemIconStyles = customization?._parsedIconCss || parseCss(customization?.styles?.icon);
-    const customIconStyles = { ...this._parsedGlobalIconCss, ...itemIconStyles };
+    const itemIconStyles =
+      customization?._parsedIconCss || parseCss(customization?.styles?.icon);
+    const customIconStyles = {
+      ...this._parsedGlobalIconCss,
+      ...itemIconStyles,
+    };
 
     return html`
       <ha-tab-group-tab
@@ -868,22 +874,28 @@ export class StatusCard extends LitElement {
         style=${styleMap(badgeStyles)}
         data-badge=${ifDefined(showBadge ? "1" : undefined)}
       >
-        <div class="extra-entity ${classMap(contentClasses)}" style=${styleMap(buttonStyles)}>
-          <div class="entity-icon" style=${styleMap({ ...iconStyles, ...customIconStyles })}>
+        <div
+          class="extra-entity ${classMap(contentClasses)}"
+          style=${styleMap(buttonStyles)}
+        >
+          <div
+            class="entity-icon"
+            style=${styleMap({ ...iconStyles, ...customIconStyles })}
+          >
             ${icon.startsWith("/") || icon.startsWith("http")
-        ? html`<img
+              ? html`<img
                   src=${icon}
                   alt=${name}
                   style="border-radius:${this._config.square
-            ? "20%"
-            : "50%"};object-fit:cover;"
+                    ? "20%"
+                    : "50%"};object-fit:cover;"
                 />`
-        : icon.startsWith("M")
-          ? html`<ha-svg-icon
+              : icon.startsWith("M")
+              ? html`<ha-svg-icon
                   .path=${icon}
                   style="${icon_css || ""}"
                 ></ha-svg-icon>`
-          : html`<ha-state-icon
+              : html`<ha-state-icon
                   .hass=${this.hass}
                   .stateObj=${stateObj}
                   .icon=${icon}
@@ -894,11 +906,19 @@ export class StatusCard extends LitElement {
           </div>
 
           ${!this.badge_mode
-        ? html`<div class="entity-info">
+            ? html`<div class="entity-info">
                 ${!this.hide_content_name
-            ? html`<div class="entity-name" style=${styleMap(this._parsedGlobalNameCss)}>${name}</div>`
-            : ""}
-                <div class="entity-state" style=${styleMap(this._parsedGlobalStateCss)}>
+                  ? html`<div
+                      class="entity-name"
+                      style=${styleMap(this._parsedGlobalNameCss)}
+                    >
+                      ${name}
+                    </div>`
+                  : ""}
+                <div
+                  class="entity-state"
+                  style=${styleMap(this._parsedGlobalStateCss)}
+                >
                   <state-display
                     .stateObj=${stateObj}
                     .hass=${this.hass}
@@ -907,7 +927,7 @@ export class StatusCard extends LitElement {
                   ></state-display>
                 </div>
               </div>`
-        : ""}
+            : ""}
         </div>
       </ha-tab-group-tab>
     `;
@@ -936,7 +956,8 @@ export class StatusCard extends LitElement {
 
     const groupId =
       ruleset.group_id ||
-      `${this.hass!.localize("component.group.entity_component._.name")} ${index + 1
+      `${this.hass!.localize("component.group.entity_component._.name")} ${
+        index + 1
       }`;
     const groupIcon = ruleset.group_icon || mdiFormatListGroup;
     const color = getCustomColor(
@@ -979,8 +1000,7 @@ export class StatusCard extends LitElement {
         ? `var(--${this.badge_text_color}-color)`
         : undefined,
     };
-    
-    // Groups might not have customization entry in the same way, but let's check
+
     const customization = this.getCustomizationForType(groupId);
     const itemStyles = getParsedCss(
       customization?.styles?.button || customization?.styles?.card,
@@ -988,8 +1008,12 @@ export class StatusCard extends LitElement {
     );
     const buttonStyles = { ...this._parsedGlobalCss, ...itemStyles };
 
-    const itemIconStyles = customization?._parsedIconCss || parseCss(customization?.styles?.icon);
-    const customIconStyles = { ...this._parsedGlobalIconCss, ...itemIconStyles };
+    const itemIconStyles =
+      customization?._parsedIconCss || parseCss(customization?.styles?.icon);
+    const customIconStyles = {
+      ...this._parsedGlobalIconCss,
+      ...itemIconStyles,
+    };
 
     return html`
       <ha-tab-group-tab
@@ -1000,28 +1024,42 @@ export class StatusCard extends LitElement {
         class=${this.badge_mode ? "badge-mode" : ""}
         style=${styleMap(badgeStyles)}
         data-badge=${ifDefined(
-      this.badge_mode && entities.length > 0
-        ? String(entities.length)
-        : undefined
-    )}
+          this.badge_mode && entities.length > 0
+            ? String(entities.length)
+            : undefined
+        )}
       >
-        <div class="entity ${classMap(contentClasses)}" style=${styleMap(buttonStyles)}>
-          <div class="entity-icon" style=${styleMap({ ...iconStyles, ...customIconStyles })}>
+        <div
+          class="entity ${classMap(contentClasses)}"
+          style=${styleMap(buttonStyles)}
+        >
+          <div
+            class="entity-icon"
+            style=${styleMap({ ...iconStyles, ...customIconStyles })}
+          >
             ${groupIcon.startsWith("M")
-        ? html`<ha-svg-icon .path=${groupIcon}></ha-svg-icon>`
-        : html`<ha-icon icon=${groupIcon}></ha-icon>`}
+              ? html`<ha-svg-icon .path=${groupIcon}></ha-svg-icon>`
+              : html`<ha-icon icon=${groupIcon}></ha-icon>`}
           </div>
           ${!this.badge_mode
-        ? html`<div class="entity-info">
+            ? html`<div class="entity-info">
                 ${!this.hide_content_name
-            ? html`<div class="entity-name" style=${styleMap(this._parsedGlobalNameCss)}>${groupId}</div>`
-            : ""}
-                <div class="entity-state" style=${styleMap(this._parsedGlobalStateCss)}>
+                  ? html`<div
+                      class="entity-name"
+                      style=${styleMap(this._parsedGlobalNameCss)}
+                    >
+                      ${groupId}
+                    </div>`
+                  : ""}
+                <div
+                  class="entity-state"
+                  style=${styleMap(this._parsedGlobalStateCss)}
+                >
                   ${entities.length}
                   ${ruleset.group_status ? ` ${ruleset.group_status}` : ""}
                 </div>
               </div>`
-        : ""}
+            : ""}
         </div>
       </ha-tab-group-tab>
     `;
@@ -1117,8 +1155,12 @@ export class StatusCard extends LitElement {
     );
     const buttonStyles = { ...this._parsedGlobalCss, ...itemStyles };
 
-    const itemIconStyles = customization?._parsedIconCss || parseCss(customization?.styles?.icon);
-    const customIconStyles = { ...this._parsedGlobalIconCss, ...itemIconStyles };
+    const itemIconStyles =
+      customization?._parsedIconCss || parseCss(customization?.styles?.icon);
+    const customIconStyles = {
+      ...this._parsedGlobalIconCss,
+      ...itemIconStyles,
+    };
 
     return html`
       <ha-tab-group-tab
@@ -1129,11 +1171,17 @@ export class StatusCard extends LitElement {
         class=${showBadge ? "badge-mode" : ""}
         style=${styleMap(badgeStyles)}
         data-badge=${ifDefined(
-      showBadge && entities.length > 0 ? String(entities.length) : undefined
-    )}
+          showBadge && entities.length > 0 ? String(entities.length) : undefined
+        )}
       >
-        <div class="entity ${classMap(contentClasses)}" style=${styleMap(buttonStyles)}>
-          <div class="entity-icon" style=${styleMap({ ...iconStyles, ...customIconStyles })}>
+        <div
+          class="entity ${classMap(contentClasses)}"
+          style=${styleMap(buttonStyles)}
+        >
+          <div
+            class="entity-icon"
+            style=${styleMap({ ...iconStyles, ...customIconStyles })}
+          >
             ${(() => {
               const icon = getCustomIcon(this._config, domain, deviceClass);
               return icon.startsWith("M")
@@ -1142,13 +1190,23 @@ export class StatusCard extends LitElement {
             })()}
           </div>
           ${!showBadge
-        ? html`<div class="entity-info">
+            ? html`<div class="entity-info">
                 ${!this.hide_content_name
-            ? html`<div class="entity-name" style=${styleMap(this._parsedGlobalNameCss)}>${name}</div>`
-            : ""}
-                <div class="entity-state" style=${styleMap(this._parsedGlobalStateCss)}>${stateText}</div>
+                  ? html`<div
+                      class="entity-name"
+                      style=${styleMap(this._parsedGlobalNameCss)}
+                    >
+                      ${name}
+                    </div>`
+                  : ""}
+                <div
+                  class="entity-state"
+                  style=${styleMap(this._parsedGlobalStateCss)}
+                >
+                  ${stateText}
+                </div>
               </div>`
-        : ""}
+            : ""}
         </div>
       </ha-tab-group-tab>
     `;
@@ -1206,38 +1264,40 @@ export class StatusCard extends LitElement {
       "no-background": this.no_background,
     };
     return html`
-      <ha-card class=${classMap(noScroll)} style=${styleMap(this._parsedGlobalCardCss)}>
-
+      <ha-card
+        class=${classMap(noScroll)}
+        style=${styleMap(this._parsedGlobalCardCss)}
+      >
         <ha-tab-group without-scroll-controls class=${classMap(noScroll)}>
           <ha-tab-group-tab style="display:none" active></ha-tab-group-tab>
           ${repeat(
-      personEntities,
-      (entity) => entity.entity_id,
-      (entity) => {
-        const entityState = this.hass!.states[entity.entity_id];
-        const isNotHome = entityState?.state !== "home";
-        const contentClasses = {
-          horizontal: this._config.content_layout === "horizontal",
-        };
-        const iconStyles = {
-          "border-radius": this._config?.square ? "20%" : "50%",
-          filter: isNotHome ? "grayscale(100%)" : "none",
-        };
+            personEntities,
+            (entity) => entity.entity_id,
+            (entity) => {
+              const entityState = this.hass!.states[entity.entity_id];
+              const isNotHome = entityState?.state !== "home";
+              const contentClasses = {
+                horizontal: this._config.content_layout === "horizontal",
+              };
+              const iconStyles = {
+                "border-radius": this._config?.square ? "20%" : "50%",
+                filter: isNotHome ? "grayscale(100%)" : "none",
+              };
 
-        const personHomeColor = this._config.person_home_color;
-        const personAwayColor = this._config.person_away_color;
-        const personHomeIcon =
-          this._config.person_home_icon || "mdi:home";
-        const personAwayIcon =
-          this._config.person_away_icon || "mdi:home-export-outline";
+              const personHomeColor = this._config.person_home_color;
+              const personAwayColor = this._config.person_away_color;
+              const personHomeIcon =
+                this._config.person_home_icon || "mdi:home";
+              const personAwayIcon =
+                this._config.person_away_icon || "mdi:home-export-outline";
 
-        const badgeColor = isNotHome
-          ? personAwayColor || "red"
-          : personHomeColor || "green";
+              const badgeColor = isNotHome
+                ? personAwayColor || "red"
+                : personHomeColor || "green";
 
-        const badgeIcon = isNotHome ? personAwayIcon : personHomeIcon;
+              const badgeIcon = isNotHome ? personAwayIcon : personHomeIcon;
 
-        return html`
+              return html`
                 <ha-tab-group-tab
                   slot="nav"
                   panel=${entity.entity_id}
@@ -1245,262 +1305,90 @@ export class StatusCard extends LitElement {
                   class=${this.badge_mode ? "badge-mode" : ""}
                 >
                   ${this.badge_mode
-            ? html`<div
+                    ? html`<div
                         class="person-badge"
                         style=${styleMap({
-              "--status-card-badge-color": badgeColor
-                ? `var(--${badgeColor}-color)`
-                : undefined,
-              "--status-card-badge-text-color": this
-                .badge_text_color
-                ? `var(--${this.badge_text_color}-color)`
-                : undefined,
-            })}
+                          "--status-card-badge-color": badgeColor
+                            ? `var(--${badgeColor}-color)`
+                            : undefined,
+                          "--status-card-badge-text-color": this
+                            .badge_text_color
+                            ? `var(--${this.badge_text_color}-color)`
+                            : undefined,
+                        })}
                       >
                         ${badgeIcon.startsWith("M")
-                ? html`<ha-svg-icon .path=${badgeIcon}></ha-svg-icon>`
-                : html`<ha-icon icon=${badgeIcon}></ha-icon>`}
+                          ? html`<ha-svg-icon .path=${badgeIcon}></ha-svg-icon>`
+                          : html`<ha-icon icon=${badgeIcon}></ha-icon>`}
                       </div>`
-            : ""}
+                    : ""}
                   <div class="entity ${classMap(contentClasses)}">
                     <div class="entity-icon" style=${styleMap(iconStyles)}>
                       ${entity.attributes.entity_picture
-            ? html`<img
+                        ? html`<img
                             src=${entity.attributes.entity_picture}
                             alt=${entity.attributes.friendly_name ||
-              entity.entity_id}
+                            entity.entity_id}
                             style=${styleMap(iconStyles)}
                           />`
-            : entity.attributes.icon?.startsWith("M")
-              ? html`<ha-svg-icon
+                        : entity.attributes.icon?.startsWith("M")
+                        ? html`<ha-svg-icon
                             class="center"
                             .path=${entity.attributes.icon}
                             style=${styleMap(iconStyles)}
                           ></ha-svg-icon>`
-              : html`<ha-icon
+                        : html`<ha-icon
                             class="center"
                             icon=${entity.attributes.icon || "mdi:account"}
                             style=${styleMap(iconStyles)}
                           ></ha-icon>`}
                     </div>
                     ${!this.badge_mode
-            ? html`<div class="entity-info">
+                      ? html`<div class="entity-info">
                           ${!this.hide_content_name
-                ? html`<div class="entity-name">
+                            ? html`<div class="entity-name">
                                 ${entity.attributes.friendly_name?.split(
-                  " "
-                )[0] || ""}
+                                  " "
+                                )[0] || ""}
                               </div>`
-                : ""}
+                            : ""}
                           <div class="entity-state">
                             ${getStatusProperty(
-                  this.hass!,
-                  this._config,
-                  "person",
-                  undefined,
-                  entityState?.state
-                )}
+                              this.hass!,
+                              this._config,
+                              "person",
+                              undefined,
+                              entityState?.state
+                            )}
                           </div>
                         </div>`
-            : ""}
+                      : ""}
                   </div>
                 </ha-tab-group-tab>
               `;
-      }
-    )}
+            }
+          )}
           ${repeat(
-      sorted,
-      (i) =>
-        i.type === "extra"
-          ? i.panel
-          : i.type === "domain"
-            ? i.domain
-            : i.type === "deviceClass"
-              ? `${i.domain}-${i.deviceClass}`
-              : i.type === "group"
+            sorted,
+            (i) =>
+              i.type === "extra"
+                ? i.panel
+                : i.type === "domain"
+                ? i.domain
+                : i.type === "deviceClass"
+                ? `${i.domain}-${i.deviceClass}`
+                : i.type === "group"
                 ? `group-${i.group_id}`
                 : "",
-      (i) => this.renderTab(i)
-    )}
+            (i) => this.renderTab(i)
+          )}
         </ha-tab-group>
       </ha-card>
     `;
   }
 
   static get styles() {
-    return [
-      cardStyles,
-      css`
-      :host-context(hui-badge[preview]) {
-        max-width: 500px;
-        overflow: hidden;
-        display: block;
-      }
-      ha-card {
-        overflow: hidden;
-        position: relative;
-        height: 100%;
-        align-content: center;
-        max-width: 100%;
-      }
-      ha-card.no-background {
-        background: none;
-        border: none;
-        box-shadow: none;
-      }
-      ha-tab-group {
-        --track-width: unset !important;
-        padding: 6px 4px;
-      }
-      ha-tab-group.badge-mode {
-        padding: 2px;
-      }
-      ha-tab-group-tab[active],
-      ha-tab-group-tab.active {
-        font-size: var(--ha-font-size-m);
-        --wa-color-brand-on-quiet: var(
-          --ha-tab-active-text-color,
-          var(--primary-color)
-        );
-        --wa-color-neutral-on-quiet: var(--wa-color-brand-on-quiet);
-        opacity: 0.8;
-        color: inherit;
-        --wa-space-l: 16px;
-      }
-      ha-tab-group-tab[active]:hover,
-      ha-tab-group-tab.active:hover {
-        color: var(--wa-color-brand-on-quiet) !important;
-      }
-      ha-tab-group::part(nav) {
-        padding: 0 !important;
-      }
-      ha-tab-group-tab {
-        pointer-events: auto;
-      }
-      ha-tab-group-tab * {
-        pointer-events: none;
-      }
-      ha-tab-group-tab::part(base) {
-        padding: 0 8px !important;
-      }
-      ha-tab-group-tab.badge-mode::part(base) {
-        padding: 0 4px !important;
-      }
-      ha-tab-group.no-scroll::part(tabs) {
-        display: flex;
-        flex-wrap: wrap;
-        overflow-x: visible !important;
-        max-width: 100%;
-        border-bottom: none !important;
-      }
-      .center {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .entity.horizontal,
-      .extra-entity.horizontal {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-      }
-      .entity,
-      .extra-entity {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-      .entity.horizontal .entity-icon,
-      .extra-entity.horizontal .entity-icon {
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        background-color: rgba(var(--rgb-primary-text-color), 0.15);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: visible;
-      }
-      .entity-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background-color: rgba(var(--rgb-primary-text-color), 0.15);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: visible;
-      }
-      ha-tab-group-tab {
-        position: relative;
-        overflow: visible;
-      }
-      ha-tab-group-tab[data-badge]::after {
-        content: attr(data-badge);
-        position: absolute;
-        top: 0;
-        right: 0;
-        min-width: 20px;
-        height: 20px;
-        border-radius: 10px;
-        background-color: var(--status-card-badge-color, var(--primary-color));
-        color: var(--status-card-badge-text-color, var(--text-primary-color));
-        font-size: 0.75rem;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 4px;
-        box-sizing: border-box;
-        z-index: 1;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-      }
-      .person-badge {
-        position: absolute;
-        top: 0;
-        right: 0;
-        min-width: 20px;
-        height: 20px;
-        border-radius: 10px;
-        background-color: var(--status-card-badge-color, var(--primary-color));
-        color: var(--status-card-badge-text-color, var(--text-primary-color));
-        font-size: 0.75rem;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 4px;
-        box-sizing: border-box;
-        z-index: 1;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-      }
-      .person-badge ha-icon {
-        --mdc-icon-size: 14px;
-      }
-      .entity-icon img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 50%;
-      }
-      .entity.horizontal .entity-info,
-      .extra-entity.horizontal .entity-info {
-        text-align: left;
-        margin-top: 3px;
-        padding-left: 8px;
-      }
-      .entity-info {
-        text-align: center;
-        margin-top: 7px;
-      }
-      .entity-name {
-        font-weight: bold;
-      }
-      .entity-state {
-        color: var(--secondary-text-color);
-        font-size: 0.9em;
-      }
-    `];
+    return [cardStyles];
   }
 
   static getConfigElement() {

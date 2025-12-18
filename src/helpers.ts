@@ -249,7 +249,7 @@ export function createCardElementSynchronous(
     try {
       const el = cachedHelpers.createCardElement(cardConfig) as LovelaceCard;
       if (el instanceof Promise) return undefined;
-      
+
       el.hass = hass;
       el.setAttribute?.("data-hui-card", "");
       return el;
@@ -268,7 +268,7 @@ export async function createCardElement(
 ): Promise<LovelaceCard | HTMLElement> {
   try {
     if (!cachedHelpers) {
-        cachedHelpers = await window.loadCardHelpers?.();
+      cachedHelpers = await window.loadCardHelpers?.();
     }
     const helpers = cachedHelpers;
     if (helpers?.createCardElement) {
@@ -308,10 +308,8 @@ export async function createCardElement(
 }
 
 export async function ensureHelpersLoaded(): Promise<void> {
-    if (cachedHelpers) return;
-    try {
-        cachedHelpers = await window.loadCardHelpers?.();
-    } catch {}
+  if (cachedHelpers) return;
+  try {
+    cachedHelpers = await window.loadCardHelpers?.();
+  } catch {}
 }
-
-

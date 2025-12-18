@@ -2,7 +2,11 @@ import { LitElement, TemplateResult, html, css, CSSResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, LovelaceCardConfig, Schema } from "./ha";
 import { computeLabelCallback } from "./translations";
-import { getItemAppearanceSchema, getItemActionsSchema, getItemStyleSchema } from "./editor-schema";
+import {
+  getItemAppearanceSchema,
+  getItemActionsSchema,
+  getItemStyleSchema,
+} from "./editor-schema";
 
 @customElement("status-card-item-editor")
 export class ItemEditor extends LitElement {
@@ -60,9 +64,7 @@ export class ItemEditor extends LitElement {
           .active=${this._activeTab === "appearance"}
           @click=${() => (this._activeTab = "appearance")}
         >
-          ${this.hass.localize(
-      "ui.panel.lovelace.editor.card.map.appearance"
-    )}
+          ${this.hass.localize("ui.panel.lovelace.editor.card.map.appearance")}
         </ha-tab-group-tab>
         <ha-tab-group-tab
           .active=${this._activeTab === "actions"}
@@ -77,15 +79,15 @@ export class ItemEditor extends LitElement {
           Style
         </ha-tab-group-tab>
         ${this.getSchema === "domain"
-        ? html`
+          ? html`
               <ha-tab-group-tab
                 .active=${this._activeTab === "popup"}
                 @click=${() => (this._activeTab = "popup")}
               >
-               Popup Card
+                Popup Card
               </ha-tab-group-tab>
             `
-        : ""}
+          : ""}
       </ha-tab-group>
       ${this._activeTab === "style"
         ? html`
@@ -105,13 +107,20 @@ export class ItemEditor extends LitElement {
               </ul>
               <p>
                 <strong>Animations:</strong> <br />
-                spin, pulse, shake, blink
+                spin, pulse, shake, blink, bounce
               </p>
               <p><strong>Example:</strong></p>
               <pre>
 button:
-  --mdc-icon-size: 24px
-  color: green</pre
+  --mdc-icon-size: 24px;
+  border: none;
+  color: green;            
+icon:
+  animation: spin 2s linear infinite;
+  --mdc-icon-size: 40px;
+  color: var(--primary-color);
+name:
+  font-size: 15px;    </pre
               >
             </ha-alert>
           `
@@ -151,10 +160,11 @@ button:
     return html`
       <div class="card-editor">
         <div class="card-header">
-          <h3> Popup
+          <h3>
+            Popup
             ${this.hass!.localize(
-      "ui.panel.lovelace.editor.edit_card.tab_config"
-    )}
+              "ui.panel.lovelace.editor.edit_card.tab_config"
+            )}
           </h3>
           <ha-button
             class="warning"

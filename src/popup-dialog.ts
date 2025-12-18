@@ -17,7 +17,13 @@ import {
   Schema,
   STATES_OFF,
 } from "./ha";
-import { compareByFriendlyName, typeKey, createCardElement, createCardElementSynchronous, ensureHelpersLoaded } from "./helpers";
+import {
+  compareByFriendlyName,
+  typeKey,
+  createCardElement,
+  createCardElementSynchronous,
+  ensureHelpersLoaded,
+} from "./helpers";
 import { computeLabelCallback, translateEntityState } from "./translations";
 import { DOMAIN_FEATURES } from "./const";
 import { StatusCard } from "./card";
@@ -38,7 +44,6 @@ export class StatusCardPopup extends LitElement {
   private _lastEntityIds: string[] = [];
   private _activeEntities: HassEntity[] = [];
   private _allEntities: HassEntity[] = [];
-
 
   public async showDialog(params: {
     title?: string;
@@ -73,12 +78,12 @@ export class StatusCardPopup extends LitElement {
     if (!customElements.get("hui-tile-card")) {
       try {
         await customElements.whenDefined("hui-tile-card");
-      } catch { }
+      } catch {}
     }
     this.requestUpdate();
     try {
       await this.updateComplete;
-    } catch (_) { }
+    } catch (_) {}
     this._applyDialogStyleAfterRender();
   }
 
@@ -87,12 +92,12 @@ export class StatusCardPopup extends LitElement {
       requestAnimationFrame(() => {
         try {
           this._applyDialogStyle();
-        } catch (_) { }
+        } catch (_) {}
       });
     } catch (_) {
       try {
         this._applyDialogStyle();
-      } catch (_) { }
+      } catch (_) {}
     }
   }
 
@@ -213,7 +218,6 @@ export class StatusCardPopup extends LitElement {
       const oldHass = changedProps.get("hass") as HomeAssistant;
       const newHass = this.hass;
 
-      // Check if any relevant entity changed state
       if (
         !newHass ||
         !oldHass ||
@@ -257,7 +261,7 @@ export class StatusCardPopup extends LitElement {
       if ((el as LovelaceCard).hass !== this.hass) {
         try {
           (el as LovelaceCard).hass = this.hass;
-        } catch (_) { }
+        } catch (_) {}
       }
     });
   }
@@ -296,7 +300,7 @@ export class StatusCardPopup extends LitElement {
           this._cardElementCache.set(id, { hash, el: el });
         }
         (el as LovelaceCard).hass = this.hass;
-      } catch (_) { }
+      } catch (_) {}
     });
     this._cardElementCache.set(id, { hash, el: placeholder });
     return placeholder;
@@ -364,7 +368,6 @@ export class StatusCardPopup extends LitElement {
 
     return updatedAll.filter((e) => this._isEntityActive(e));
   }
-
 
   private toggleAllOrOn(): void {
     this._showAll = !this._showAll;
@@ -577,33 +580,33 @@ export class StatusCardPopup extends LitElement {
           ></ha-icon-button>
           <h3>
             ${(() => {
-        const group = this.selectedGroup;
-        const card = this.card;
-        if (group !== undefined && card._config?.content?.[group]) {
-          const groupId = card._config.content[group];
-          return (
-            this.hass!.localize(
-              "ui.panel.lovelace.editor.card.entities.name"
-            ) +
-            " in " +
-            groupId
-          );
-        }
-        return this.selectedDomain && this.selectedDeviceClass
-          ? this.computeLabel(
-            { name: "header" },
-            this.selectedDomain,
-            this.selectedDeviceClass
-          )
-          : this.computeLabel(
-            { name: "header" },
-            this.selectedDomain || undefined
-          );
-      })()}
+              const group = this.selectedGroup;
+              const card = this.card;
+              if (group !== undefined && card._config?.content?.[group]) {
+                const groupId = card._config.content[group];
+                return (
+                  this.hass!.localize(
+                    "ui.panel.lovelace.editor.card.entities.name"
+                  ) +
+                  " in " +
+                  groupId
+                );
+              }
+              return this.selectedDomain && this.selectedDeviceClass
+                ? this.computeLabel(
+                    { name: "header" },
+                    this.selectedDomain,
+                    this.selectedDeviceClass
+                  )
+                : this.computeLabel(
+                    { name: "header" },
+                    this.selectedDomain || undefined
+                  );
+            })()}
           </h3>
 
           ${isNoGroup
-        ? html`
+            ? html`
                 <ha-button-menu
                   class="menu-button"
                   slot="actionItems"
@@ -624,8 +627,8 @@ export class StatusCardPopup extends LitElement {
                     @closed=${this._stopPropagation}
                   >
                     ${isInverted
-            ? this.hass!.localize("ui.card.common.turn_on")
-            : this.hass!.localize("ui.card.common.turn_off")}
+                      ? this.hass!.localize("ui.card.common.turn_on")
+                      : this.hass!.localize("ui.card.common.turn_off")}
                     <ha-svg-icon
                       slot="graphic"
                       .path=${mdiToggleSwitchOffOutline}
@@ -638,14 +641,14 @@ export class StatusCardPopup extends LitElement {
                     @closed=${this._stopPropagation}
                   >
                     ${this.hass!.localize("ui.card.common.toggle") +
-          " " +
-          this.hass!.localize(
-            "component.sensor.entity_component._.state_attributes.state_class.state.total"
-          ) +
-          " " +
-          this.hass!.localize(
-            "ui.panel.lovelace.editor.card.entities.name"
-          )}
+                    " " +
+                    this.hass!.localize(
+                      "component.sensor.entity_component._.state_attributes.state_class.state.total"
+                    ) +
+                    " " +
+                    this.hass!.localize(
+                      "ui.panel.lovelace.editor.card.entities.name"
+                    )}
                     <ha-svg-icon
                       slot="graphic"
                       .path=${mdiSwapHorizontal}
@@ -653,83 +656,83 @@ export class StatusCardPopup extends LitElement {
                   </ha-list-item>
                 </ha-button-menu>
               `
-        : ""}
+            : ""}
         </div>
         <div class="dialog-content scrollable">
           ${this.card?.list_mode
-        ? !ungroupAreas
-          ? html`
+            ? !ungroupAreas
+              ? html`
                   <ul class="entity-list">
                     ${repeat(
-            sortedGroups,
-            ([areaId]) => areaId,
-            ([areaId, groupEntities]) => {
-              const areaName =
-                areaMap.get(areaId) ??
-                (areaId === "unassigned" ? "Unassigned" : areaId);
-              return html`
+                      sortedGroups,
+                      ([areaId]) => areaId,
+                      ([areaId, groupEntities]) => {
+                        const areaName =
+                          areaMap.get(areaId) ??
+                          (areaId === "unassigned" ? "Unassigned" : areaId);
+                        return html`
                           <li class="entity-item">
                             <h4>${areaName}:</h4>
                             <ul>
                               ${repeat(
-                groupEntities,
-                (entity) => entity.entity_id,
-                (entity) =>
-                  html`<li class="entity-item">
+                                groupEntities,
+                                (entity) => entity.entity_id,
+                                (entity) =>
+                                  html`<li class="entity-item">
                                     - ${entity.entity_id}
                                   </li>`
-              )}
+                              )}
                             </ul>
                           </li>
                         `;
-            }
-          )}
+                      }
+                    )}
                   </ul>
                 `
-          : html`
+              : html`
                   <ul class="entity-list">
                     ${repeat(
-            flatSorted,
-            (entity) => entity.entity_id,
-            (entity) =>
-              html`<li class="entity-item">- ${entity.entity_id}</li>`
-          )}
+                      flatSorted,
+                      (entity) => entity.entity_id,
+                      (entity) =>
+                        html`<li class="entity-item">- ${entity.entity_id}</li>`
+                    )}
                   </ul>
                 `
-        : !ungroupAreas
-          ? html`${sortedGroups.map(([areaId, groupEntities]) => {
-            const areaName =
-              areaMap.get(areaId) ??
-              (areaId === "unassigned" ? "Unassigned" : areaId);
-            return html`
+            : !ungroupAreas
+            ? html`${sortedGroups.map(([areaId, groupEntities]) => {
+                const areaName =
+                  areaMap.get(areaId) ??
+                  (areaId === "unassigned" ? "Unassigned" : areaId);
+                return html`
                   <div class="cards-wrapper">
                     <h4>${areaName}</h4>
                     <div class="entity-cards">
                       ${repeat(
-              groupEntities,
-              (entity) => entity.entity_id,
-              (entity) => html`
+                        groupEntities,
+                        (entity) => entity.entity_id,
+                        (entity) => html`
                           <div class="entity-card">
                             ${this._getOrCreateCard(entity)}
                           </div>
                         `
-            )}
+                      )}
                     </div>
                   </div>
                 `;
-          })}`
-          : html`
+              })}`
+            : html`
                 <h4></h4>
                 <div class="entity-cards">
                   ${repeat(
-            flatSorted,
-            (entity) => entity.entity_id,
-            (entity) => html`
+                    flatSorted,
+                    (entity) => entity.entity_id,
+                    (entity) => html`
                       <div class="entity-card">
                         ${this._getOrCreateCard(entity)}
                       </div>
                     `
-          )}
+                  )}
                 </div>
               `}
           ${ents.length === 0 ? this.content : ""}
@@ -921,7 +924,7 @@ class StatusCardPopupConfirmation extends LitElement {
   private _confirm = () => {
     try {
       this.card?.toggleDomain?.(this.selectedDomain, this.selectedDeviceClass);
-    } catch (_) { }
+    } catch (_) {}
     this._onClosed();
   };
 
@@ -938,19 +941,19 @@ class StatusCardPopupConfirmation extends LitElement {
       <ha-dialog
         .open=${this.open}
         heading="${isInverted
-        ? this.hass.localize("ui.card.common.turn_on") + "?"
-        : this.hass.localize("ui.card.common.turn_off") + "?"}"
+          ? this.hass.localize("ui.card.common.turn_on") + "?"
+          : this.hass.localize("ui.card.common.turn_off") + "?"}"
         @closed=${this._onClosed}
       >
         <div>
           ${this.hass.localize(
-          "ui.panel.lovelace.cards.actions.action_confirmation",
-          {
-            action: isInverted
-              ? this.hass.localize("ui.card.common.turn_on")
-              : this.hass.localize("ui.card.common.turn_off"),
-          }
-        )}
+            "ui.panel.lovelace.cards.actions.action_confirmation",
+            {
+              action: isInverted
+                ? this.hass.localize("ui.card.common.turn_on")
+                : this.hass.localize("ui.card.common.turn_off"),
+            }
+          )}
         </div>
         <ha-button
           appearance="plain"

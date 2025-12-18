@@ -3,7 +3,6 @@ import { LovelaceCardConfig, HomeAssistant } from "./ha";
 import { DOMAIN_ICONS, OPENABLE_DEVICE_CLASSES } from "./const";
 import { typeKey } from "./helpers";
 import { translateEntityState } from "./translations";
-import memoizeOne from "memoize-one";
 import { css } from "lit";
 
 export const parseCss = (
@@ -25,19 +24,16 @@ export const parseCss = (
   const key = css.trim();
   if (styleCache && styleCache.has(key)) return styleCache.get(key)!;
 
-  // Remove comments and replace newlines with spaces to handle multiline values
-  const normalized = css
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\n/g, " ");
+  const normalized = css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\n/g, " ");
 
   const obj = normalized
     .split(";")
     .map((s) => s.trim())
-    .filter((s) => s && s.includes(":")) // Only process valid rules
+    .filter((s) => s && s.includes(":"))
     .reduce((acc: Record<string, string>, rule: string) => {
       const parts = rule.split(":");
       const keyPart = parts[0];
-      const valuePart = parts.slice(1).join(":"); // Rejoin value in case it had colons (e.g. url)
+      const valuePart = parts.slice(1).join(":");
 
       if (keyPart && valuePart !== undefined) {
         const trimmed = keyPart.trim();
@@ -67,41 +63,206 @@ export const getParsedCss = (
 };
 
 export const cardStyles = css`
+  :host-context(hui-badge[preview]) {
+    max-width: 500px;
+    overflow: hidden;
+    display: block;
+  }
+  ha-card {
+    overflow: hidden;
+    position: relative;
+    height: 100%;
+    align-content: center;
+    max-width: 100%;
+  }
+  ha-card.no-background {
+    background: none;
+    border: none;
+    box-shadow: none;
+  }
+  ha-tab-group {
+    --track-width: unset !important;
+    padding: 6px 4px;
+  }
+  ha-tab-group.badge-mode {
+    padding: 2px;
+  }
+  ha-tab-group-tab[active],
+  ha-tab-group-tab.active {
+    font-size: var(--ha-font-size-m);
+    --wa-color-brand-on-quiet: var(
+      --ha-tab-active-text-color,
+      var(--primary-color)
+    );
+    --wa-color-neutral-on-quiet: var(--wa-color-brand-on-quiet);
+    opacity: 0.8;
+    color: inherit;
+    --wa-space-l: 16px;
+  }
+  ha-tab-group-tab[active]:hover,
+  ha-tab-group-tab.active:hover {
+    color: var(--wa-color-brand-on-quiet) !important;
+  }
+  ha-tab-group::part(nav) {
+    padding: 0 !important;
+  }
+  ha-tab-group-tab {
+    pointer-events: auto;
+  }
+  ha-tab-group-tab * {
+    pointer-events: none;
+  }
+  ha-tab-group-tab::part(base) {
+    padding: 0 8px !important;
+  }
+  ha-tab-group-tab.badge-mode::part(base) {
+    padding: 0 4px !important;
+  }
+  ha-tab-group.no-scroll::part(tabs) {
+    display: flex;
+    flex-wrap: wrap;
+    overflow-x: visible !important;
+    max-width: 100%;
+    border-bottom: none !important;
+  }
+  .center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .entity.horizontal,
+  .extra-entity.horizontal {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+  .entity,
+  .extra-entity {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .entity.horizontal .entity-icon,
+  .extra-entity.horizontal .entity-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background-color: rgba(var(--rgb-primary-text-color), 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+  }
+  .entity-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: rgba(var(--rgb-primary-text-color), 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+  }
+  ha-tab-group-tab {
+    position: relative;
+    overflow: visible;
+  }
+  ha-tab-group-tab[data-badge]::after {
+    content: attr(data-badge);
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    background-color: var(--status-card-badge-color, var(--primary-color));
+    color: var(--status-card-badge-text-color, var(--text-primary-color));
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    box-sizing: border-box;
+    z-index: 1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+  .person-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    background-color: var(--status-card-badge-color, var(--primary-color));
+    color: var(--status-card-badge-text-color, var(--text-primary-color));
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    box-sizing: border-box;
+    z-index: 1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+  .person-badge ha-icon {
+    --mdc-icon-size: 14px;
+  }
+  .entity-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+  .entity.horizontal .entity-info,
+  .extra-entity.horizontal .entity-info {
+    text-align: left;
+    margin-top: 3px;
+    padding-left: 8px;
+  }
+  .entity-info {
+    text-align: center;
+    margin-top: 7px;
+  }
+  .entity-name {
+    font-weight: bold;
+  }
+  .entity-state {
+    color: var(--secondary-text-color);
+    font-size: 0.9em;
+  }
   @keyframes spin {
     from {
       transform: rotate(0deg);
     }
-    to {
-      transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg);}
   }
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.1);
-    }
-    100% {
-      transform: scale(1);
+  @keyframes pulse { 0% { transform: scale(1);}
+    50% { transform: scale(1.1);}
+    100% { transform: scale(1);
     }
   }
   @keyframes shake {
-    0% { transform: translate(1px, 1px) rotate(0deg); }
-    10% { transform: translate(-1px, -2px) rotate(-1deg); }
-    20% { transform: translate(-3px, 0px) rotate(1deg); }
-    30% { transform: translate(3px, 2px) rotate(0deg); }
-    40% { transform: translate(1px, -1px) rotate(1deg); }
-    50% { transform: translate(-1px, 2px) rotate(-1deg); }
-    60% { transform: translate(-3px, 1px) rotate(0deg); }
-    70% { transform: translate(3px, 1px) rotate(-1deg); }
-    80% { transform: translate(-1px, -1px) rotate(1deg); }
-    90% { transform: translate(1px, 2px) rotate(0deg); }
-    100% { transform: translate(1px, -2px) rotate(-1deg); }
+    0% { transform: translate(1px, 1px) rotate(0deg);}
+    10% { transform: translate(-1px, -2px) rotate(-1deg);}
+    20% { transform: translate(-3px, 0px) rotate(1deg);}
+    30% { transform: translate(3px, 2px) rotate(0deg);}
+    40% { transform: translate(1px, -1px) rotate(1deg);}
+    50% { transform: translate(-1px, 2px) rotate(-1deg);}
+    60% { transform: translate(-3px, 1px) rotate(0deg);}
+    70% { transform: translate(3px, 1px) rotate(-1deg);}
+    80% { transform: translate(-1px, -1px) rotate(1deg);}
+    90% { transform: translate(1px, 2px) rotate(0deg);}
+    100% { transform: translate(1px, -2px) rotate(-1deg);}
   }
   @keyframes blink {
-    50% {
-      opacity: 0;
+    50% { opacity: 0; }
+  }
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-6px); }
+    60% { transform: translateY(-3px); }
     }
   }
 `;
@@ -112,7 +273,6 @@ export const customizationIndex = (list?: LovelaceCardConfig[]) => {
     if (c.type) {
       const copy = { ...c };
       if (copy.styles?.card) copy._parsedCss = parseCss(copy.styles.card);
-      // Support 'button' alias for card styles if present
       if (copy.styles?.button) {
         const buttonStyles = parseCss(copy.styles.button);
         copy._parsedCss = { ...copy._parsedCss, ...buttonStyles };
