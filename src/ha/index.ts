@@ -2,6 +2,7 @@ export * from "./common/const";
 export * from "./common/dom/apply_themes_on_element";
 export * from "./common/dom/fire_event";
 export * from "./common/entity/compute_domain";
+export * from "./common/entity/entity_color";
 export * from "./common/string/compare";
 export * from "./common/translations/localize";
 export * from "./data/entity_registry";

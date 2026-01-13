@@ -540,7 +540,13 @@ export function getIconStyles(
   const base: Record<string, string | undefined> = {
     "border-radius": square ? "20%" : "50%",
     "background-color": background_color,
-    color: color ? `var(--${color}-color)` : undefined,
+    color: color
+      ? color.startsWith("rgb") ||
+        color.startsWith("#") ||
+        color.startsWith("hsl")
+        ? color
+        : `var(--${color}-color)`
+      : undefined,
   };
 
   if (type === "person" && isNotHome) {

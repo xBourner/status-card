@@ -8,6 +8,7 @@ export interface LovelaceCardConfig {
   view_layout?: any;
   type: string;
   rulesets?: Ruleset[];
+  activate_state_color?: boolean;
   [key: string]: any;
 }
 

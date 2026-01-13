@@ -1,5 +1,5 @@
 import type { HassEntity } from "home-assistant-js-websocket";
-import { HomeAssistant, LovelaceCardConfig } from "./ha";
+import { HomeAssistant, LovelaceCardConfig, computeEntityColor } from "./ha";
 import {
   ExtraItem,
   GroupItem,
@@ -13,6 +13,7 @@ import {
   getCustomColor,
   getCustomCSS,
   getBackgroundColor,
+  getResolvedCustomizationValue,
 } from "./card-styles";
 
 export const getPersonEntityIds = (
@@ -95,12 +96,18 @@ export const computeExtraItems = (
         getCustomName(cfg, eid, undefined, entity, customizationMap) ??
         entity.attributes.friendly_name ??
         eid;
-      const color: string | undefined = getCustomColor(
-        cfg,
-        eid,
-        undefined,
-        customizationMap
-      );
+      const color: string | undefined =
+        getResolvedCustomizationValue(
+          cfg,
+          "icon_color",
+          eid,
+          undefined,
+          customizationMap
+        ) ||
+        (cust?.activate_state_color
+          ? computeEntityColor(entity)
+          : undefined) ||
+        cfg.color;
       const icon_css: string | undefined = getCustomCSS(
         cfg,
         eid,
@@ -160,10 +167,10 @@ export const computeDomainItems = (content: string[]): DomainItem[] =>
     .map((c, idx) =>
       !c.includes(" - ")
         ? ({
-            type: "domain" as const,
-            domain: c.trim().toLowerCase().replace(/\s+/g, "_"),
-            order: idx,
-          } as DomainItem)
+          type: "domain" as const,
+          domain: c.trim().toLowerCase().replace(/\s+/g, "_"),
+          order: idx,
+        } as DomainItem)
         : null
     )
     .filter((v): v is DomainItem => v !== null);

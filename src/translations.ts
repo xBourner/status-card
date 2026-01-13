@@ -157,6 +157,10 @@ const LABEL_MAP: Record<string, (hass: HomeAssistant) => string> = {
     `${hass.localize("ui.common.hide")} ${hass.localize(
       "ui.panel.lovelace.editor.edit_view.tab_background"
     )}`,
+  activate_state_color: (hass) =>
+    `${hass.localize(
+      "ui.panel.lovelace.editor.card.generic.state_color"
+    )}`,
 };
 
 function getHeaderLabel(
