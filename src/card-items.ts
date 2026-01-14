@@ -104,7 +104,7 @@ export const computeExtraItems = (
           undefined,
           customizationMap
         ) ||
-        (cust?.activate_state_color
+        ((cust?.activate_state_color ?? cfg.activate_state_color)
           ? computeEntityColor(entity)
           : undefined) ||
         cfg.color;

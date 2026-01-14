@@ -543,7 +543,8 @@ export function getIconStyles(
     color: color
       ? color.startsWith("rgb") ||
         color.startsWith("#") ||
-        color.startsWith("hsl")
+        color.startsWith("hsl") ||
+        color.startsWith("var")
         ? color
         : `var(--${color}-color)`
       : undefined,
