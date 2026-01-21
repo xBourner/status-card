@@ -1116,8 +1116,23 @@ export class StatusCardEditor extends LitElement {
       areas,
       this.hass?.states || {},
       filters,
-      ALLOWED_DOMAINS
+      [...ALLOWED_DOMAINS, "person"]
     );
+
+    const allPersons = Object.values(this.hass.states).filter(
+      (stateObj) => computeDomain(stateObj.entity_id) === "person"
+    );
+
+    if (allPersons.length > 0) {
+      const existingPersons = byDomain["person"] || [];
+      const existingIds = new Set(existingPersons.map((e) => e.entity_id));
+
+      const newPersons = allPersons.filter(
+        (p) => !existingIds.has(p.entity_id)
+      );
+
+      byDomain["person"] = [...existingPersons, ...newPersons];
+    }
 
     const visible: Record<string, string[]> = Object.fromEntries(
       Object.entries(byDomain).map(([d, ents]) => [
@@ -1131,7 +1146,7 @@ export class StatusCardEditor extends LitElement {
 
     const domains = Array.from(
       new Set([...Object.keys(visible), ...Object.keys(hidden)])
-    ).filter((d) => ALLOWED_DOMAINS.includes(d));
+    ).filter((d) => [...ALLOWED_DOMAINS, "person"].includes(d));
 
     const cmpByFriendly = compareByFriendlyName(
       states,
@@ -1240,7 +1255,7 @@ export class StatusCardEditor extends LitElement {
 
     for (const id of hidden) {
       const domain = computeDomain(id);
-      if (!ALLOWED_DOMAINS.includes(domain)) continue;
+      if (![...ALLOWED_DOMAINS, "person"].includes(domain)) continue;
 
       const reg = entitiesReg[id];
       const dev = reg?.device_id ? devices[reg.device_id] : undefined;
