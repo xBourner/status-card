@@ -21,36 +21,6 @@ export function getConfigSchema(
 
   return [
     {
-      name: "person",
-      // @ts-ignore
-      flatten: true,
-      type: "expandable",
-      icon: "mdi:account",
-      schema: [
-        { name: "hide_person", selector: { boolean: {} } },
-        {
-          name: "person_home_color",
-          selector: {
-            ui_color: { default_color: "state", include_state: true },
-          },
-        },
-        {
-          name: "person_away_color",
-          selector: {
-            ui_color: { default_color: "state", include_state: true },
-          },
-        },
-        {
-          name: "person_home_icon",
-          selector: { icon: { placeholder: "mdi:home" } },
-        },
-        {
-          name: "person_away_icon",
-          selector: { icon: { placeholder: "mdi:home-export-outline" } },
-        },
-      ],
-    },
-    {
       name: "edit_filters",
       // @ts-ignore
       flatten: true,

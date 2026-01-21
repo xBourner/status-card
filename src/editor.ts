@@ -452,6 +452,32 @@ export class StatusCardEditor extends LitElement {
     ];
   });
 
+  private _personSchema(): Schema[] {
+    return [
+      { name: "hide_person", selector: { boolean: {} } },
+      {
+        name: "person_home_color",
+        selector: {
+          ui_color: { default_color: "state", include_state: true },
+        },
+      },
+      {
+        name: "person_away_color",
+        selector: {
+          ui_color: { default_color: "state", include_state: true },
+        },
+      },
+      {
+        name: "person_home_icon",
+        selector: { icon: { placeholder: "mdi:home" } },
+      },
+      {
+        name: "person_away_icon",
+        selector: { icon: { placeholder: "mdi:home-export-outline" } },
+      },
+    ];
+  }
+
   private _valueChanged(event: CustomEvent) {
     const next = event.detail.value;
     if (Array.isArray(next?.content)) {
@@ -1173,6 +1199,39 @@ export class StatusCardEditor extends LitElement {
     fireEvent(this, "config-changed", { config: { ...this._config } });
   };
 
+  private _getAllPersonEntities(): string[] {
+    const entities = this.hass?.entities || {};
+    const states = this.hass?.states || {};
+    const cmpByFriendly = compareByFriendlyName(
+      states,
+      this.hass!.locale.language
+    );
+    return Object.values(entities)
+      .filter(
+        (entity) =>
+          entity.entity_id.startsWith("person.") && !entity.hidden
+      )
+      .map((entry) => entry.entity_id)
+      .sort(cmpByFriendly);
+  }
+
+  private _isPersonHidden(entity_id: string): boolean {
+    const list = this._config?.hidden_persons ?? [];
+    return Array.isArray(list) && list.includes(entity_id);
+  }
+
+  private _togglePersonHidden = (entity_id: string) => {
+    const current = new Set(this._config?.hidden_persons ?? []);
+    if (current.has(entity_id)) current.delete(entity_id);
+    else current.add(entity_id);
+    const hidden_persons = Array.from(current);
+    this._config = {
+      ...(this._config || ({} as LovelaceCardConfig)),
+      hidden_persons,
+    } as LovelaceCardConfig;
+    fireEvent(this, "config-changed", { config: { ...this._config } });
+  };
+
   private _getDeviceClassLabel(domain: string, deviceClass: string): string {
     if (!deviceClass || deviceClass === "other")
       return (
@@ -1424,6 +1483,55 @@ name:
 
       ${this._activeTab === "config"
         ? html`
+            <ha-expansion-panel outlined class="main">
+              <div slot="header" role="heading" aria-level="3">
+                <ha-svg-icon
+                  class="secondary"
+                  path="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
+                ></ha-svg-icon>
+                ${this.hass.localize(
+                  "component.person.entity_component._.name"
+                ) ?? "Person"}
+              </div>
+              <div class="content">
+                <ha-form
+                  .hass=${this.hass}
+                  .data=${data}
+                  .schema=${this._personSchema()}
+                  .computeLabel=${this.computeLabel}
+                  @value-changed=${this._valueChanged}
+                ></ha-form>
+                ${this._config?.hide_person !== true
+                  ? html`
+                      <p class="person-list-label">
+                        ${this.hass.localize("ui.common.show") ?? "Show"} /
+                        ${this.hass.localize("ui.common.hide") ?? "Hide"}
+                      </p>
+                      ${this._getAllPersonEntities().map(
+                        (id) => html`
+                          <div class="entity-row">
+                            <span class="entity-name">
+                              ${this.hass.states[id]?.attributes
+                                ?.friendly_name || id}
+                            </span>
+                            <ha-icon-button
+                              .path=${this._isPersonHidden(id)
+                                ? mdiEyeOff
+                                : mdiEye}
+                              .label=${this._isPersonHidden(id)
+                                ? this.hass.localize("ui.common.show") ?? "Show"
+                                : this.hass.localize("ui.common.hide") ??
+                                  "Hide"}
+                              @click=${() => this._togglePersonHidden(id)}
+                            ></ha-icon-button>
+                          </div>
+                        `
+                      )}
+                    `
+                  : ""}
+              </div>
+            </ha-expansion-panel>
+
             <ha-expansion-panel outlined class="main">
               <div slot="header" role="heading" aria-level="3">
                 <ha-svg-icon
@@ -1717,6 +1825,12 @@ name:
       }
       .dc-header ha-icon {
         --mdc-icon-size: 20px;
+      }
+      .person-list-label {
+        font-size: 12px;
+        color: var(--secondary-text-color);
+        margin: 16px 0 8px 0;
+        font-weight: 500;
       }
     `;
   }

@@ -77,6 +77,7 @@ export class StatusCard extends LitElement {
   @state() public hiddenEntities: string[] = [];
   @state() private hiddenLabels: string[] = [];
   @state() private hiddenAreas: string[] = [];
+  @state() private hiddenPersons: string[] = [];
   @state() private hide_person: boolean = false;
   @state() private hide_content_name: boolean = true;
   @state() public list_mode: boolean = false;
@@ -461,6 +462,7 @@ export class StatusCard extends LitElement {
     this.hiddenEntities = config.hidden_entities || [];
     this.hiddenLabels = config.hidden_labels || [];
     this.hiddenAreas = config.hidden_areas || [];
+    this.hiddenPersons = config.hidden_persons || [];
 
     if (this._config.customization) {
     }
@@ -726,6 +728,7 @@ export class StatusCard extends LitElement {
       this.hass.entities,
       this.hiddenEntities,
       this.hiddenLabels,
+      this.hiddenPersons,
       this.hide_person
     );
     return this._mapPersonIdsToStatesMemo(ids, this.hass.states);

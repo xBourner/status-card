@@ -20,6 +20,7 @@ export const getPersonEntityIds = (
   entities: HomeAssistant["entities"],
   hiddenEntities: string[],
   hiddenLabels: string[],
+  hiddenPersons: string[],
   hide_person: boolean
 ): string[] => {
   if (hide_person) return [];
@@ -28,6 +29,7 @@ export const getPersonEntityIds = (
       (entity) =>
         entity.entity_id.startsWith("person.") &&
         !hiddenEntities.includes(entity.entity_id) &&
+        !hiddenPersons.includes(entity.entity_id) &&
         !entity.labels?.some((l) => hiddenLabels.includes(l)) &&
         !entity.hidden
     )
@@ -48,6 +50,7 @@ export const computePersonItems = (
   entities: HomeAssistant["entities"],
   hiddenEntities: string[],
   hiddenLabels: string[],
+  hiddenPersons: string[],
   hide_person: boolean,
   hassStates: HomeAssistant["states"]
 ): HassEntity[] => {
@@ -55,6 +58,7 @@ export const computePersonItems = (
     entities,
     hiddenEntities,
     hiddenLabels,
+    hiddenPersons,
     hide_person
   );
   return mapPersonIdsToStates(ids, hassStates);
