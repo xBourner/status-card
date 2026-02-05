@@ -379,9 +379,16 @@ export class StatusCardPopup extends LitElement {
     }
   );
 
-  private handleAskToggleDomain(e: MouseEvent) {
-    e.stopPropagation();
+  private _handleMenuAction(e: CustomEvent) {
+    const action = (e.detail.item as any).action;
+    if (action === "toggle_domain") {
+        this.handleAskToggleDomain();
+    } else if (action === "toggle_all") {
+        this.handleAskToggleAll();
+    }
+  }
 
+  private handleAskToggleDomain() {
     const dialogTag = "status-card-popup-confirmation";
     this.dispatchEvent(
       new CustomEvent("show-dialog", {
@@ -401,8 +408,7 @@ export class StatusCardPopup extends LitElement {
     );
   }
 
-  private handleAskToggleAll(e: MouseEvent) {
-    e.stopPropagation();
+  private handleAskToggleAll() {
     this.toggleAllOrOn();
   }
 
@@ -607,12 +613,10 @@ export class StatusCardPopup extends LitElement {
 
           ${isNoGroup
             ? html`
-                <ha-button-menu
-                  class="menu-button"
+                <ha-dropdown
                   slot="actionItems"
-                  fixed
-                  corner="BOTTOM_END"
-                  menu-corner="END"
+                  placement="bottom-end"
+                  @wa-select=${this._handleMenuAction}
                   @closed=${this._stopPropagation}
                 >
                   <ha-icon-button
@@ -621,25 +625,27 @@ export class StatusCardPopup extends LitElement {
                     .path=${mdiDotsVertical}
                   ></ha-icon-button>
 
-                  <ha-list-item
+                  <ha-dropdown-item
                     graphic="icon"
-                    @click=${this.handleAskToggleDomain}
-                    @closed=${this._stopPropagation}
+                    .action=${"toggle_domain"}
                   >
+                    <ha-svg-icon
+                      slot="icon"
+                      .path=${mdiToggleSwitchOffOutline}
+                    ></ha-svg-icon>
                     ${isInverted
                       ? this.hass!.localize("ui.card.common.turn_on")
                       : this.hass!.localize("ui.card.common.turn_off")}
-                    <ha-svg-icon
-                      slot="graphic"
-                      .path=${mdiToggleSwitchOffOutline}
-                    ></ha-svg-icon>
-                  </ha-list-item>
+                  </ha-dropdown-item>
 
-                  <ha-list-item
+                  <ha-dropdown-item
                     graphic="icon"
-                    @click=${this.handleAskToggleAll}
-                    @closed=${this._stopPropagation}
+                    .action=${"toggle_all"}
                   >
+                    <ha-svg-icon
+                      slot="icon"
+                      .path=${mdiSwapHorizontal}
+                    ></ha-svg-icon>
                     ${this.hass!.localize("ui.card.common.toggle") +
                     " " +
                     this.hass!.localize(
@@ -649,12 +655,8 @@ export class StatusCardPopup extends LitElement {
                     this.hass!.localize(
                       "ui.panel.lovelace.editor.card.entities.name"
                     )}
-                    <ha-svg-icon
-                      slot="graphic"
-                      .path=${mdiSwapHorizontal}
-                    ></ha-svg-icon>
-                  </ha-list-item>
-                </ha-button-menu>
+                  </ha-dropdown-item>
+                </ha-dropdown>
               `
             : ""}
         </div>
@@ -768,6 +770,10 @@ export class StatusCardPopup extends LitElement {
       z-index: 10;
       border-bottom: 1px solid rgba(0, 0, 0, 0.07);
       background: transparent;
+    }
+    .dialog-header h3 {
+      flex-grow: 1;
+      margin: 0; /* Ensure default margins don't mess up height */
     }
     .dialog-header .menu-button {
       margin-left: auto;
