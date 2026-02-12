@@ -168,11 +168,9 @@ export class StatusCardPopup extends LitElement {
   private _getPopupCardConfig(entity: HassEntity) {
     const card = this.card;
 
-    // Smart Group Logic
     if (this.selectedGroup !== undefined && card._config.content?.[this.selectedGroup]) {
       const groupId = card._config.content[this.selectedGroup];
       
-      // Look up customization for the group ID (e.g., "lhh")
       const customization = card.getCustomizationForType(groupId);
 
       if (customization?.popup_card) {
@@ -183,7 +181,6 @@ export class StatusCardPopup extends LitElement {
       }
     }
 
-    // Default Domain Logic
     const domainFromEntity = computeDomain(entity.entity_id);
     const domain = this.selectedDomain || domainFromEntity;
     const deviceClass = this.selectedDomain
@@ -804,7 +801,7 @@ export class StatusCardPopup extends LitElement {
     }
     .dialog-header h3 {
       flex-grow: 1;
-      margin: 0; /* Ensure default margins don't mess up height */
+      margin: 0;
     }
     .dialog-header .menu-button {
       margin-left: auto;

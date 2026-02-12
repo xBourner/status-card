@@ -791,6 +791,38 @@ export class StatusCard extends LitElement {
     };
   }
 
+  private _handleGroupAction(
+    groupId: string,
+    index: number,
+    entities: HassEntity[]
+  ): (ev: ActionHandlerEvent) => void {
+    return (ev: ActionHandlerEvent) => {
+      handleDomainAction(
+        this,
+        this.hass,
+        this._config,
+        groupId,
+        undefined,
+        ev,
+        {
+          showMoreInfo: (entityId) => {
+            const stateObj = this.hass.states[entityId];
+            if (stateObj) this.showMoreInfo(stateObj);
+          },
+          toggleDomain: () => {
+            entities.forEach((e) => {
+              const domain = computeDomain(e.entity_id);
+              toggleDomain(this.hass, [e], domain);
+            });
+          },
+          selectDomain: () => {
+            this.selectedGroup = index;
+          },
+        }
+      );
+    };
+  }
+
   public getCustomizationForType(type: string): LovelaceCardConfig | undefined {
     return getCustomizationForType(
       this._config,
@@ -973,13 +1005,17 @@ export class StatusCard extends LitElement {
       this._customizationIndexMemo(this._config.customization)
     );
 
-    const handler = () => {
-      this.selectedGroup = index;
-    };
+    const customization = this.getCustomizationForType(groupId);
+
+    const handler = this._handleGroupAction(groupId, index, entities);
 
     const ah = actionHandler({
-      hasHold: false,
-      hasDoubleClick: false,
+      hasHold: hasAction(
+        customization?.hold_action ?? this._config.hold_action
+      ),
+      hasDoubleClick: hasAction(
+        customization?.double_tap_action ?? this._config.double_tap_action
+      ),
     });
 
     const contentClasses = {
@@ -991,8 +1027,6 @@ export class StatusCard extends LitElement {
       background_color,
       square: this._config.square,
     });
-
-    const customization = this.getCustomizationForType(groupId);
 
     const badgeColor =
       customization?.badge_color || this.badge_color || undefined;
