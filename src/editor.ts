@@ -773,6 +773,8 @@ export class StatusCardEditor extends LitElement {
 
     const localizedType = this._labelForTypePair(type);
 
+    const isGroup = this._config?.rulesets?.some((r) => r.group_id === type) ?? false;
+
     return html`
       <div class="header">
         <div class="back-title">
@@ -791,6 +793,7 @@ export class StatusCardEditor extends LitElement {
         .config=${this._config?.customization?.[editor?.index ?? 0] ?? {}}
         .getSchema=${editorKey}
         .index=${editor?.index ?? 0}
+        .isGroup=${isGroup}
         @config-changed=${itemChangedHandler}
       >
       </status-card-item-editor>

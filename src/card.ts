@@ -574,7 +574,8 @@ export class StatusCard extends LitElement {
       allEntities,
       selectedDomain: typeof domain === "string" ? domain : undefined,
       selectedDeviceClass: this.selectedDeviceClass || undefined,
-      selectedGroup: this.selectedGroup || undefined,
+      selectedGroup:
+        this.selectedGroup !== null ? this.selectedGroup : undefined,
       card: this,
       content: entities.length ? undefined : `Keine Entitäten`,
       initialShowAll: showAll,
@@ -905,7 +906,7 @@ export class StatusCard extends LitElement {
                 ></ha-state-icon>`}
           </div>
 
-          ${!this.badge_mode
+          ${!showBadge
         ? html`<div class="entity-info">
                 ${!this.hide_content_name
             ? html`<div
@@ -991,16 +992,21 @@ export class StatusCard extends LitElement {
       square: this._config.square,
     });
 
+    const customization = this.getCustomizationForType(groupId);
+
+    const badgeColor =
+      customization?.badge_color || this.badge_color || undefined;
+    const badgeTextColor =
+      customization?.badge_text_color || this.badge_text_color || undefined;
+
     const badgeStyles = {
-      "--status-card-badge-color": this.badge_color
-        ? `var(--${this.badge_color}-color)`
+      "--status-card-badge-color": badgeColor
+        ? `var(--${badgeColor}-color)`
         : undefined,
-      "--status-card-badge-text-color": this.badge_text_color
-        ? `var(--${this.badge_text_color}-color)`
+      "--status-card-badge-text-color": badgeTextColor
+        ? `var(--${badgeTextColor}-color)`
         : undefined,
     };
-
-    const customization = this.getCustomizationForType(groupId);
     const itemStyles = getParsedCss(
       customization?.styles?.button || customization?.styles?.card,
       customization
@@ -1014,16 +1020,18 @@ export class StatusCard extends LitElement {
       ...itemIconStyles,
     };
 
+    const showBadge = customization?.badge_mode ?? this.badge_mode;
+
     return html`
       <ha-tab-group-tab
         slot="nav"
         panel=${"group-" + index}
         @action=${handler}
         .actionHandler=${ah}
-        class=${this.badge_mode ? "badge-mode" : ""}
+        class=${showBadge ? "badge-mode" : ""}
         style=${styleMap(badgeStyles)}
         data-badge=${ifDefined(
-      this.badge_mode && entities.length > 0
+      showBadge && entities.length > 0
         ? String(entities.length)
         : undefined
     )}
@@ -1040,7 +1048,7 @@ export class StatusCard extends LitElement {
         ? html`<ha-svg-icon .path=${groupIcon}></ha-svg-icon>`
         : html`<ha-icon icon=${groupIcon}></ha-icon>`}
           </div>
-          ${!this.badge_mode
+          ${!showBadge
         ? html`<div class="entity-info">
                 ${!this.hide_content_name
             ? html`<div

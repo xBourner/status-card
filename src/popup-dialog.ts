@@ -167,6 +167,23 @@ export class StatusCardPopup extends LitElement {
 
   private _getPopupCardConfig(entity: HassEntity) {
     const card = this.card;
+
+    // Smart Group Logic
+    if (this.selectedGroup !== undefined && card._config.content?.[this.selectedGroup]) {
+      const groupId = card._config.content[this.selectedGroup];
+      
+      // Look up customization for the group ID (e.g., "lhh")
+      const customization = card.getCustomizationForType(groupId);
+
+      if (customization?.popup_card) {
+        return {
+          ...customization.popup_card,
+          entity: entity.entity_id,
+        } as LovelaceCardConfig;
+      }
+    }
+
+    // Default Domain Logic
     const domainFromEntity = computeDomain(entity.entity_id);
     const domain = this.selectedDomain || domainFromEntity;
     const deviceClass = this.selectedDomain
@@ -473,8 +490,17 @@ export class StatusCardPopup extends LitElement {
     return JSON.stringify(obj);
   }
 
+  private _getGroupCustomization() {
+    if (this.selectedGroup !== undefined && this.card._config.content?.[this.selectedGroup]) {
+      const groupId = this.card._config.content[this.selectedGroup];
+      return this.card.getCustomizationForType(groupId);
+    }
+    return undefined;
+  }
+
   private sortEntitiesForPopup(entities: HassEntity[]): HassEntity[] {
-    const mode = this.card._config?.popup_sort || "name";
+    const customization = this._getGroupCustomization();
+    const mode = customization?.popup_sort || this.card._config?.popup_sort || "name";
     return this._sortEntitiesMemo(
       entities,
       mode,
@@ -517,7 +543,11 @@ export class StatusCardPopup extends LitElement {
   protected render() {
     if (!this.open) return html``;
 
-    const columns = this.card.list_mode ? 1 : this.card._config.columns || 4;
+    const customization = this._getGroupCustomization();
+    const isListMode = customization?.list_mode ?? this.card.list_mode;
+    const columnsConfig = customization?.columns ?? this.card._config.columns ?? 4;
+    const columns = isListMode ? 1 : columnsConfig;
+    
     const domain = this.selectedDomain!;
     const deviceClass = this.selectedDeviceClass;
     const group = this.selectedGroup;
@@ -551,6 +581,7 @@ export class StatusCardPopup extends LitElement {
     );
 
     const ungroupAreas =
+      customization?.ungroup_areas === true ||
       card?._config?.ungroupAreas === true ||
       card?._config?.ungroup_areas === true ||
       (card?._config?.area_grouping !== undefined &&
@@ -564,11 +595,11 @@ export class StatusCardPopup extends LitElement {
       : Math.min(columns, Math.max(1, ents.length));
 
     const key = typeKey(domain, deviceClass);
-    const customization =
+    const domainCustomization =
       typeof card?.getCustomizationForType === "function"
         ? card.getCustomizationForType(key)
         : undefined;
-    const isInverted = customization?.invert === true;
+    const isInverted = domainCustomization?.invert === true;
 
     return html`
       <ha-dialog

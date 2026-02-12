@@ -16,6 +16,7 @@ export class ItemEditor extends LitElement {
   @property({ type: Boolean }) useSensorSchema: boolean = false;
   @property({ type: Number }) index?: number;
   @property() public getSchema?: "domain" | "entity";
+  @property({ type: Boolean }) public isGroup = false;
   @state() private _config?: LovelaceCardConfig;
   @state() private _activeTab = "appearance";
 
@@ -41,7 +42,8 @@ export class ItemEditor extends LitElement {
         this.getSchema!,
         this.config?.type,
         this.hass,
-        this._config?.badge_mode ?? false
+        this._config?.badge_mode ?? false,
+        this.isGroup
       );
     } else if (this._activeTab === "actions") {
       schema = getItemActionsSchema(

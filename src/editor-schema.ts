@@ -267,7 +267,8 @@ export const getItemAppearanceSchema = (
   type: "domain" | "entity",
   entityId?: string,
   hass?: HomeAssistant,
-  badgeMode?: boolean
+  badgeMode?: boolean,
+  isGroup?: boolean
 ): Schema[] => {
   if (type === "domain") {
     return [
@@ -275,7 +276,7 @@ export const getItemAppearanceSchema = (
         name: "",
         type: "grid",
         schema: [
-          { name: "invert", selector: { boolean: {} } },
+          ...(!isGroup ? [{ name: "invert", selector: { boolean: {} } }] : []),
           { name: "badge_mode", selector: { boolean: {} } },
           ...(badgeMode
             ? ([
@@ -293,12 +294,20 @@ export const getItemAppearanceSchema = (
               },
             ] as const)
             : []),
-          { name: "show_total_number", selector: { boolean: {} } },
-          { name: "show_total_entities", selector: { boolean: {} } },
+          ...(!isGroup
+            ? ([
+                { name: "show_total_number", selector: { boolean: {} } },
+                { name: "show_total_entities", selector: { boolean: {} } },
+              ] as const)
+            : []),
         ],
       },
-      { name: "name", selector: { text: {} } },
-      { name: "icon", selector: { icon: {} } },
+      ...(!isGroup
+        ? ([
+            { name: "name", selector: { text: {} } },
+            { name: "icon", selector: { icon: {} } },
+          ] as const)
+        : []),
       {
         name: "icon_color",
         selector: {
