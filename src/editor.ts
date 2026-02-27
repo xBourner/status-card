@@ -193,8 +193,9 @@ export class StatusCardEditor extends LitElement {
       const labelsChanged = !arraysEqualUnordered(previousLabel, currentLabel);
       const floorsChanged = !arraysEqualUnordered(previousFloor, currentFloor);
       const areasChanged = !arraysEqualUnordered(previousArea, currentArea);
+      const isInitialLoadWithoutContent = this._config.content === undefined;
 
-      if (areasChanged || floorsChanged || labelsChanged) {
+      if (areasChanged || floorsChanged || labelsChanged || isInitialLoadWithoutContent) {
         const possibleToggleDomains = this.possibleToggleDomains;
         const dynamicOrder: string[] = [];
         for (const domain of Object.keys(DOMAIN_ICONS)) {
