@@ -102,18 +102,22 @@ export class StatusCardPopup extends LitElement {
   }
 
   private _applyDialogStyle() {
-    const surface = document
+    const popup = document
       .querySelector("body > home-assistant")
-      ?.shadowRoot?.querySelector("status-card-popup")
-      ?.shadowRoot?.querySelector("ha-dialog")
-      ?.shadowRoot?.querySelector(
-        "div > div.mdc-dialog__container > div.mdc-dialog__surface"
-      ) as HTMLElement | null;
+      ?.shadowRoot?.querySelector("status-card-popup");
 
-    if (surface) {
-      surface.style.minHeight = "unset";
-      return true;
+    if (!popup) return false;
+
+    const dialog = popup.shadowRoot?.querySelector("wa-dialog") as HTMLElement | null;
+    
+    if (dialog) {
+      const panel = dialog.shadowRoot?.querySelector("[part='panel'], [part='dialog']") as HTMLElement | null;
+      if (panel) {
+        panel.style.minHeight = "unset";
+        return true;
+      }
     }
+
     return false;
   }
 
@@ -121,7 +125,16 @@ export class StatusCardPopup extends LitElement {
     super.firstUpdated(_changedProperties);
   }
 
-  private _onClosed = (_ev: Event) => {
+  private _onClosed = (ev?: Event) => {
+    // Guard: if this is a bubbled event from a child element (not a direct click and not from wa-dialog itself), ignore it.
+    if (ev && ev.type !== 'click' && ev.target !== this.shadowRoot?.querySelector('wa-dialog')) {
+      return;
+    }
+    this._closeDialog();
+  };
+
+  private _closeDialog = () => {
+    if (!this.open) return;
     this.open = false;
     this._cardEls.clear();
     this.dispatchEvent(
@@ -599,13 +612,14 @@ export class StatusCardPopup extends LitElement {
     const isInverted = domainCustomization?.invert === true;
 
     return html`
-      <ha-dialog
+      <wa-dialog
         .open=${this.open}
-        hideActions
         @closed=${this._onClosed}
+        @wa-dialog-closed=${this._onClosed}
+        @wa-after-hide=${this._onClosed}
         style="--columns: ${displayColumns};"
       >
-        <div class="dialog-header">
+        <div slot="label" class="dialog-header">
           <ha-icon-button
             slot="trigger"
             .label=${this.hass!.localize("ui.common.close")}
@@ -645,7 +659,8 @@ export class StatusCardPopup extends LitElement {
                   slot="actionItems"
                   placement="bottom-end"
                   @wa-select=${this._handleMenuAction}
-                  @closed=${this._stopPropagation}
+                  @closed=${(e: Event) => e.stopPropagation()}
+                  @wa-after-hide=${(e: Event) => e.stopPropagation()}
                 >
                   <ha-icon-button
                     slot="trigger"
@@ -767,7 +782,7 @@ export class StatusCardPopup extends LitElement {
               `}
           ${ents.length === 0 ? this.content : ""}
         </div>
-      </ha-dialog>
+      </wa-dialog>
     `;
   }
 
@@ -779,12 +794,25 @@ export class StatusCardPopup extends LitElement {
       display: none;
     }
 
-    ha-dialog {
+    wa-dialog::part(dialog), wa-dialog::part(panel) {
       --dialog-content-padding: 12px;
-      --mdc-dialog-min-width: calc((var(--columns, 4) * 22.5vw) + 3vw);
-      --mdc-dialog-max-width: 96vw;
+      /* WebAwesome */
+      --ha-dialog-width: calc((var(--columns, 4) * 22.5vw) + 3vw);
+      --width: calc((var(--columns, 4) * 22.5vw) + 3vw);
+      max-width: 96vw;
       box-sizing: border-box;
       overflow-x: auto;
+    }
+    
+    ha-dialog::part(dialog), wa-dialog::part(dialog), ha-wa-dialog::part(dialog),
+    ha-dialog::part(panel), wa-dialog::part(panel), ha-wa-dialog::part(panel) {
+      width: calc((var(--columns, 4) * 22.5vw) + 3vw);
+      max-width: 96vw;
+      min-height: unset;
+    }
+
+    wa-dialog::part(close-button) {
+      display: none;
     }
 
     .dialog-header {
@@ -855,12 +883,14 @@ export class StatusCardPopup extends LitElement {
     }
     .entity-card {
       width: 22.5vw;
+      min-width: 0;
+      overflow: hidden;
       box-sizing: border-box;
     }
     @media (max-width: 1200px) {
-      ha-dialog {
-        --mdc-dialog-min-width: 96vw;
-        --mdc-dialog-max-width: 96vw;
+      wa-dialog::part(dialog), wa-dialog::part(panel) {
+        width: 96vw;
+        max-width: 96vw;
       }
       .entity-card {
         width: 30vw;
@@ -878,9 +908,9 @@ export class StatusCardPopup extends LitElement {
     }
 
     @media (max-width: 900px) {
-      ha-dialog {
-        --mdc-dialog-min-width: 96vw;
-        --mdc-dialog-max-width: 96vw;
+      wa-dialog::part(dialog), wa-dialog::part(panel) {
+        width: 96vw;
+        max-width: 96vw;
       }
       .entity-card {
         width: 45vw;
@@ -898,10 +928,10 @@ export class StatusCardPopup extends LitElement {
     }
 
     @media (max-width: 700px) {
-      ha-dialog {
+      wa-dialog::part(dialog), wa-dialog::part(panel) {
+        width: 96vw;
+        max-width: 96vw;
         --dialog-content-padding: 8px;
-        --mdc-dialog-min-width: 96vw;
-        --mdc-dialog-max-width: 96vw;
       }
       .cards-wrapper {
         align-items: stretch;
@@ -909,10 +939,12 @@ export class StatusCardPopup extends LitElement {
         overflow-x: hidden;
       }
       .entity-card {
-        width: 92vw;
+        width: 100%;
+        box-sizing: border-box;
       }
       .entity-cards {
         grid-template-columns: 1fr;
+        width: 100%;
       }
       h4 {
         width: 100%;
@@ -972,12 +1004,17 @@ class StatusCardPopupConfirmation extends LitElement {
     const isInverted = customization?.invert === true;
 
     return html`
-      <ha-dialog
+      <wa-dialog
         .open=${this.open}
+        label="${isInverted
+          ? this.hass.localize("ui.card.common.turn_on") + "?"
+          : this.hass.localize("ui.card.common.turn_off") + "?"}"
         heading="${isInverted
           ? this.hass.localize("ui.card.common.turn_on") + "?"
           : this.hass.localize("ui.card.common.turn_off") + "?"}"
         @closed=${this._onClosed}
+        @wa-dialog-closed=${this._onClosed}
+        @wa-after-hide=${this._onClosed}
       >
         <div>
           ${this.hass.localize(
@@ -989,21 +1026,21 @@ class StatusCardPopupConfirmation extends LitElement {
             }
           )}
         </div>
-        <ha-button
-          appearance="plain"
-          slot="secondaryAction"
-          dialogAction="close"
-        >
-          ${this.hass.localize("ui.common.no")}
-        </ha-button>
-        <ha-button
-          appearance="accent"
-          slot="primaryAction"
-          @click=${this._confirm}
-        >
-          ${this.hass.localize("ui.common.yes")}
-        </ha-button>
-      </ha-dialog>
+        <div slot="footer" style="display:flex;justify-content:flex-end;gap:8px;padding:8px 16px 16px;">
+          <ha-button
+            appearance="plain"
+            @click=${this._onClosed}
+          >
+            ${this.hass.localize("ui.common.no")}
+          </ha-button>
+          <ha-button
+            appearance="accent"
+            @click=${this._confirm}
+          >
+            ${this.hass.localize("ui.common.yes")}
+          </ha-button>
+        </div>
+      </wa-dialog>
     `;
   }
 
