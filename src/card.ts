@@ -495,6 +495,7 @@ export class StatusCard extends LitElement {
           dialogTag,
           dialogImport: () => customElements.whenDefined(dialogTag),
           dialogParams,
+          opener: element,
         },
         bubbles: true,
         composed: true,
@@ -577,6 +578,7 @@ export class StatusCard extends LitElement {
       selectedGroup:
         this.selectedGroup !== null ? this.selectedGroup : undefined,
       card: this,
+      opener: this,
       content: entities.length ? undefined : `Keine Entitäten`,
       initialShowAll: showAll,
     });

@@ -304,6 +304,7 @@ export interface StatusCardPopupDialogParams {
   selectedDeviceClass?: string;
   selectedGroup?: number;
   card: StatusCardInterface;
+  opener: HTMLElement;
   content?: string | TemplateResult;
   initialShowAll?: boolean;
 }

@@ -44,6 +44,7 @@ export class StatusCardPopup extends LitElement {
   private _lastEntityIds: string[] = [];
   private _activeEntities: HassEntity[] = [];
   private _allEntities: HassEntity[] = [];
+  private _opener: HTMLElement | null = null;
 
   public async showDialog(params: {
     title?: string;
@@ -56,9 +57,11 @@ export class StatusCardPopup extends LitElement {
     selectedGroup?: number;
     card?: StatusCard;
     initialShowAll?: boolean;
+    opener?: HTMLElement;
   }): Promise<void> {
     this.title = params.title ?? this.title;
     this.hass = params.hass;
+    this._opener = params.opener ?? null;
     this._activeEntities = params.entities ?? [];
     this._allEntities = params.allEntities ?? [];
     if (!params.allEntities || params.allEntities.length === 0) {
@@ -81,54 +84,31 @@ export class StatusCardPopup extends LitElement {
       } catch {}
     }
     this.requestUpdate();
-    try {
-      await this.updateComplete;
-    } catch (_) {}
-    this._applyDialogStyleAfterRender();
   }
 
-  private _applyDialogStyleAfterRender() {
-    try {
-      requestAnimationFrame(() => {
-        try {
-          this._applyDialogStyle();
-        } catch (_) {}
+  private _handleMoreInfo = (ev: CustomEvent) => {
+    if (this._opener) {
+      ev.stopPropagation();
+      const event = new CustomEvent("hass-more-info", {
+        bubbles: true,
+        composed: true,
+        detail: ev.detail,
       });
-    } catch (_) {
-      try {
-        this._applyDialogStyle();
-      } catch (_) {}
+      this._opener.dispatchEvent(event);
     }
-  }
+  };
 
-  private _applyDialogStyle() {
-    const popup = document
-      .querySelector("body > home-assistant")
-      ?.shadowRoot?.querySelector("status-card-popup");
-
-    if (!popup) return false;
-
-    const dialog = popup.shadowRoot?.querySelector("wa-dialog") as HTMLElement | null;
-    
-    if (dialog) {
-      const panel = dialog.shadowRoot?.querySelector("[part='panel'], [part='dialog']") as HTMLElement | null;
-      if (panel) {
-        panel.style.minHeight = "unset";
-        return true;
-      }
-    }
-
-    return false;
-  }
 
   protected firstUpdated(_changedProperties: PropertyValues): void {
     super.firstUpdated(_changedProperties);
   }
 
   private _onClosed = (ev?: Event) => {
-    // Guard: if this is a bubbled event from a child element (not a direct click and not from wa-dialog itself), ignore it.
-    if (ev && ev.type !== 'click' && ev.target !== this.shadowRoot?.querySelector('wa-dialog')) {
-      return;
+    if (ev && ev.type !== 'click' && ev.type !== 'popup-closed') {
+      const target = ev.target as HTMLElement | null;
+      if (target && target.tagName !== 'HA-ADAPTIVE-DIALOG') {
+        return;
+      }
     }
     this._closeDialog();
   };
@@ -612,98 +592,95 @@ export class StatusCardPopup extends LitElement {
     const isInverted = domainCustomization?.invert === true;
 
     return html`
-      <wa-dialog
+      <ha-adaptive-dialog
+        .hass=${this.hass}
         .open=${this.open}
         @closed=${this._onClosed}
-        @wa-dialog-closed=${this._onClosed}
-        @wa-after-hide=${this._onClosed}
         style="--columns: ${displayColumns};"
+        flexcontent
       >
-        <div slot="label" class="dialog-header">
-          <ha-icon-button
-            slot="trigger"
-            .label=${this.hass!.localize("ui.common.close")}
-            .path=${mdiClose}
-            @click=${this._onClosed}
-          ></ha-icon-button>
-          <h3>
-            ${(() => {
-              const group = this.selectedGroup;
-              const card = this.card;
-              if (group !== undefined && card._config?.content?.[group]) {
-                const groupId = card._config.content[group];
-                return (
+        <ha-icon-button
+          slot="headerNavigationIcon"
+          .path=${mdiClose}
+          @click=${this._onClosed}
+          .label=${this.hass!.localize("ui.common.close")}
+        ></ha-icon-button>
+        <span slot="headerTitle">
+          ${(() => {
+            const group = this.selectedGroup;
+            const card = this.card;
+            if (group !== undefined && card._config?.content?.[group]) {
+              const groupId = card._config.content[group];
+              return (
+                this.hass!.localize(
+                  "ui.panel.lovelace.editor.card.entities.name"
+                ) +
+                " in " +
+                groupId
+              );
+            }
+            return this.selectedDomain && this.selectedDeviceClass
+              ? this.computeLabel(
+                  { name: "header" },
+                  this.selectedDomain,
+                  this.selectedDeviceClass
+                )
+              : this.computeLabel(
+                  { name: "header" },
+                  this.selectedDomain || undefined
+                );
+          })()}
+        </span>
+
+        ${isNoGroup
+          ? html`
+              <ha-dropdown
+                slot="headerActionItems"
+                placement="bottom-end"
+                @wa-select=${this._handleMenuAction}
+                @closed=${(e: Event) => e.stopPropagation()}
+              >
+                <ha-icon-button
+                  slot="trigger"
+                  .label=${this.hass!.localize("ui.common.menu")}
+                  .path=${mdiDotsVertical}
+                ></ha-icon-button>
+
+                <ha-dropdown-item
+                  graphic="icon"
+                  .action=${"toggle_domain"}
+                >
+                  <ha-svg-icon
+                    slot="icon"
+                    .path=${mdiToggleSwitchOffOutline}
+                  ></ha-svg-icon>
+                  ${isInverted
+                    ? this.hass!.localize("ui.card.common.turn_on")
+                    : this.hass!.localize("ui.card.common.turn_off")}
+                </ha-dropdown-item>
+
+                <ha-dropdown-item
+                  graphic="icon"
+                  .action=${"toggle_all"}
+                >
+                  <ha-svg-icon
+                    slot="icon"
+                    .path=${mdiSwapHorizontal}
+                  ></ha-svg-icon>
+                  ${this.hass!.localize("ui.card.common.toggle") +
+                  " " +
+                  this.hass!.localize(
+                    "component.sensor.entity_component._.state_attributes.state_class.state.total"
+                  ) +
+                  " " +
                   this.hass!.localize(
                     "ui.panel.lovelace.editor.card.entities.name"
-                  ) +
-                  " in " +
-                  groupId
-                );
-              }
-              return this.selectedDomain && this.selectedDeviceClass
-                ? this.computeLabel(
-                    { name: "header" },
-                    this.selectedDomain,
-                    this.selectedDeviceClass
-                  )
-                : this.computeLabel(
-                    { name: "header" },
-                    this.selectedDomain || undefined
-                  );
-            })()}
-          </h3>
-
-          ${isNoGroup
-            ? html`
-                <ha-dropdown
-                  slot="actionItems"
-                  placement="bottom-end"
-                  @wa-select=${this._handleMenuAction}
-                  @closed=${(e: Event) => e.stopPropagation()}
-                  @wa-after-hide=${(e: Event) => e.stopPropagation()}
-                >
-                  <ha-icon-button
-                    slot="trigger"
-                    .label=${this.hass!.localize("ui.common.menu")}
-                    .path=${mdiDotsVertical}
-                  ></ha-icon-button>
-
-                  <ha-dropdown-item
-                    graphic="icon"
-                    .action=${"toggle_domain"}
-                  >
-                    <ha-svg-icon
-                      slot="icon"
-                      .path=${mdiToggleSwitchOffOutline}
-                    ></ha-svg-icon>
-                    ${isInverted
-                      ? this.hass!.localize("ui.card.common.turn_on")
-                      : this.hass!.localize("ui.card.common.turn_off")}
-                  </ha-dropdown-item>
-
-                  <ha-dropdown-item
-                    graphic="icon"
-                    .action=${"toggle_all"}
-                  >
-                    <ha-svg-icon
-                      slot="icon"
-                      .path=${mdiSwapHorizontal}
-                    ></ha-svg-icon>
-                    ${this.hass!.localize("ui.card.common.toggle") +
-                    " " +
-                    this.hass!.localize(
-                      "component.sensor.entity_component._.state_attributes.state_class.state.total"
-                    ) +
-                    " " +
-                    this.hass!.localize(
-                      "ui.panel.lovelace.editor.card.entities.name"
-                    )}
-                  </ha-dropdown-item>
-                </ha-dropdown>
-              `
-            : ""}
-        </div>
-        <div class="dialog-content scrollable">
+                  )}
+                </ha-dropdown-item>
+              </ha-dropdown>
+            `
+          : ""}
+        <div class="dialog-content scrollable ha-scrollbar" @hass-more-info=${this._handleMoreInfo}>
           ${this.card?.list_mode
             ? !ungroupAreas
               ? html`
@@ -794,25 +771,12 @@ export class StatusCardPopup extends LitElement {
       display: none;
     }
 
-    wa-dialog::part(dialog), wa-dialog::part(panel) {
+    ha-adaptive-dialog {
       --dialog-content-padding: 12px;
-      /* WebAwesome */
-      --ha-dialog-width: calc((var(--columns, 4) * 22.5vw) + 3vw);
-      --width: calc((var(--columns, 4) * 22.5vw) + 3vw);
-      max-width: 96vw;
-      box-sizing: border-box;
-      overflow-x: auto;
-    }
-    
-    ha-dialog::part(dialog), wa-dialog::part(dialog), ha-wa-dialog::part(dialog),
-    ha-dialog::part(panel), wa-dialog::part(panel), ha-wa-dialog::part(panel) {
-      width: calc((var(--columns, 4) * 22.5vw) + 3vw);
-      max-width: 96vw;
-      min-height: unset;
-    }
-
-    wa-dialog::part(close-button) {
-      display: none;
+      --ha-dialog-max-width: 96vw !important;
+      --ha-dialog-width-md: calc((var(--columns, 4) * 22.5vw) + 3vw) !important;
+      --ha-bottom-sheet-height: calc(100dvh - max(var(--safe-area-inset-top), 48px));
+      --ha-bottom-sheet-max-height: var(--ha-bottom-sheet-height);
     }
 
     .dialog-header {
@@ -875,16 +839,16 @@ export class StatusCardPopup extends LitElement {
     .entity-cards {
       display: grid;
       grid-template-columns: repeat(var(--columns, 4), 22.5vw);
-      gap: 4px;
+      gap: 8px;
       width: 100%;
       box-sizing: border-box;
       overflow-x: hidden;
       justify-content: center;
+      padding: 8px;
     }
     .entity-card {
       width: 22.5vw;
       min-width: 0;
-      overflow: hidden;
       box-sizing: border-box;
     }
     @media (max-width: 1200px) {
@@ -1004,19 +968,23 @@ class StatusCardPopupConfirmation extends LitElement {
     const isInverted = customization?.invert === true;
 
     return html`
-      <wa-dialog
+      <ha-adaptive-dialog
+        .hass=${this.hass}
         .open=${this.open}
-        label="${isInverted
-          ? this.hass.localize("ui.card.common.turn_on") + "?"
-          : this.hass.localize("ui.card.common.turn_off") + "?"}"
-        heading="${isInverted
-          ? this.hass.localize("ui.card.common.turn_on") + "?"
-          : this.hass.localize("ui.card.common.turn_off") + "?"}"
         @closed=${this._onClosed}
-        @wa-dialog-closed=${this._onClosed}
-        @wa-after-hide=${this._onClosed}
       >
-        <div>
+        <ha-icon-button
+          slot="headerNavigationIcon"
+          .path=${mdiClose}
+          @click=${this._onClosed}
+          .label=${this.hass!.localize("ui.common.close")}
+        ></ha-icon-button>
+        <span slot="headerTitle">
+          ${isInverted
+            ? this.hass.localize("ui.card.common.turn_on") + "?"
+            : this.hass.localize("ui.card.common.turn_off") + "?"}
+        </span>
+        <div class="dialog-content">
           ${this.hass.localize(
             "ui.panel.lovelace.cards.actions.action_confirmation",
             {
@@ -1040,7 +1008,7 @@ class StatusCardPopupConfirmation extends LitElement {
             ${this.hass.localize("ui.common.yes")}
           </ha-button>
         </div>
-      </wa-dialog>
+      </ha-adaptive-dialog>
     `;
   }
 
