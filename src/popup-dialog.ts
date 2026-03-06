@@ -77,6 +77,7 @@ export class StatusCardPopup extends LitElement {
     this._cardEls.clear();
     this._showAll = params.initialShowAll ?? false;
     this.open = true;
+    window.history.pushState({ statusCardPopup: true }, "");
     await ensureHelpersLoaded();
     if (!customElements.get("hui-tile-card")) {
       try {
@@ -103,18 +104,19 @@ export class StatusCardPopup extends LitElement {
     super.firstUpdated(_changedProperties);
   }
 
-  private _onClosed = (ev?: Event) => {
-    if (ev && ev.type !== 'click' && ev.type !== 'popup-closed') {
-      const target = ev.target as HTMLElement | null;
-      if (target && target.tagName !== 'HA-ADAPTIVE-DIALOG') {
-        return;
-      }
+  private _close = () => {
+    if (!this.open) return;
+    this.open = false;
+    if (window.history.state?.statusCardPopup) {
+      window.history.back();
     }
-    this._closeDialog();
   };
 
-  private _closeDialog = () => {
-    if (!this.open) return;
+  private _onDialogClosed = (ev: Event) => {
+    const target = ev.target as HTMLElement | null;
+    if (target && target.tagName !== 'HA-ADAPTIVE-DIALOG') {
+      return;
+    }
     this.open = false;
     this._cardEls.clear();
     this.dispatchEvent(
@@ -145,8 +147,8 @@ export class StatusCardPopup extends LitElement {
   }
 
   private _onPopState = (ev: PopStateEvent) => {
-    if (this.open) {
-      this._onClosed(ev);
+    if (this.open && !window.history.state?.statusCardPopup) {
+      this.open = false;
     }
   };
 
@@ -531,7 +533,7 @@ export class StatusCardPopup extends LitElement {
   );
 
   protected render() {
-    if (!this.open) return html``;
+    if (!this.hass) return html``;
 
     const customization = this._getGroupCustomization();
     const isListMode = customization?.list_mode ?? this.card.list_mode;
@@ -595,14 +597,14 @@ export class StatusCardPopup extends LitElement {
       <ha-adaptive-dialog
         .hass=${this.hass}
         .open=${this.open}
-        @closed=${this._onClosed}
+        @closed=${this._onDialogClosed}
         style="--columns: ${displayColumns};"
         flexcontent
       >
         <ha-icon-button
           slot="headerNavigationIcon"
           .path=${mdiClose}
-          @click=${this._onClosed}
+          @click=${this._close}
           .label=${this.hass!.localize("ui.common.close")}
         ></ha-icon-button>
         <span slot="headerTitle">
@@ -941,10 +943,39 @@ class StatusCardPopupConfirmation extends LitElement {
     this.selectedDomain = params.selectedDomain;
     this.selectedDeviceClass = params.selectedDeviceClass;
     this.open = true;
+    window.history.pushState({ statusCardPopupConfirm: true }, "");
     this.requestUpdate();
   }
 
-  private _onClosed = () => {
+  connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener("popstate", this._onPopState);
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    window.removeEventListener("popstate", this._onPopState);
+  }
+
+  private _onPopState = () => {
+    if (this.open && !window.history.state?.statusCardPopupConfirm) {
+      this.open = false;
+    }
+  };
+
+  private _close = () => {
+    if (!this.open) return;
+    this.open = false;
+    if (window.history.state?.statusCardPopupConfirm) {
+      window.history.back();
+    }
+  };
+
+  private _onDialogClosed = (ev: Event) => {
+    const target = ev.target as HTMLElement | null;
+    if (target && target.tagName !== 'HA-ADAPTIVE-DIALOG') {
+      return;
+    }
     this.open = false;
     this.dispatchEvent(
       new CustomEvent("dialog-closed", { bubbles: true, composed: true })
@@ -955,11 +986,11 @@ class StatusCardPopupConfirmation extends LitElement {
     try {
       this.card?.toggleDomain?.(this.selectedDomain, this.selectedDeviceClass);
     } catch (_) {}
-    this._onClosed();
+    this._close();
   };
 
   protected render() {
-    if (!this.open || !this.hass || !this.card) return html``;
+    if (!this.hass || !this.card) return html``;
 
     const domain = this.selectedDomain || "";
     const deviceClass = this.selectedDeviceClass;
@@ -971,13 +1002,13 @@ class StatusCardPopupConfirmation extends LitElement {
       <ha-adaptive-dialog
         .hass=${this.hass}
         .open=${this.open}
-        @closed=${this._onClosed}
+        @closed=${this._onDialogClosed}
       >
         <ha-icon-button
           slot="headerNavigationIcon"
           .path=${mdiClose}
-          @click=${this._onClosed}
-          .label=${this.hass!.localize("ui.common.close")}
+          @click=${this._close}
+          .label=${this.hass.localize("ui.common.close")}
         ></ha-icon-button>
         <span slot="headerTitle">
           ${isInverted
@@ -997,7 +1028,7 @@ class StatusCardPopupConfirmation extends LitElement {
         <div slot="footer" style="display:flex;justify-content:flex-end;gap:8px;padding:8px 16px 16px;">
           <ha-button
             appearance="plain"
-            @click=${this._onClosed}
+            @click=${this._close}
           >
             ${this.hass.localize("ui.common.no")}
           </ha-button>

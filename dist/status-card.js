@@ -1,4 +1,4 @@
-const W1 = "v3.2.1", q1 = {
+const W1 = "v3.2.4", q1 = {
   version: W1
 };
 /**
@@ -1798,15 +1798,12 @@ const Ce = class Ce extends N {
         });
         this._opener.dispatchEvent(i);
       }
-    }, this._onClosed = (t) => {
-      if (t && t.type !== "click" && t.type !== "popup-closed") {
-        const i = t.target;
-        if (i && i.tagName !== "HA-ADAPTIVE-DIALOG")
-          return;
-      }
-      this._closeDialog();
-    }, this._closeDialog = () => {
-      this.open && (this.open = !1, this._cardEls.clear(), this.dispatchEvent(
+    }, this._close = () => {
+      var t;
+      this.open && (this.open = !1, (t = window.history.state) != null && t.statusCardPopup && window.history.back());
+    }, this._onDialogClosed = (t) => {
+      const i = t.target;
+      i && i.tagName !== "HA-ADAPTIVE-DIALOG" || (this.open = !1, this._cardEls.clear(), this.dispatchEvent(
         new CustomEvent("dialog-closed", {
           bubbles: !0,
           composed: !0,
@@ -1820,7 +1817,8 @@ const Ce = class Ce extends N {
         })
       ));
     }, this._onPopState = (t) => {
-      this.open && this._onClosed(t);
+      var i;
+      this.open && !((i = window.history.state) != null && i.statusCardPopup) && (this.open = !1);
     }, this._entities = [], this.computeLabel = w(
       (t, i, s) => $t(this.hass, t, i, s)
     ), this._popupCardConfigCache = /* @__PURE__ */ new Map(), this._cardElementCache = /* @__PURE__ */ new Map(), this._sortEntitiesMemo = w(
@@ -1856,7 +1854,7 @@ const Ce = class Ce extends N {
     );
   }
   async showDialog(t) {
-    if (this.title = t.title ?? this.title, this.hass = t.hass, this._opener = t.opener ?? null, this._activeEntities = t.entities ?? [], this._allEntities = t.allEntities ?? [], (!t.allEntities || t.allEntities.length === 0) && (this._allEntities = this._activeEntities), this.entities = t.entities ?? [], t.content !== void 0 && (this.content = t.content), this.selectedDomain = t.selectedDomain, this.selectedDeviceClass = t.selectedDeviceClass, this.selectedGroup = t.selectedGroup, this.card = t.card, this._cardEls.clear(), this._showAll = t.initialShowAll ?? !1, this.open = !0, await zo(), !customElements.get("hui-tile-card"))
+    if (this.title = t.title ?? this.title, this.hass = t.hass, this._opener = t.opener ?? null, this._activeEntities = t.entities ?? [], this._allEntities = t.allEntities ?? [], (!t.allEntities || t.allEntities.length === 0) && (this._allEntities = this._activeEntities), this.entities = t.entities ?? [], t.content !== void 0 && (this.content = t.content), this.selectedDomain = t.selectedDomain, this.selectedDeviceClass = t.selectedDeviceClass, this.selectedGroup = t.selectedGroup, this.card = t.card, this._cardEls.clear(), this._showAll = t.initialShowAll ?? !1, this.open = !0, window.history.pushState({ statusCardPopup: !0 }, ""), await zo(), !customElements.get("hui-tile-card"))
       try {
         await customElements.whenDefined("hui-tile-card");
       } catch {
@@ -2051,7 +2049,7 @@ const Ce = class Ce extends N {
   }
   render() {
     var $, S, Z, ot, ve, be;
-    if (!this.open) return g``;
+    if (!this.hass) return g``;
     const t = this._getGroupCustomization(), i = (t == null ? void 0 : t.list_mode) ?? this.card.list_mode, s = (t == null ? void 0 : t.columns) ?? this.card._config.columns ?? 4, o = i ? 1 : s, n = this.selectedDomain, a = this.selectedDeviceClass, c = this.selectedGroup, r = this.card, l = /* @__PURE__ */ new Map(), d = (($ = this.hass) == null ? void 0 : $.areas) ?? [], h = Array.isArray(d) ? d : Object.values(d);
     for (const A of h)
       A && A.area_id && A.name && l.set(A.area_id, A.name);
@@ -2070,14 +2068,14 @@ const Ce = class Ce extends N {
       <ha-adaptive-dialog
         .hass=${this.hass}
         .open=${this.open}
-        @closed=${this._onClosed}
+        @closed=${this._onDialogClosed}
         style="--columns: ${b};"
         flexcontent
       >
         <ha-icon-button
           slot="headerNavigationIcon"
           .path=${jt}
-          @click=${this._onClosed}
+          @click=${this._close}
           .label=${this.hass.localize("ui.common.close")}
         ></ha-icon-button>
         <span slot="headerTitle">
@@ -2405,36 +2403,49 @@ O([
 customElements.define("status-card-popup", T);
 const ye = class ye extends N {
   constructor() {
-    super(...arguments), this.open = !1, this._onClosed = () => {
-      this.open = !1, this.dispatchEvent(
+    super(...arguments), this.open = !1, this._onPopState = () => {
+      var t;
+      this.open && !((t = window.history.state) != null && t.statusCardPopupConfirm) && (this.open = !1);
+    }, this._close = () => {
+      var t;
+      this.open && (this.open = !1, (t = window.history.state) != null && t.statusCardPopupConfirm && window.history.back());
+    }, this._onDialogClosed = (t) => {
+      const i = t.target;
+      i && i.tagName !== "HA-ADAPTIVE-DIALOG" || (this.open = !1, this.dispatchEvent(
         new CustomEvent("dialog-closed", { bubbles: !0, composed: !0 })
-      );
+      ));
     }, this._confirm = () => {
       var t, i;
       try {
         (i = (t = this.card) == null ? void 0 : t.toggleDomain) == null || i.call(t, this.selectedDomain, this.selectedDeviceClass);
       } catch {
       }
-      this._onClosed();
+      this._close();
     };
   }
   showDialog(t) {
-    this.hass = t.hass, this.card = t.card, this.selectedDomain = t.selectedDomain, this.selectedDeviceClass = t.selectedDeviceClass, this.open = !0, this.requestUpdate();
+    this.hass = t.hass, this.card = t.card, this.selectedDomain = t.selectedDomain, this.selectedDeviceClass = t.selectedDeviceClass, this.open = !0, window.history.pushState({ statusCardPopupConfirm: !0 }, ""), this.requestUpdate();
+  }
+  connectedCallback() {
+    super.connectedCallback(), window.addEventListener("popstate", this._onPopState);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback(), window.removeEventListener("popstate", this._onPopState);
   }
   render() {
     var a, c;
-    if (!this.open || !this.hass || !this.card) return g``;
+    if (!this.hass || !this.card) return g``;
     const t = this.selectedDomain || "", i = this.selectedDeviceClass, s = B(t, i), o = (c = (a = this.card) == null ? void 0 : a.getCustomizationForType) == null ? void 0 : c.call(a, s), n = (o == null ? void 0 : o.invert) === !0;
     return g`
       <ha-adaptive-dialog
         .hass=${this.hass}
         .open=${this.open}
-        @closed=${this._onClosed}
+        @closed=${this._onDialogClosed}
       >
         <ha-icon-button
           slot="headerNavigationIcon"
           .path=${jt}
-          @click=${this._onClosed}
+          @click=${this._close}
           .label=${this.hass.localize("ui.common.close")}
         ></ha-icon-button>
         <span slot="headerTitle">
@@ -2451,7 +2462,7 @@ const ye = class ye extends N {
         <div slot="footer" style="display:flex;justify-content:flex-end;gap:8px;padding:8px 16px 16px;">
           <ha-button
             appearance="plain"
-            @click=${this._onClosed}
+            @click=${this._close}
           >
             ${this.hass.localize("ui.common.no")}
           </ha-button>
