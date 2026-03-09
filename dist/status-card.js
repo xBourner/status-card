@@ -1859,7 +1859,12 @@ const Ce = class Ce extends N {
         await customElements.whenDefined("hui-tile-card");
       } catch {
       }
-    this.requestUpdate();
+    this.requestUpdate(), await this.updateComplete;
+    const i = this.renderRoot.querySelector("ha-adaptive-dialog");
+    if (i && i.shadowRoot) {
+      const s = i.shadowRoot.querySelector("ha-bottom-sheet");
+      s && (s.style.removeProperty("--dialog-transform"), s.style.removeProperty("--dialog-transition"));
+    }
   }
   firstUpdated(t) {
     super.firstUpdated(t);
@@ -2222,8 +2227,8 @@ Ce.styles = mt`
       --dialog-content-padding: 12px;
       --ha-dialog-max-width: 96vw !important;
       --ha-dialog-width-md: calc((var(--columns, 4) * 22.5vw) + 3vw) !important;
-      --ha-bottom-sheet-height: calc(100dvh - max(var(--safe-area-inset-top), 48px));
-      --ha-bottom-sheet-max-height: var(--ha-bottom-sheet-height);
+      --ha-bottom-sheet-height: calc(100dvh - max(var(--safe-area-inset-top), 48px)) !important;
+      --ha-bottom-sheet-max-height: var(--ha-bottom-sheet-height) !important;
     }
 
     .dialog-header {

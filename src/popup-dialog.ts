@@ -85,6 +85,17 @@ export class StatusCardPopup extends LitElement {
       } catch {}
     }
     this.requestUpdate();
+    await this.updateComplete;
+
+    // Targeted reset to clear leaked transforms from ha-bottom-sheet (swipe actions)
+    const ad = this.renderRoot.querySelector("ha-adaptive-dialog");
+    if (ad && ad.shadowRoot) {
+      const bs = ad.shadowRoot.querySelector("ha-bottom-sheet") as HTMLElement;
+      if (bs) {
+        bs.style.removeProperty("--dialog-transform");
+        bs.style.removeProperty("--dialog-transition");
+      }
+    }
   }
 
   private _handleMoreInfo = (ev: CustomEvent) => {
@@ -777,8 +788,8 @@ export class StatusCardPopup extends LitElement {
       --dialog-content-padding: 12px;
       --ha-dialog-max-width: 96vw !important;
       --ha-dialog-width-md: calc((var(--columns, 4) * 22.5vw) + 3vw) !important;
-      --ha-bottom-sheet-height: calc(100dvh - max(var(--safe-area-inset-top), 48px));
-      --ha-bottom-sheet-max-height: var(--ha-bottom-sheet-height);
+      --ha-bottom-sheet-height: calc(100dvh - max(var(--safe-area-inset-top), 48px)) !important;
+      --ha-bottom-sheet-max-height: var(--ha-bottom-sheet-height) !important;
     }
 
     .dialog-header {
