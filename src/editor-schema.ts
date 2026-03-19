@@ -6,12 +6,12 @@ export function getConfigSchema(
   Filter: string,
   LabelFilter: boolean,
   MultipleAreas: boolean,
-  MultipleFloors: boolean
+  MultipleFloors: boolean,
 ): Schema[] {
   const computeLabel = (
     schema: Schema,
     domain?: string,
-    deviceClass?: string
+    deviceClass?: string,
   ) => computeLabelCallback(hass, schema, domain, deviceClass);
 
   const area = computeLabel({ name: "area" });
@@ -77,36 +77,36 @@ export function getConfigSchema(
         },
         ...(Filter === "area" && MultipleAreas === false
           ? ([
-            { name: "multiple_areas", selector: { boolean: {} } },
-            { name: "area", selector: { area: {} } },
-          ] as const)
+              { name: "multiple_areas", selector: { boolean: {} } },
+              { name: "area", selector: { area: {} } },
+            ] as const)
           : []),
 
         ...(Filter === "area" && MultipleAreas === true
           ? ([
-            { name: "multiple_areas", selector: { boolean: {} } },
-            { name: "area", selector: { area: { multiple: true } } },
-          ] as const)
+              { name: "multiple_areas", selector: { boolean: {} } },
+              { name: "area", selector: { area: { multiple: true } } },
+            ] as const)
           : []),
 
         ...(Filter === "floor" && MultipleFloors === false
           ? ([
-            { name: "multiple_floors", selector: { boolean: {} } },
-            { name: "floor", selector: { floor: {} } },
-          ] as const)
+              { name: "multiple_floors", selector: { boolean: {} } },
+              { name: "floor", selector: { floor: {} } },
+            ] as const)
           : []),
 
         ...(Filter === "floor" && MultipleFloors === true
           ? ([
-            { name: "multiple_floors", selector: { boolean: {} } },
-            { name: "floor", selector: { floor: { multiple: true } } },
-          ] as const)
+              { name: "multiple_floors", selector: { boolean: {} } },
+              { name: "floor", selector: { floor: { multiple: true } } },
+            ] as const)
           : []),
 
         ...(LabelFilter
           ? ([
-            { name: "label", selector: { label: { multiple: true } } },
-          ] as const)
+              { name: "label", selector: { label: { multiple: true } } },
+            ] as const)
           : []),
       ],
     },
@@ -152,7 +152,7 @@ export function getConfigSchema(
 
 export function getAppearanceSchema(
   hass: HomeAssistant,
-  BadgeMode: boolean
+  BadgeMode: boolean,
 ): Schema[] {
   return [
     {
@@ -186,25 +186,25 @@ export function getAppearanceSchema(
     },
     ...(BadgeMode
       ? [
-        {
-          name: "",
-          type: "grid",
-          schema: [
-            {
-              name: "badge_color",
-              selector: {
-                ui_color: { default_color: "state", include_state: true },
+          {
+            name: "",
+            type: "grid",
+            schema: [
+              {
+                name: "badge_color",
+                selector: {
+                  ui_color: { default_color: "state", include_state: true },
+                },
               },
-            },
-            {
-              name: "badge_text_color",
-              selector: {
-                ui_color: { default_color: "state", include_state: true },
+              {
+                name: "badge_text_color",
+                selector: {
+                  ui_color: { default_color: "state", include_state: true },
+                },
               },
-            },
-          ],
-        },
-      ]
+            ],
+          },
+        ]
       : []),
     {
       name: "",
@@ -220,7 +220,7 @@ export function getAppearanceSchema(
           mode: "box",
           options: ["vertical", "horizontal"].map((value) => ({
             label: hass.localize(
-              `ui.panel.lovelace.editor.card.tile.content_layout_options.${value}`
+              `ui.panel.lovelace.editor.card.tile.content_layout_options.${value}`,
             ),
             value,
             image: {
@@ -268,7 +268,7 @@ export const getItemAppearanceSchema = (
   entityId?: string,
   hass?: HomeAssistant,
   badgeMode?: boolean,
-  isGroup?: boolean
+  isGroup?: boolean,
 ): Schema[] => {
   if (type === "domain") {
     return [
@@ -280,19 +280,19 @@ export const getItemAppearanceSchema = (
           { name: "badge_mode", selector: { boolean: {} } },
           ...(badgeMode
             ? ([
-              {
-                name: "badge_color",
-                selector: {
-                  ui_color: { default_color: "state", include_state: true },
+                {
+                  name: "badge_color",
+                  selector: {
+                    ui_color: { default_color: "state", include_state: true },
+                  },
                 },
-              },
-              {
-                name: "badge_text_color",
-                selector: {
-                  ui_color: { default_color: "state", include_state: true },
+                {
+                  name: "badge_text_color",
+                  selector: {
+                    ui_color: { default_color: "state", include_state: true },
+                  },
                 },
-              },
-            ] as const)
+              ] as const)
             : []),
           ...(!isGroup
             ? ([
@@ -337,13 +337,13 @@ export const getItemAppearanceSchema = (
               options: [
                 {
                   label: hass!.localize(
-                    "ui.panel.lovelace.editor.condition-editor.condition.state.state_equal"
+                    "ui.panel.lovelace.editor.condition-editor.condition.state.state_equal",
                   ),
                   value: "false",
                 },
                 {
                   label: hass!.localize(
-                    "ui.panel.lovelace.editor.condition-editor.condition.state.state_not_equal"
+                    "ui.panel.lovelace.editor.condition-editor.condition.state.state_not_equal",
                   ),
                   value: "true",
                 },
@@ -384,7 +384,7 @@ export const getItemActionsSchema = (
   type: "domain" | "entity",
   entityId?: string,
   hass?: HomeAssistant,
-  badgeMode?: boolean
+  badgeMode?: boolean,
 ): Schema[] => {
   const actions: UiAction[] = [
     "more-info",

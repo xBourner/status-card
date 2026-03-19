@@ -7,18 +7,21 @@ import { css } from "lit";
 
 export const parseCss = (
   css?: string | Record<string, any>,
-  styleCache?: Map<string, Record<string, string>>
+  styleCache?: Map<string, Record<string, string>>,
 ): Record<string, string> => {
   if (!css) return {};
 
   if (typeof css === "object") {
-    return Object.entries(css).reduce((acc, [key, value]) => {
-      const finalKey = key.startsWith("--")
-        ? key
-        : key.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-      acc[finalKey] = String(value);
-      return acc;
-    }, {} as Record<string, string>);
+    return Object.entries(css).reduce(
+      (acc, [key, value]) => {
+        const finalKey = key.startsWith("--")
+          ? key
+          : key.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+        acc[finalKey] = String(value);
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
   }
 
   const key = css.trim();
@@ -30,20 +33,23 @@ export const parseCss = (
     .split(";")
     .map((s) => s.trim())
     .filter((s) => s && s.includes(":"))
-    .reduce((acc: Record<string, string>, rule: string) => {
-      const parts = rule.split(":");
-      const keyPart = parts[0];
-      const valuePart = parts.slice(1).join(":");
+    .reduce(
+      (acc: Record<string, string>, rule: string) => {
+        const parts = rule.split(":");
+        const keyPart = parts[0];
+        const valuePart = parts.slice(1).join(":");
 
-      if (keyPart && valuePart !== undefined) {
-        const trimmed = keyPart.trim();
-        const finalKey = trimmed.startsWith("--")
-          ? trimmed
-          : trimmed.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-        acc[finalKey] = valuePart.trim();
-      }
-      return acc;
-    }, {} as Record<string, string>);
+        if (keyPart && valuePart !== undefined) {
+          const trimmed = keyPart.trim();
+          const finalKey = trimmed.startsWith("--")
+            ? trimmed
+            : trimmed.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+          acc[finalKey] = valuePart.trim();
+        }
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
 
   if (styleCache) {
     styleCache.set(key, obj);
@@ -54,7 +60,7 @@ export const parseCss = (
 export const getParsedCss = (
   source?: string | Record<string, any>,
   customization?: any,
-  styleCache?: Map<string, Record<string, string>>
+  styleCache?: Map<string, Record<string, string>>,
 ): Record<string, string> => {
   if (customization && customization._parsedCss)
     return customization._parsedCss;
@@ -287,7 +293,7 @@ export const customizationIndex = (list?: LovelaceCardConfig[]) => {
 export function getCustomizationForType(
   config: LovelaceCardConfig,
   type: string,
-  customizationMap?: Map<string, LovelaceCardConfig>
+  customizationMap?: Map<string, LovelaceCardConfig>,
 ): LovelaceCardConfig | undefined {
   if (!type) return undefined;
   const map = customizationMap || customizationIndex(config.customization);
@@ -295,18 +301,18 @@ export function getCustomizationForType(
 }
 
 export function getResolvedCustomizationValue<
-  T extends keyof LovelaceCardConfig
+  T extends keyof LovelaceCardConfig,
 >(
   config: LovelaceCardConfig,
   key: T,
   domain: string,
   deviceClass?: string,
-  customizationMap?: Map<string, LovelaceCardConfig>
+  customizationMap?: Map<string, LovelaceCardConfig>,
 ): LovelaceCardConfig[T] | undefined {
   const customization = getCustomizationForType(
     config,
     typeKey(domain, deviceClass),
-    customizationMap
+    customizationMap,
   );
   if (customization && customization[key] !== undefined) {
     return customization[key];
@@ -319,12 +325,12 @@ export function getCustomIcon(
   domain: string,
   deviceClass?: string,
   entity?: HassEntity,
-  customizationMap?: Map<string, LovelaceCardConfig>
+  customizationMap?: Map<string, LovelaceCardConfig>,
 ): string {
   const customization = getCustomizationForType(
     config,
     typeKey(domain, deviceClass),
-    customizationMap
+    customizationMap,
   );
 
   if (
@@ -374,12 +380,12 @@ export function getBackgroundColor(
   config: LovelaceCardConfig,
   domain: string,
   deviceClass?: string,
-  customizationMap?: Map<string, LovelaceCardConfig>
+  customizationMap?: Map<string, LovelaceCardConfig>,
 ): string {
   const customization = getCustomizationForType(
     config,
     typeKey(domain, deviceClass),
-    customizationMap
+    customizationMap,
   );
 
   const toColor = (arr: number[]): string => {
@@ -405,7 +411,7 @@ export function getCustomColor(
   config: LovelaceCardConfig,
   domain: string,
   deviceClass?: string,
-  customizationMap?: Map<string, LovelaceCardConfig>
+  customizationMap?: Map<string, LovelaceCardConfig>,
 ): string | undefined {
   return (
     getResolvedCustomizationValue(
@@ -413,7 +419,7 @@ export function getCustomColor(
       "icon_color",
       domain,
       deviceClass,
-      customizationMap
+      customizationMap,
     ) || config.color
   );
 }
@@ -423,7 +429,7 @@ export function getCustomName(
   domain: string,
   deviceClass?: string,
   entity?: HassEntity,
-  customizationMap?: Map<string, LovelaceCardConfig>
+  customizationMap?: Map<string, LovelaceCardConfig>,
 ): string | undefined {
   return (
     getResolvedCustomizationValue(
@@ -431,7 +437,7 @@ export function getCustomName(
       "name",
       domain,
       deviceClass,
-      customizationMap
+      customizationMap,
     ) || entity?.attributes.friendly_name
   );
 }
@@ -440,33 +446,33 @@ export function getCustomCSS(
   config: LovelaceCardConfig,
   domain: string,
   deviceClass?: string,
-  customizationMap?: Map<string, LovelaceCardConfig>
+  customizationMap?: Map<string, LovelaceCardConfig>,
 ): string | undefined {
   return getResolvedCustomizationValue(
     config,
     "icon_css",
     domain,
     deviceClass,
-    customizationMap
+    customizationMap,
   );
 }
 
 function getStatusForDeviceTracker(
   hass: HomeAssistant,
-  isInverted: boolean
+  isInverted: boolean,
 ): string {
   const normalState = translateEntityState(hass, "home", "device_tracker");
   const invertedState = translateEntityState(
     hass,
     "not_home",
-    "device_tracker"
+    "device_tracker",
   );
   return isInverted ? invertedState : normalState;
 }
 
 function getStatusForLockOrCover(
   hass: HomeAssistant,
-  isInverted: boolean
+  isInverted: boolean,
 ): string {
   const normalState = translateEntityState(hass, "open", "cover");
   const invertedState = translateEntityState(hass, "closed", "cover");
@@ -486,7 +492,7 @@ function getStatusForDefault(
   hass: HomeAssistant,
   isInverted: boolean,
   deviceClass?: string,
-  state?: string
+  state?: string,
 ): string {
   if (deviceClass && OPENABLE_DEVICE_CLASSES.includes(deviceClass)) {
     return getStatusForLockOrCover(hass, isInverted);
@@ -504,7 +510,7 @@ export function getStatusProperty(
   state?: string,
   showTotalEntities?: boolean,
   showTotalNumbers?: boolean,
-  customizationMap?: Map<string, LovelaceCardConfig>
+  customizationMap?: Map<string, LovelaceCardConfig>,
 ): string {
   if (showTotalEntities && !showTotalNumbers) {
     return "";
@@ -534,7 +540,7 @@ export function getIconStyles(
     background_color?: string;
     square?: boolean;
     isNotHome?: boolean;
-  } = {}
+  } = {},
 ) {
   const { color, background_color, square, isNotHome } = options;
   const base: Record<string, string | undefined> = {

@@ -2503,17 +2503,23 @@ customElements.define(
   "status-card-popup-confirmation",
   it
 );
-const G = (e, t) => e ? typeof e == "object" ? Object.entries(e).reduce((o, [n, a]) => {
-  const c = n.startsWith("--") ? n : n.replace(/-([a-z])/g, (r, l) => l.toUpperCase());
-  return o[c] = String(a), o;
-}, {}) : (e.trim(), e.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\n/g, " ").split(";").map((o) => o.trim()).filter((o) => o && o.includes(":")).reduce((o, n) => {
-  const a = n.split(":"), c = a[0], r = a.slice(1).join(":");
-  if (c && r !== void 0) {
-    const l = c.trim(), d = l.startsWith("--") ? l : l.replace(/-([a-z])/g, (h, p) => p.toUpperCase());
-    o[d] = r.trim();
-  }
-  return o;
-}, {})) : {}, oe = (e, t, i) => t && t._parsedCss ? t._parsedCss : e ? G(e) : {}, Ro = mt`
+const G = (e, t) => e ? typeof e == "object" ? Object.entries(e).reduce(
+  (o, [n, a]) => {
+    const c = n.startsWith("--") ? n : n.replace(/-([a-z])/g, (r, l) => l.toUpperCase());
+    return o[c] = String(a), o;
+  },
+  {}
+) : (e.trim(), e.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\n/g, " ").split(";").map((o) => o.trim()).filter((o) => o && o.includes(":")).reduce(
+  (o, n) => {
+    const a = n.split(":"), c = a[0], r = a.slice(1).join(":");
+    if (c && r !== void 0) {
+      const l = c.trim(), d = l.startsWith("--") ? l : l.replace(/-([a-z])/g, (h, p) => p.toUpperCase());
+      o[d] = r.trim();
+    }
+    return o;
+  },
+  {}
+)) : {}, oe = (e, t, i) => t && t._parsedCss ? t._parsedCss : e ? G(e) : {}, Ro = mt`
   :host-context(hui-badge[preview]) {
     max-width: 500px;
     overflow: hidden;
@@ -3707,16 +3713,16 @@ let E = class extends N {
                   alt=${s}
                   style="border-radius:${this._config.square ? "20%" : "50%"};object-fit:cover;"
                 />` : i.startsWith("M") ? g`<ha-svg-icon
-                  .path=${i}
-                  style="${n || ""}"
-                ></ha-svg-icon>` : g`<ha-state-icon
-                  .hass=${this.hass}
-                  .stateObj=${c}
-                  .icon=${i}
-                  data-domain=${I(t)}
-                  data-state=${c.state}
-                  style="${n || ""}"
-                ></ha-state-icon>`}
+                    .path=${i}
+                    style="${n || ""}"
+                  ></ha-svg-icon>` : g`<ha-state-icon
+                    .hass=${this.hass}
+                    .stateObj=${c}
+                    .icon=${i}
+                    data-domain=${I(t)}
+                    data-state=${c.state}
+                    style="${n || ""}"
+                  ></ha-state-icon>`}
           </div>
 
           ${_ ? "" : g`<div class="entity-info">
@@ -3995,14 +4001,14 @@ let E = class extends N {
                             alt=${c.attributes.friendly_name || c.entity_id}
                             style=${k(h)}
                           />` : (b = c.attributes.icon) != null && b.startsWith("M") ? g`<ha-svg-icon
-                            class="center"
-                            .path=${c.attributes.icon}
-                            style=${k(h)}
-                          ></ha-svg-icon>` : g`<ha-icon
-                            class="center"
-                            icon=${c.attributes.icon || "mdi:account"}
-                            style=${k(h)}
-                          ></ha-icon>`}
+                              class="center"
+                              .path=${c.attributes.icon}
+                              style=${k(h)}
+                            ></ha-svg-icon>` : g`<ha-icon
+                              class="center"
+                              icon=${c.attributes.icon || "mdi:account"}
+                              style=${k(h)}
+                            ></ha-icon>`}
                     </div>
                     ${this.badge_mode ? "" : g`<div class="entity-info">
                           ${this.hide_content_name ? "" : g`<div class="entity-name">
@@ -4689,6 +4695,12 @@ name:
         margin-top: 12px;
         display: block;
       }
+      ha-form {
+        display: block;
+      }
+      ha-selector {
+        width: 100%;
+      }
       .side-by-side {
         display: flex;
         align-items: center;
@@ -4906,6 +4918,10 @@ class ge extends N {
         --mdc-icon-button-size: 36px;
         color: var(--secondary-text-color);
         padding-left: 4px;
+      }
+      .customize-item ha-selector,
+      .add-item ha-selector {
+        flex: 1;
       }
     `;
   }
@@ -5428,7 +5444,10 @@ let Y = class extends N {
   _commitRulesets() {
     var n;
     const e = this.rulesets.map((a) => {
-      const c = a.rules.reduce((r, l) => (l.key && l.key !== "" && (r[l.key] = l.value ?? ""), r), {});
+      const c = a.rules.reduce(
+        (r, l) => (l.key && l.key !== "" && (r[l.key] = l.value ?? ""), r),
+        {}
+      );
       return {
         group_id: a.group_id ?? "",
         group_icon: a.group_icon ?? "",
@@ -5975,6 +5994,12 @@ name:
       }
       .content {
         margin: 10px 0px;
+      }
+      ha-form {
+        display: block;
+      }
+      ha-selector {
+        width: 100%;
       }
       .title {
         font-size: 18px;

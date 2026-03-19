@@ -181,7 +181,7 @@ export class StatusCard extends LitElement {
       label: LovelaceCardConfig["label"] | null,
       hiddenAreas: string[],
       hiddenLabels: string[],
-      hiddenEntities: string[]
+      hiddenEntities: string[],
     ) =>
       getIncludedEntityIds(
         entities || {},
@@ -195,8 +195,8 @@ export class StatusCard extends LitElement {
           hiddenLabels,
           hiddenEntities,
         },
-        ALLOWED_DOMAINS
-      )
+        ALLOWED_DOMAINS,
+      ),
   );
 
   private _mapIdsToStatesMemo = memoizeOne(
@@ -213,7 +213,7 @@ export class StatusCard extends LitElement {
       }
 
       return true;
-    }
+    },
   );
 
   private _customizationIndexMemo = memoizeOne(customizationIndex);
@@ -234,7 +234,7 @@ export class StatusCard extends LitElement {
       }
 
       return true;
-    }
+    },
   );
 
   private _computeExtraItemsMemo = memoizeOne(
@@ -253,7 +253,7 @@ export class StatusCard extends LitElement {
       }
 
       return true;
-    }
+    },
   );
 
   private _computeGroupItemsMemo = memoizeOne(computeGroupItems);
@@ -262,13 +262,13 @@ export class StatusCard extends LitElement {
 
   public _computeEntityMap = memoizeOne(
     (entities: EntityRegistryEntry[]) =>
-      new Map(entities.map((e) => [e.entity_id, e]))
+      new Map(entities.map((e) => [e.entity_id, e])),
   );
   public _computeDeviceMap = memoizeOne(
-    (devices: DeviceRegistryEntry[]) => new Map(devices.map((d) => [d.id, d]))
+    (devices: DeviceRegistryEntry[]) => new Map(devices.map((d) => [d.id, d])),
   );
   public _computeAreaMap = memoizeOne(
-    (areas: AreaRegistryEntry[]) => new Map(areas.map((a) => [a.area_id, a]))
+    (areas: AreaRegistryEntry[]) => new Map(areas.map((a) => [a.area_id, a])),
   );
 
   private _computeGroupCandidatesMemo = memoizeOne(
@@ -277,7 +277,7 @@ export class StatusCard extends LitElement {
       entities: EntityRegistryEntry[],
       devices: DeviceRegistryEntry[],
       areas: AreaRegistryEntry[],
-      hiddenEntities: string[]
+      hiddenEntities: string[],
     ): Map<string, string[]> => {
       const map = new Map();
       const entityMap = this._computeEntityMap(entities);
@@ -293,12 +293,12 @@ export class StatusCard extends LitElement {
           hiddenEntities,
           entityMap,
           deviceMap,
-          areaMap
+          areaMap,
         );
         map.set(rs.group_id, candidates);
       });
       return map;
-    }
+    },
   );
 
   private _computeGroupResultsMemo = memoizeOne(
@@ -308,7 +308,7 @@ export class StatusCard extends LitElement {
       rulesets: Ruleset[],
       entities: EntityRegistryEntry[],
       devices: DeviceRegistryEntry[],
-      areas: AreaRegistryEntry[]
+      areas: AreaRegistryEntry[],
     ): Map<string, HassEntity[]> => {
       const map = new Map();
       const fakeCard = {
@@ -331,12 +331,12 @@ export class StatusCard extends LitElement {
           states,
           entityMap,
           deviceMap,
-          areaMap
+          areaMap,
         );
         map.set(rs.group_id, results);
       });
       return map;
-    }
+    },
   );
 
   private _entitiesByDomain(): { [domain: string]: HassEntity[] } {
@@ -361,7 +361,7 @@ export class StatusCard extends LitElement {
       label,
       hiddenAreas,
       hiddenLabels,
-      hiddenEntities
+      hiddenEntities,
     );
 
     return this._mapIdsToStatesMemo(includedIds, states);
@@ -381,7 +381,7 @@ export class StatusCard extends LitElement {
         }
         return !deviceClass || dc === deviceClass;
       });
-    }
+    },
   );
 
   private _baseEntities(domain: string, deviceClass?: string): HassEntity[] {
@@ -395,7 +395,7 @@ export class StatusCard extends LitElement {
 
   public _shouldShowTotalEntities(
     domain: string,
-    deviceClass?: string
+    deviceClass?: string,
   ): boolean {
     if (this._config.show_total_entities) return true;
 
@@ -405,7 +405,7 @@ export class StatusCard extends LitElement {
   }
   public _shouldShowTotalNumbers(
     domain: string,
-    deviceClass?: string
+    deviceClass?: string,
   ): boolean {
     if (this._config.show_total_number) return true;
 
@@ -487,7 +487,7 @@ export class StatusCard extends LitElement {
   private _showPopup(
     element: HTMLElement,
     dialogTag: string,
-    dialogParams: StatusCardPopupDialogParams
+    dialogParams: StatusCardPopupDialogParams,
   ): void {
     element.dispatchEvent(
       new CustomEvent("show-dialog", {
@@ -499,14 +499,14 @@ export class StatusCard extends LitElement {
         },
         bubbles: true,
         composed: true,
-      })
+      }),
     );
   }
 
   public computeLabel = memoizeOne(
     (schema: Schema, domain?: string, deviceClass?: string): string => {
       return computeLabelCallback(this.hass, schema, domain, deviceClass);
-    }
+    },
   );
 
   private _openDomainPopup(domain: string | number) {
@@ -525,7 +525,7 @@ export class StatusCard extends LitElement {
     if (typeof domain === "number") {
       const groupId = this._config.content?.[domain];
       const ruleset = this._config.rulesets?.find(
-        (g) => g.group_id === groupId
+        (g) => g.group_id === groupId,
       );
       if (ruleset) {
         const entityMap = this._computeEntityMap(this.__registryEntities);
@@ -536,7 +536,7 @@ export class StatusCard extends LitElement {
           ruleset,
           entityMap,
           deviceMap,
-          areaMap
+          areaMap,
         );
         entities = allEntities.filter((e) => {
           if (computeDomain(e.entity_id) === "climate") {
@@ -562,9 +562,9 @@ export class StatusCard extends LitElement {
     const showAll =
       typeof domain === "string"
         ? this._shouldShowTotalEntities(
-          domain,
-          this.selectedDeviceClass || undefined
-        )
+            domain,
+            this.selectedDeviceClass || undefined,
+          )
         : false;
 
     const dialogTag = "status-card-popup";
@@ -648,7 +648,7 @@ export class StatusCard extends LitElement {
         this.hass.themes,
         this._config.theme,
         undefined,
-        true
+        true,
       );
     }
   }
@@ -675,7 +675,7 @@ export class StatusCard extends LitElement {
       this.__registryEntities,
       this.__registryDevices,
       this.__registryAreas,
-      this.hiddenEntities
+      this.hiddenEntities,
     );
 
     const allGroupEntities = this._computeGroupResultsMemo(
@@ -684,11 +684,11 @@ export class StatusCard extends LitElement {
       this._config.rulesets || [],
       this.__registryEntities,
       this.__registryDevices,
-      this.__registryAreas
+      this.__registryAreas,
     );
 
     const hasGroupContent = this.getGroupItems().some(
-      (g) => (allGroupEntities.get(g.group_id) || []).length > 0
+      (g) => (allGroupEntities.get(g.group_id) || []).length > 0,
     );
     if (hasGroupContent) {
       return true;
@@ -729,7 +729,7 @@ export class StatusCard extends LitElement {
       this.hass.entities,
       this.hiddenEntities,
       this.hiddenLabels,
-      this.hide_person
+      this.hide_person,
     );
     return this._mapPersonIdsToStatesMemo(ids, this.hass.states);
   }
@@ -741,14 +741,14 @@ export class StatusCard extends LitElement {
     return this._computeExtraItemsMemo(
       this._config,
       this.hass.states,
-      this._customizationIndexMemo(this._config.customization)
+      this._customizationIndexMemo(this._config.customization),
     );
   }
 
   private getGroupItems(): GroupItem[] {
     return this._computeGroupItemsMemo(
       this._config.content || [],
-      this._config.rulesets || []
+      this._config.rulesets || [],
     );
   }
 
@@ -768,7 +768,7 @@ export class StatusCard extends LitElement {
 
   private _handleDomainAction(
     domain: string,
-    deviceClass?: string
+    deviceClass?: string,
   ): (ev: ActionHandlerEvent) => void {
     return (ev: ActionHandlerEvent) => {
       handleDomainAction(
@@ -788,7 +788,7 @@ export class StatusCard extends LitElement {
             this.selectedDomain = d;
             this.selectedDeviceClass = dc || null;
           },
-        }
+        },
       );
     };
   }
@@ -796,7 +796,7 @@ export class StatusCard extends LitElement {
   private _handleGroupAction(
     groupId: string,
     index: number,
-    entities: HassEntity[]
+    entities: HassEntity[],
   ): (ev: ActionHandlerEvent) => void {
     return (ev: ActionHandlerEvent) => {
       handleDomainAction(
@@ -820,7 +820,7 @@ export class StatusCard extends LitElement {
           selectDomain: () => {
             this.selectedGroup = index;
           },
-        }
+        },
       );
     };
   }
@@ -829,7 +829,7 @@ export class StatusCard extends LitElement {
     return getCustomizationForType(
       this._config,
       type,
-      this._customizationIndexMemo(this._config.customization)
+      this._customizationIndexMemo(this._config.customization),
     );
   }
 
@@ -840,7 +840,7 @@ export class StatusCard extends LitElement {
       background_color?: string;
       square?: boolean;
       isNotHome?: boolean;
-    } = {}
+    } = {},
   ) {
     return getIconStyles(type, options);
   }
@@ -852,10 +852,10 @@ export class StatusCard extends LitElement {
     const handler = this._handleDomainAction(panel);
     const ah = actionHandler({
       hasHold: hasAction(
-        customization?.hold_action ?? this._config.hold_action
+        customization?.hold_action ?? this._config.hold_action,
       ),
       hasDoubleClick: hasAction(
-        customization?.double_tap_action ?? this._config.double_tap_action
+        customization?.double_tap_action ?? this._config.double_tap_action,
       ),
     });
 
@@ -888,7 +888,7 @@ export class StatusCard extends LitElement {
 
     const itemStyles = getParsedCss(
       customization?.styles?.button || customization?.styles?.card,
-      customization
+      customization,
     );
     const buttonStyles = { ...this._parsedGlobalCss, ...itemStyles };
 
@@ -918,38 +918,38 @@ export class StatusCard extends LitElement {
             style=${styleMap({ ...iconStyles, ...customIconStyles })}
           >
             ${icon.startsWith("/") || icon.startsWith("http")
-        ? html`<img
+              ? html`<img
                   src=${icon}
                   alt=${name}
                   style="border-radius:${this._config.square
-            ? "20%"
-            : "50%"};object-fit:cover;"
+                    ? "20%"
+                    : "50%"};object-fit:cover;"
                 />`
-        : icon.startsWith("M")
-          ? html`<ha-svg-icon
-                  .path=${icon}
-                  style="${icon_css || ""}"
-                ></ha-svg-icon>`
-          : html`<ha-state-icon
-                  .hass=${this.hass}
-                  .stateObj=${stateObj}
-                  .icon=${icon}
-                  data-domain=${computeDomain(panel)}
-                  data-state=${stateObj.state}
-                  style="${icon_css || ""}"
-                ></ha-state-icon>`}
+              : icon.startsWith("M")
+                ? html`<ha-svg-icon
+                    .path=${icon}
+                    style="${icon_css || ""}"
+                  ></ha-svg-icon>`
+                : html`<ha-state-icon
+                    .hass=${this.hass}
+                    .stateObj=${stateObj}
+                    .icon=${icon}
+                    data-domain=${computeDomain(panel)}
+                    data-state=${stateObj.state}
+                    style="${icon_css || ""}"
+                  ></ha-state-icon>`}
           </div>
 
           ${!showBadge
-        ? html`<div class="entity-info">
+            ? html`<div class="entity-info">
                 ${!this.hide_content_name
-            ? html`<div
+                  ? html`<div
                       class="entity-name"
                       style=${styleMap(this._parsedGlobalNameCss)}
                     >
                       ${name}
                     </div>`
-            : ""}
+                  : ""}
                 <div
                   class="entity-state"
                   style=${styleMap(this._parsedGlobalStateCss)}
@@ -962,7 +962,7 @@ export class StatusCard extends LitElement {
                   ></state-display>
                 </div>
               </div>`
-        : ""}
+            : ""}
         </div>
       </ha-tab-group-tab>
     `;
@@ -974,7 +974,7 @@ export class StatusCard extends LitElement {
       this.__registryEntities,
       this.__registryDevices,
       this.__registryAreas,
-      this.hiddenEntities
+      this.hiddenEntities,
     );
 
     const allGroupEntities = this._computeGroupResultsMemo(
@@ -983,7 +983,7 @@ export class StatusCard extends LitElement {
       this._config.rulesets || [],
       this.__registryEntities,
       this.__registryDevices,
-      this.__registryAreas
+      this.__registryAreas,
     );
     const entities = allGroupEntities.get(ruleset.group_id) || [];
 
@@ -991,20 +991,21 @@ export class StatusCard extends LitElement {
 
     const groupId =
       ruleset.group_id ||
-      `${this.hass!.localize("component.group.entity_component._.name")} ${index + 1
+      `${this.hass!.localize("component.group.entity_component._.name")} ${
+        index + 1
       }`;
     const groupIcon = ruleset.group_icon || mdiFormatListGroup;
     const color = getCustomColor(
       this._config,
       groupId,
       undefined,
-      this._customizationIndexMemo(this._config.customization)
+      this._customizationIndexMemo(this._config.customization),
     );
     const background_color = getBackgroundColor(
       this._config,
       groupId,
       undefined,
-      this._customizationIndexMemo(this._config.customization)
+      this._customizationIndexMemo(this._config.customization),
     );
 
     const customization = this.getCustomizationForType(groupId);
@@ -1013,10 +1014,10 @@ export class StatusCard extends LitElement {
 
     const ah = actionHandler({
       hasHold: hasAction(
-        customization?.hold_action ?? this._config.hold_action
+        customization?.hold_action ?? this._config.hold_action,
       ),
       hasDoubleClick: hasAction(
-        customization?.double_tap_action ?? this._config.double_tap_action
+        customization?.double_tap_action ?? this._config.double_tap_action,
       ),
     });
 
@@ -1045,7 +1046,7 @@ export class StatusCard extends LitElement {
     };
     const itemStyles = getParsedCss(
       customization?.styles?.button || customization?.styles?.card,
-      customization
+      customization,
     );
     const buttonStyles = { ...this._parsedGlobalCss, ...itemStyles };
 
@@ -1067,10 +1068,10 @@ export class StatusCard extends LitElement {
         class=${showBadge ? "badge-mode" : ""}
         style=${styleMap(badgeStyles)}
         data-badge=${ifDefined(
-      showBadge && entities.length > 0
-        ? String(entities.length)
-        : undefined
-    )}
+          showBadge && entities.length > 0
+            ? String(entities.length)
+            : undefined,
+        )}
       >
         <div
           class="entity ${classMap(contentClasses)}"
@@ -1081,19 +1082,19 @@ export class StatusCard extends LitElement {
             style=${styleMap({ ...iconStyles, ...customIconStyles })}
           >
             ${groupIcon.startsWith("M")
-        ? html`<ha-svg-icon .path=${groupIcon}></ha-svg-icon>`
-        : html`<ha-icon icon=${groupIcon}></ha-icon>`}
+              ? html`<ha-svg-icon .path=${groupIcon}></ha-svg-icon>`
+              : html`<ha-icon icon=${groupIcon}></ha-icon>`}
           </div>
           ${!showBadge
-        ? html`<div class="entity-info">
+            ? html`<div class="entity-info">
                 ${!this.hide_content_name
-            ? html`<div
+                  ? html`<div
                       class="entity-name"
                       style=${styleMap(this._parsedGlobalNameCss)}
                     >
                       ${groupId}
                     </div>`
-            : ""}
+                  : ""}
                 <div
                   class="entity-state"
                   style=${styleMap(this._parsedGlobalStateCss)}
@@ -1102,7 +1103,7 @@ export class StatusCard extends LitElement {
                   ${ruleset.group_status ? ` ${ruleset.group_status}` : ""}
                 </div>
               </div>`
-        : ""}
+            : ""}
         </div>
       </ha-tab-group-tab>
     `;
@@ -1122,19 +1123,19 @@ export class StatusCard extends LitElement {
       this._config,
       domain,
       deviceClass,
-      this._customizationIndexMemo(this._config.customization)
+      this._customizationIndexMemo(this._config.customization),
     );
     const customization = this.getCustomizationForType(
-      typeKey(domain, deviceClass)
+      typeKey(domain, deviceClass),
     );
 
     const handler = this._handleDomainAction(domain, deviceClass);
     const ah = actionHandler({
       hasHold: hasAction(
-        customization?.hold_action ?? this._config.hold_action
+        customization?.hold_action ?? this._config.hold_action,
       ),
       hasDoubleClick: hasAction(
-        customization?.double_tap_action ?? this._config.double_tap_action
+        customization?.double_tap_action ?? this._config.double_tap_action,
       ),
     });
 
@@ -1148,7 +1149,7 @@ export class StatusCard extends LitElement {
         this._config,
         domain,
         deviceClass,
-        this._customizationIndexMemo(this._config.customization)
+        this._customizationIndexMemo(this._config.customization),
       ),
       square: this._config.square,
     });
@@ -1163,7 +1164,7 @@ export class StatusCard extends LitElement {
         this.hass,
         this._config,
         domain,
-        deviceClass
+        deviceClass,
       )}`;
     } else if (this._shouldShowTotalEntities(domain, deviceClass)) {
       stateText = `${total.length}`;
@@ -1172,7 +1173,7 @@ export class StatusCard extends LitElement {
         this.hass,
         this._config,
         domain,
-        deviceClass
+        deviceClass,
       )}`;
     }
 
@@ -1194,7 +1195,7 @@ export class StatusCard extends LitElement {
 
     const itemStyles = getParsedCss(
       customization?.styles?.button || customization?.styles?.card,
-      customization
+      customization,
     );
     const buttonStyles = { ...this._parsedGlobalCss, ...itemStyles };
 
@@ -1214,8 +1215,10 @@ export class StatusCard extends LitElement {
         class=${showBadge ? "badge-mode" : ""}
         style=${styleMap(badgeStyles)}
         data-badge=${ifDefined(
-      showBadge && entities.length > 0 ? String(entities.length) : undefined
-    )}
+          showBadge && entities.length > 0
+            ? String(entities.length)
+            : undefined,
+        )}
       >
         <div
           class="entity ${classMap(contentClasses)}"
@@ -1226,22 +1229,22 @@ export class StatusCard extends LitElement {
             style=${styleMap({ ...iconStyles, ...customIconStyles })}
           >
             ${(() => {
-        const icon = getCustomIcon(this._config, domain, deviceClass);
-        return icon.startsWith("M")
-          ? html`<ha-svg-icon .path=${icon}></ha-svg-icon>`
-          : html`<ha-icon icon=${icon}></ha-icon>`;
-      })()}
+              const icon = getCustomIcon(this._config, domain, deviceClass);
+              return icon.startsWith("M")
+                ? html`<ha-svg-icon .path=${icon}></ha-svg-icon>`
+                : html`<ha-icon icon=${icon}></ha-icon>`;
+            })()}
           </div>
           ${!showBadge
-        ? html`<div class="entity-info">
+            ? html`<div class="entity-info">
                 ${!this.hide_content_name
-            ? html`<div
+                  ? html`<div
                       class="entity-name"
                       style=${styleMap(this._parsedGlobalNameCss)}
                     >
                       ${name}
                     </div>`
-            : ""}
+                  : ""}
                 <div
                   class="entity-state"
                   style=${styleMap(this._parsedGlobalStateCss)}
@@ -1249,7 +1252,7 @@ export class StatusCard extends LitElement {
                   ${stateText}
                 </div>
               </div>`
-        : ""}
+            : ""}
         </div>
       </ha-tab-group-tab>
     `;
@@ -1260,11 +1263,11 @@ export class StatusCard extends LitElement {
       extra: ExtraItem[],
       group: GroupItem[],
       domain: DomainItem[],
-      deviceClass: DeviceClassItem[]
+      deviceClass: DeviceClassItem[],
     ): AnyItem[] =>
       [...extra, ...group, ...domain, ...deviceClass].sort(
-        (a, b) => a.order - b.order
-      )
+        (a, b) => a.order - b.order,
+      ),
   );
 
   protected renderTab(item: AnyItem): TemplateResult {
@@ -1290,7 +1293,7 @@ export class StatusCard extends LitElement {
       extra,
       group,
       domain,
-      deviceClass
+      deviceClass,
     );
 
     const personEntities = this.getPersonItems();
@@ -1314,33 +1317,33 @@ export class StatusCard extends LitElement {
         <ha-tab-group without-scroll-controls class=${classMap(noScroll)}>
           <ha-tab-group-tab style="display:none" active></ha-tab-group-tab>
           ${repeat(
-      personEntities,
-      (entity) => entity.entity_id,
-      (entity) => {
-        const entityState = this.hass!.states[entity.entity_id];
-        const isNotHome = entityState?.state !== "home";
-        const contentClasses = {
-          horizontal: this._config.content_layout === "horizontal",
-        };
-        const iconStyles = {
-          "border-radius": this._config?.square ? "20%" : "50%",
-          filter: isNotHome ? "grayscale(100%)" : "none",
-        };
+            personEntities,
+            (entity) => entity.entity_id,
+            (entity) => {
+              const entityState = this.hass!.states[entity.entity_id];
+              const isNotHome = entityState?.state !== "home";
+              const contentClasses = {
+                horizontal: this._config.content_layout === "horizontal",
+              };
+              const iconStyles = {
+                "border-radius": this._config?.square ? "20%" : "50%",
+                filter: isNotHome ? "grayscale(100%)" : "none",
+              };
 
-        const personHomeColor = this._config.person_home_color;
-        const personAwayColor = this._config.person_away_color;
-        const personHomeIcon =
-          this._config.person_home_icon || "mdi:home";
-        const personAwayIcon =
-          this._config.person_away_icon || "mdi:home-export-outline";
+              const personHomeColor = this._config.person_home_color;
+              const personAwayColor = this._config.person_away_color;
+              const personHomeIcon =
+                this._config.person_home_icon || "mdi:home";
+              const personAwayIcon =
+                this._config.person_away_icon || "mdi:home-export-outline";
 
-        const badgeColor = isNotHome
-          ? personAwayColor || "red"
-          : personHomeColor || "green";
+              const badgeColor = isNotHome
+                ? personAwayColor || "red"
+                : personHomeColor || "green";
 
-        const badgeIcon = isNotHome ? personAwayIcon : personHomeIcon;
+              const badgeIcon = isNotHome ? personAwayIcon : personHomeIcon;
 
-        return html`
+              return html`
                 <ha-tab-group-tab
                   slot="nav"
                   panel=${entity.entity_id}
@@ -1348,83 +1351,83 @@ export class StatusCard extends LitElement {
                   class=${this.badge_mode ? "badge-mode" : ""}
                 >
                   ${this.badge_mode
-            ? html`<div
+                    ? html`<div
                         class="person-badge"
                         style=${styleMap({
-              "--status-card-badge-color": badgeColor
-                ? `var(--${badgeColor}-color)`
-                : undefined,
-              "--status-card-badge-text-color": this
-                .badge_text_color
-                ? `var(--${this.badge_text_color}-color)`
-                : undefined,
-            })}
+                          "--status-card-badge-color": badgeColor
+                            ? `var(--${badgeColor}-color)`
+                            : undefined,
+                          "--status-card-badge-text-color": this
+                            .badge_text_color
+                            ? `var(--${this.badge_text_color}-color)`
+                            : undefined,
+                        })}
                       >
                         ${badgeIcon.startsWith("M")
-                ? html`<ha-svg-icon .path=${badgeIcon}></ha-svg-icon>`
-                : html`<ha-icon icon=${badgeIcon}></ha-icon>`}
+                          ? html`<ha-svg-icon .path=${badgeIcon}></ha-svg-icon>`
+                          : html`<ha-icon icon=${badgeIcon}></ha-icon>`}
                       </div>`
-            : ""}
+                    : ""}
                   <div class="entity ${classMap(contentClasses)}">
                     <div class="entity-icon" style=${styleMap(iconStyles)}>
                       ${entity.attributes.entity_picture
-            ? html`<img
+                        ? html`<img
                             src=${entity.attributes.entity_picture}
                             alt=${entity.attributes.friendly_name ||
-              entity.entity_id}
+                            entity.entity_id}
                             style=${styleMap(iconStyles)}
                           />`
-            : entity.attributes.icon?.startsWith("M")
-              ? html`<ha-svg-icon
-                            class="center"
-                            .path=${entity.attributes.icon}
-                            style=${styleMap(iconStyles)}
-                          ></ha-svg-icon>`
-              : html`<ha-icon
-                            class="center"
-                            icon=${entity.attributes.icon || "mdi:account"}
-                            style=${styleMap(iconStyles)}
-                          ></ha-icon>`}
+                        : entity.attributes.icon?.startsWith("M")
+                          ? html`<ha-svg-icon
+                              class="center"
+                              .path=${entity.attributes.icon}
+                              style=${styleMap(iconStyles)}
+                            ></ha-svg-icon>`
+                          : html`<ha-icon
+                              class="center"
+                              icon=${entity.attributes.icon || "mdi:account"}
+                              style=${styleMap(iconStyles)}
+                            ></ha-icon>`}
                     </div>
                     ${!this.badge_mode
-            ? html`<div class="entity-info">
+                      ? html`<div class="entity-info">
                           ${!this.hide_content_name
-                ? html`<div class="entity-name">
+                            ? html`<div class="entity-name">
                                 ${entity.attributes.friendly_name?.split(
-                  " "
-                )[0] || ""}
+                                  " ",
+                                )[0] || ""}
                               </div>`
-                : ""}
+                            : ""}
                           <div class="entity-state">
                             ${getStatusProperty(
-                  this.hass!,
-                  this._config,
-                  "person",
-                  undefined,
-                  entityState?.state
-                )}
+                              this.hass!,
+                              this._config,
+                              "person",
+                              undefined,
+                              entityState?.state,
+                            )}
                           </div>
                         </div>`
-            : ""}
+                      : ""}
                   </div>
                 </ha-tab-group-tab>
               `;
-      }
-    )}
+            },
+          )}
           ${repeat(
-      sorted,
-      (i) =>
-        i.type === "extra"
-          ? i.panel
-          : i.type === "domain"
-            ? i.domain
-            : i.type === "deviceClass"
-              ? `${i.domain}-${i.deviceClass}`
-              : i.type === "group"
-                ? `group-${i.group_id}`
-                : "",
-      (i) => this.renderTab(i)
-    )}
+            sorted,
+            (i) =>
+              i.type === "extra"
+                ? i.panel
+                : i.type === "domain"
+                  ? i.domain
+                  : i.type === "deviceClass"
+                    ? `${i.domain}-${i.deviceClass}`
+                    : i.type === "group"
+                      ? `group-${i.group_id}`
+                      : "",
+            (i) => this.renderTab(i),
+          )}
         </ha-tab-group>
       </ha-card>
     `;

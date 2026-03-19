@@ -191,6 +191,10 @@ abstract class BaseItemsEditor extends LitElement {
         color: var(--secondary-text-color);
         padding-left: 4px;
       }
+      .customize-item ha-selector,
+      .add-item ha-selector {
+        flex: 1;
+      }
     `;
   }
 }
