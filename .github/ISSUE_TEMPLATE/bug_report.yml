@@ -74,6 +74,7 @@ body:
     label: Card Version
     description: What version of the card are you running?
     options:
+    - v3.2.4b4
     - v3.2.4b3
     - v3.2.4b2
     - v3.2.4b1
