@@ -380,12 +380,15 @@ export class StatusCardPopup extends LitElement {
     if (!this.hass)
       return this._showAll ? this._allEntities : this._activeEntities;
 
-    const updatedAll = this._allEntities.map((e) => this._getUpdatedEntity(e));
-
     if (this._showAll) {
-      return updatedAll;
+      return this._allEntities.map((e) => this._getUpdatedEntity(e));
     }
 
+    if (this.selectedGroup !== undefined) {
+      return this._activeEntities.map((e) => this._getUpdatedEntity(e));
+    }
+
+    const updatedAll = this._allEntities.map((e) => this._getUpdatedEntity(e));
     return updatedAll.filter((e) => this._isEntityActive(e));
   }
 
@@ -596,6 +599,7 @@ export class StatusCardPopup extends LitElement {
     const displayColumns = !ungroupAreas
       ? Math.min(columns, Math.max(1, maxCardsPerArea))
       : Math.min(columns, Math.max(1, ents.length));
+    this.style.setProperty("--columns", String(displayColumns));
 
     const key = typeKey(domain, deviceClass);
     const domainCustomization =
@@ -609,7 +613,6 @@ export class StatusCardPopup extends LitElement {
         .hass=${this.hass}
         .open=${this.open}
         @closed=${this._onDialogClosed}
-        style="--columns: ${displayColumns};"
         flexcontent
       >
         <ha-icon-button
@@ -772,13 +775,14 @@ export class StatusCardPopup extends LitElement {
               `}
           ${ents.length === 0 ? this.content : ""}
         </div>
-      </wa-dialog>
+      </ha-adaptive-dialog>
     `;
   }
 
   static styles = css`
     :host {
       display: block;
+      --responsive-columns: var(--columns, 4);
     }
     :host([hidden]) {
       display: none;
@@ -787,7 +791,7 @@ export class StatusCardPopup extends LitElement {
     ha-adaptive-dialog {
       --dialog-content-padding: 12px;
       --ha-dialog-max-width: 96vw !important;
-      --ha-dialog-width-md: calc((var(--columns, 4) * 22.5vw) + 3vw) !important;
+      --ha-dialog-width-md: calc((var(--responsive-columns) * 22.5vw) + 3vw) !important;
       --ha-bottom-sheet-height: calc(100dvh - max(var(--safe-area-inset-top), 48px)) !important;
       --ha-bottom-sheet-max-height: var(--ha-bottom-sheet-height) !important;
     }
@@ -851,7 +855,7 @@ export class StatusCardPopup extends LitElement {
     }
     .entity-cards {
       display: grid;
-      grid-template-columns: repeat(var(--columns, 4), 22.5vw);
+      grid-template-columns: repeat(var(--responsive-columns), 1fr);
       gap: 8px;
       width: 100%;
       box-sizing: border-box;
@@ -860,20 +864,16 @@ export class StatusCardPopup extends LitElement {
       padding: 8px;
     }
     .entity-card {
-      width: 22.5vw;
+      width: 100%;
       min-width: 0;
       box-sizing: border-box;
     }
     @media (max-width: 1200px) {
-      wa-dialog::part(dialog), wa-dialog::part(panel) {
-        width: 96vw;
-        max-width: 96vw;
+      :host {
+        --responsive-columns: min(var(--columns, 4), 3);
       }
-      .entity-card {
-        width: 30vw;
-      }
-      .entity-cards {
-        grid-template-columns: repeat(3, 30vw);
+      ha-adaptive-dialog {
+        --ha-dialog-width-md: calc((var(--responsive-columns) * 44.5vw) + 3vw) !important;
       }
       h4 {
         width: 100%;
@@ -885,15 +885,11 @@ export class StatusCardPopup extends LitElement {
     }
 
     @media (max-width: 900px) {
-      wa-dialog::part(dialog), wa-dialog::part(panel) {
-        width: 96vw;
-        max-width: 96vw;
+      :host {
+        --responsive-columns: min(var(--columns, 4), 2);
       }
-      .entity-card {
-        width: 45vw;
-      }
-      .entity-cards {
-        grid-template-columns: repeat(2, 45vw);
+      ha-adaptive-dialog {
+        --ha-dialog-width-md: calc((var(--responsive-columns) * 29.5vw) + 3vw) !important;
       }
       h4 {
         width: 100%;
@@ -904,20 +900,18 @@ export class StatusCardPopup extends LitElement {
       }
     }
 
-    @media (max-width: 700px) {
-      wa-dialog::part(dialog), wa-dialog::part(panel) {
-        width: 96vw;
-        max-width: 96vw;
+    @media (max-width: 600px) {
+      :host {
+        --responsive-columns: 1;
+      }
+      ha-adaptive-dialog {
         --dialog-content-padding: 8px;
+        --ha-dialog-width-md: 100vw !important;
       }
       .cards-wrapper {
         align-items: stretch;
         width: 100%;
         overflow-x: hidden;
-      }
-      .entity-card {
-        width: 100%;
-        box-sizing: border-box;
       }
       .entity-cards {
         grid-template-columns: 1fr;
@@ -933,6 +927,7 @@ export class StatusCardPopup extends LitElement {
     }
   `;
 }
+
 
 customElements.define("status-card-popup", StatusCardPopup);
 

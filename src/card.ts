@@ -538,15 +538,7 @@ export class StatusCard extends LitElement {
           deviceMap,
           areaMap,
         );
-        entities = allEntities.filter((e) => {
-          if (computeDomain(e.entity_id) === "climate") {
-            const hvacAction = e.attributes.hvac_action;
-            if (hvacAction !== undefined) {
-              return !["idle", "off"].includes(hvacAction);
-            }
-          }
-          return !STATES_OFF.includes(e.state);
-        });
+        entities = allEntities;
       } else {
         entities = [];
         allEntities = [];
