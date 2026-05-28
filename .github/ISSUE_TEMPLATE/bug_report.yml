@@ -37,6 +37,7 @@ body:
     description: What version of HA are you running? Please update version if you
       don't see your running verision in this list.
     options:
+    - 2026.6.0b0
     - 2026.5.4
     - 2026.5.3
     - 2026.5.2
@@ -63,16 +64,6 @@ body:
     - 2026.4.0b1
     - 2026.4.0b0
     - 2026.4.0
-    - 2026.3.4
-    - 2026.3.3
-    - 2026.3.2
-    - 2026.3.1
-    - 2026.3.0b4
-    - 2026.3.0b3
-    - 2026.3.0b2
-    - 2026.3.0b1
-    - 2026.3.0b0
-    - 2026.3.0
     default: 0
   validations:
     required: true
