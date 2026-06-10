@@ -1,5 +1,9 @@
 ---
 title: FAQ
+tags:
+  - FAQ
+hide:
+  - tags  
 ---
 
 # ❓ FAQ

@@ -1,5 +1,9 @@
 ---
 title: Customization
+tags:
+  - Customization
+hide:
+  - tags
 ---
 
 # 🎨 Customization 
