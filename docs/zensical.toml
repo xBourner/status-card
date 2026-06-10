@@ -1,0 +1,61 @@
+[project]
+site_name = "Status Card Docs"
+site_description = "A powerful custom card for Home Assistant Dashboards"
+site_url = "https://status-card.docs"
+repo_url = "https://github.com/xBourner/status-card"
+repo_name = "xBourner/status-card"
+extra_css = ["stylesheet/extra.css"]
+extra_javascript = ["javascripts/hero-animation.js"]
+copyright = "Copyright &copy; <script>document.write(new Date().getFullYear())</script> xBourner"
+
+# Navigation mit Keys für die Übersetzung
+nav = [
+  {"Home" = "index.md"},
+  {"Installation" = "installation.md"},
+  {"Configuration" = "config.md"},
+  {"Customization" = "customization.md"},
+  {"FAQ" = "faq.md"}
+]
+
+[project.theme]
+name = "material"
+custom_dir = "overrides"
+features = [
+    "navigation.tabs",
+    "navigation.footer",
+    "navigation.top",
+    "navigation.sections",
+    "search.highlight",
+    "toc"
+]
+
+[[project.theme.palette]] 
+scheme = "default"
+primary = "light blue"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "light blue"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/xBourner/status-card"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/discord"
+link = "https://discord.gg/RvwE65hJ"
+
+[project.extra.tags]
+Setup = "setup"
+Customization = "customization"
+
+[project.theme.icon.tag]
+default = "lucide/hash"
+setup = "fontawesome/solid/gear"
+customization = "fontawesome/solid/palette"

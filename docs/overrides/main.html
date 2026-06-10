@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+
+{% block tabs %}
+{{ super() }}
+
+{% if page.url == "" or page.is_homepage %}
+<!-- Background video for the hero section -->
+<video class="video-hero-media" autoplay muted loop playsinline preload="auto" id="hero-bg-video">
+  <source src="/img/blue_mobile.mp4" type="video/mp4" media="(max-width: 767px)">
+  <source src="/img/blue_desktop.mp4" type="video/mp4" media="(min-width: 768px)">
+</video>
+
+{# Durch das Einfügen am Ende des Tabs-Blocks stellen wir sicher, dass der Hero IMMER unterhalb der Navbar erscheint #}
+<div class="hero-section">
+  <div class="hero-content-wrapper">
+    <div class="hero-group initial-group">
+      <div class="hero-text-block">
+        <h1 class="hero-title">{{ page.meta.hero_title or config.site_name }}</h1>
+        <p class="hero-subtitle">{{ page.meta.hero_subtitle or config.site_description }}</p>
+      </div>
+
+      <div class="video-buttons u-btn-group">
+        <!-- Left Button -->
+        <a href="installation/" class="u-btn-native u-btn-dark">
+          {{ page.meta.hero_cta_primary or "START INSTALLATION" }}
+          <div class="label_corner">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="48" fill="none" viewBox="0 0 18 48">
+              <path class="btn-path"
+                d="M0 0h5.63c7.808 0 13.536 7.337 11.642 14.91l-6.09 24.359A11.527 11.527 0 0 1 0 48V0Z"></path>
+            </svg>
+          </div>
+        </a>
+
+        <!-- Right Button -->
+        <a href="#features" class="u-btn-native u-btn-lime">
+          <svg xmlns="http://www.w3.org/2000/svg" width="51" height="48" fill="none" viewBox="0 0 51 48"
+            class="btn-shape">
+            <path class="btn-path"
+              d="M6.728 9.09A12 12 0 0 1 18.369 0H39c6.627 0 12 5.373 12 12v24c0 6.627-5.373 12-12 12H12.37C4.561 48-1.167 40.663.727 33.09l6-24Z">
+            </path>
+          </svg>
+          <span class="btn-icon">{{ page.meta.hero_cta_secondary or "→" }}</span>
+        </a>
+      </div>
+    </div>
+    <div class="hero-group scroll-group">
+      <h2 class="hero-title">{{ page.meta.hero_scroll_title or "The ultimate overview." }}</h2>
+      <p class="hero-subtitle">
+        {{ page.meta.hero_scroll_subtitle or "Automatically generated, intelligently filtered, and fully responsive.<br>Your entities, exactly as they should be." }}
+      </p>
+    </div>
+  </div>
+
+  <div class="hero-bottom-transition"></div>
+</div>
+{% endif %}
+{% endblock %}
