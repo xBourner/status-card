@@ -43,6 +43,11 @@ import {
   SmartGroupItem,
 } from "./ha/types";
 
+function omitKey<T extends Record<string, unknown>>(obj: T, key: string): Omit<T, string> {
+  const { [key]: _, ...rest } = obj;
+  return rest as Omit<T, string>;
+}
+
 @customElement("status-card-editor")
 export class StatusCardEditor extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -64,6 +69,7 @@ export class StatusCardEditor extends LitElement {
 
   private computeLabel = memoizeOne(
     (schema: Schema, domain?: string, deviceClass?: string): string => {
+      if (!this.hass || !schema) return schema?.name || "";
       return computeLabelCallback(this.hass, schema, domain, deviceClass);
     },
   );
@@ -97,14 +103,14 @@ export class StatusCardEditor extends LitElement {
     const floor = "floor";
 
     if (this._config.filter === area && this._config.floor !== undefined) {
-      delete this._config.floor;
-      fireEvent(this, "config-changed", { config: { ...this._config } });
+      this._config = omitKey(this._config, "floor");
+      fireEvent(this, "config-changed", { config: this._config });
     } else if (
       this._config.filter === floor &&
       this._config.area !== undefined
     ) {
-      delete this._config.area;
-      fireEvent(this, "config-changed", { config: { ...this._config } });
+      this._config = omitKey(this._config, "area");
+      fireEvent(this, "config-changed", { config: this._config });
     }
   }
 
@@ -136,7 +142,7 @@ export class StatusCardEditor extends LitElement {
           this._config.label !== undefined) ||
         (Array.isArray(this._config.label) && this._config.label.length === 0)
       ) {
-        delete this._config.label;
+        this._config = omitKey(this._config, "label");
         updated = true;
       }
 
@@ -201,17 +207,8 @@ export class StatusCardEditor extends LitElement {
         labelsChanged ||
         isInitialLoadWithoutContent
       ) {
+        const dynamicOrder = this._dynamicOrder;
         const possibleToggleDomains = this.possibleToggleDomains;
-        const dynamicOrder: string[] = [];
-        for (const domain of Object.keys(DOMAIN_ICONS)) {
-          const icons = DOMAIN_ICONS[domain];
-          for (const key of Object.keys(icons)) {
-            if (key !== "on" && key !== "off") {
-              dynamicOrder.push(`${domain} - ${key}`);
-            }
-          }
-          dynamicOrder.push(domain);
-        }
         const sortedToggleDomains = possibleToggleDomains
           .map((a) => this._normalizeContentEntry(a))
           .sort((a, b) => {
@@ -411,6 +408,20 @@ export class StatusCardEditor extends LitElement {
       },
     ];
   });
+
+  private _dynamicOrder = (() => {
+    const order: string[] = [];
+    for (const domain of Object.keys(DOMAIN_ICONS)) {
+      const icons = DOMAIN_ICONS[domain];
+      for (const key of Object.keys(icons)) {
+        if (key !== "on" && key !== "off") {
+          order.push(`${domain} - ${key}`);
+        }
+      }
+      order.push(domain);
+    }
+    return order;
+  })();
 
   private _entitiesSchema = memoizeOne((HideFilter: string) => {
     const areaLabel = this.computeLabel({ name: "area" });
@@ -614,16 +625,7 @@ export class StatusCardEditor extends LitElement {
       }
     }
 
-    const dynamicOrder: string[] = [];
-    for (const domain of Object.keys(DOMAIN_ICONS)) {
-      const icons = DOMAIN_ICONS[domain];
-      for (const key of Object.keys(icons)) {
-        if (key !== "on" && key !== "off") {
-          dynamicOrder.push(`${domain} - ${key}`);
-        }
-      }
-      dynamicOrder.push(domain);
-    }
+    const dynamicOrder = this._dynamicOrder;
 
     const formattedDeviceClasses = [...deviceClassDomainPairs];
 
@@ -682,7 +684,7 @@ export class StatusCardEditor extends LitElement {
   }
 
   private _itemChanged(
-    ev: CustomEvent<LovelaceCardConfig>,
+    ev: CustomEvent<{ config: LovelaceCardConfig }>,
     editorTarget: { index?: number } | undefined,
     customizationKey: "customization",
   ): void {
@@ -693,7 +695,7 @@ export class StatusCardEditor extends LitElement {
     const index = editorTarget?.index;
     if (index != undefined) {
       const customization = [...(this._config.customization ?? [])];
-      customization[index] = ev.detail;
+      customization[index] = ev.detail.config;
       fireEvent(this, "config-changed", {
         config: { ...this._config, customization },
       });
@@ -732,11 +734,11 @@ export class StatusCardEditor extends LitElement {
     this._editItem(ev, editorKey);
   }
 
-  private _itemChangedDomain(ev: CustomEvent<LovelaceCardConfig>): void {
+  private _itemChangedDomain(ev: CustomEvent<{ config: LovelaceCardConfig }>): void {
     this._itemChanged(ev, this._subElementEditorDomain, "customization");
   }
 
-  private _itemChangedEntity(ev: CustomEvent<LovelaceCardConfig>): void {
+  private _itemChangedEntity(ev: CustomEvent<{ config: LovelaceCardConfig }>): void {
     this._itemChanged(ev, this._subElementEditorEntity, "customization");
   }
 
@@ -767,7 +769,7 @@ export class StatusCardEditor extends LitElement {
   private _renderSubElementEditor(
     editorKey: "domain" | "entity",
     goBackHandler: () => void,
-    itemChangedHandler: (ev: CustomEvent<LovelaceCardConfig>) => void,
+    itemChangedHandler: (ev: CustomEvent<{ config: LovelaceCardConfig }>) => void,
   ) {
     const editorName = `_subElementEditor${
       editorKey.charAt(0).toUpperCase() + editorKey.slice(1)
@@ -808,7 +810,7 @@ export class StatusCardEditor extends LitElement {
   }
 
   private _customizationChanged(
-    ev: CustomEvent<LovelaceCardConfig[]>,
+    ev: CustomEvent<{ config: LovelaceCardConfig[] }>,
     customizationKey: "domain",
   ): void {
     ev.stopPropagation();
@@ -818,13 +820,13 @@ export class StatusCardEditor extends LitElement {
     fireEvent(this, "config-changed", {
       config: {
         ...this._config,
-        customization: ev.detail,
+        customization: ev.detail.config,
       } as LovelaceCardConfig,
     });
   }
 
   private _customizationChangedDomain(
-    ev: CustomEvent<LovelaceCardConfig[]>,
+    ev: CustomEvent<{ config: LovelaceCardConfig[] }>,
   ): void {
     this._customizationChanged(ev, "domain");
   }
@@ -1635,7 +1637,7 @@ name:
                   class="secondary"
                   .path=${mdiTextBoxEdit}
                 ></ha-svg-icon>
-                ${this.computeLabel.bind(this)({ name: "edit_domains_dc" })}
+                ${this.computeLabel({ name: "edit_domains_dc" })}
               </div>
               <div class="content">
                 <ha-form
@@ -1677,9 +1679,6 @@ name:
       }
       ha-selector {
         width: 100%;
-      }
-      .title {
-        font-size: 18px;
       }
       .back-title {
         display: flex;

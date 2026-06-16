@@ -13,7 +13,6 @@ export class ItemEditor extends LitElement {
   @property({ attribute: false }) config?: LovelaceCardConfig;
   @property({ attribute: false }) hass?: HomeAssistant;
   @property({ attribute: false }) lovelace?: unknown;
-  @property({ type: Boolean }) useSensorSchema: boolean = false;
   @property({ type: Number }) index?: number;
   @property() public getSchema?: "domain" | "entity";
   @property({ type: Boolean }) public isGroup = false;
@@ -207,7 +206,9 @@ name:
     this._config = updatedConfig;
     this.dispatchEvent(
       new CustomEvent("config-changed", {
-        detail: updatedConfig,
+        detail: { config: updatedConfig },
+        bubbles: true,
+        composed: true,
       })
     );
   }
@@ -219,7 +220,9 @@ name:
 
     this.dispatchEvent(
       new CustomEvent("config-changed", {
-        detail: this._config,
+        detail: { config: this._config },
+        bubbles: true,
+        composed: true,
       })
     );
   }
@@ -239,7 +242,9 @@ name:
 
     this.dispatchEvent(
       new CustomEvent("config-changed", {
-        detail: updatedConfig,
+        detail: { config: updatedConfig },
+        bubbles: true,
+        composed: true,
       })
     );
   }
@@ -253,38 +258,14 @@ name:
 
   static get styles(): CSSResult {
     return css`
-      .checkbox {
-        display: flex;
-        align-items: center;
-        padding: 8px 0;
-      }
-      .checkbox input {
-        height: 20px;
-        width: 20px;
-        margin-left: 0;
-        margin-right: 8px;
-      }
       h3 {
         margin-bottom: 0.5em;
-      }
-      .row {
-        margin-bottom: 12px;
-        margin-top: 12px;
-        display: block;
       }
       ha-form {
         display: block;
       }
       ha-selector {
         width: 100%;
-      }
-      .side-by-side {
-        display: flex;
-        align-items: center;
-      }
-      .side-by-side > * {
-        flex: 1 1 0%;
-        padding-right: 4px;
       }
       ha-tab-group {
         display: block;

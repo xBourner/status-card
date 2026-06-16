@@ -6,7 +6,7 @@ import { translateEntityState } from "./translations";
 import { css } from "lit";
 
 export const parseCss = (
-  css?: string | Record<string, any>,
+  css?: string | Record<string, string | number | boolean>,
   styleCache?: Map<string, Record<string, string>>,
 ): Record<string, string> => {
   if (!css) return {};
@@ -58,8 +58,8 @@ export const parseCss = (
 };
 
 export const getParsedCss = (
-  source?: string | Record<string, any>,
-  customization?: any,
+  source?: string | Record<string, string | number | boolean>,
+  customization?: { _parsedCss?: Record<string, string> },
   styleCache?: Map<string, Record<string, string>>,
 ): Record<string, string> => {
   if (customization && customization._parsedCss)

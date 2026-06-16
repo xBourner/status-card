@@ -10,16 +10,11 @@ import {
   EditorTarget,
 } from "./ha";
 
-interface HTMLElementValue extends HTMLElement {
-  value: string;
-}
-
 abstract class BaseItemsEditor extends LitElement {
   @property({ attribute: false }) hass?: HomeAssistant;
   @property({ type: Array }) SelectOptions: SelectOption[] = [];
 
   protected abstract customizationkey: LovelaceCardConfig[] | undefined;
-  protected abstract customizationChangedEvent: string;
 
   private _entityKeys = new WeakMap<LovelaceCardConfig, string>();
 
@@ -113,13 +108,14 @@ abstract class BaseItemsEditor extends LitElement {
       return;
     }
     const value = ev.detail.value;
-    const index = (ev.target as any).index;
+    const target = ev.target as HTMLElement & { index?: number };
+    const index = target.index;
     if (index === undefined) return;
     const newCustomization = this.customizationkey.concat();
     newCustomization[index] = { ...newCustomization[index], type: value || "" };
     this.dispatchEvent(
       new CustomEvent("config-changed", {
-        detail: newCustomization,
+        detail: { config: newCustomization },
         bubbles: true,
         composed: true,
       })
@@ -134,7 +130,7 @@ abstract class BaseItemsEditor extends LitElement {
       customization.splice(index, 1);
       this.dispatchEvent(
         new CustomEvent("config-changed", {
-          detail: customization,
+          detail: { config: customization },
           bubbles: true,
           composed: true,
         })
@@ -162,7 +158,7 @@ abstract class BaseItemsEditor extends LitElement {
     const newItem: LovelaceCardConfig = { type: preset };
     this.dispatchEvent(
       new CustomEvent("config-changed", {
-        detail: [...this.customizationkey, newItem],
+        detail: { config: [...this.customizationkey, newItem] },
         bubbles: true,
         composed: true,
       })
@@ -179,11 +175,6 @@ abstract class BaseItemsEditor extends LitElement {
       .add-item {
         display: flex;
         align-items: center;
-      }
-      .add-customization,
-      .select-customization {
-        width: 100%;
-        margin-top: 8px;
       }
       .remove-icon,
       .edit-icon {
@@ -202,7 +193,6 @@ abstract class BaseItemsEditor extends LitElement {
 @customElement("status-items-editor")
 export class StatusItemsEditor extends BaseItemsEditor {
   @property({ attribute: false }) customization?: LovelaceCardConfig[];
-  protected customizationChangedEvent = "config-changed";
   protected get customizationkey() {
     return this.customization;
   }

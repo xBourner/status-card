@@ -248,7 +248,8 @@ function match(actual: unknown, expected: unknown): boolean {
     try {
       const regex = new RegExp(expected.slice(1, -1), "i");
       return regex.test(String(actual));
-    } catch {
+    } catch (e) {
+      console.debug("status-card: Invalid regex pattern:", expected, e);
       return false;
     }
   }

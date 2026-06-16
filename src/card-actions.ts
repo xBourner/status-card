@@ -18,7 +18,7 @@ export function toggleDomain(
   deviceClass?: string
 ): void {
   if (entities.length === 0) {
-    console.warn(`Keine aktiven Entitäten für ${domain} gefunden.`);
+    console.warn(`No active entities found for domain: ${domain}`);
     return;
   }
 

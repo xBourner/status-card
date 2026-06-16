@@ -1,8 +1,10 @@
 import type { HassEntity } from "home-assistant-js-websocket";
 import {
   caseInsensitiveStringCompare,
+  computeDomain,
   HomeAssistant,
   LovelaceCard,
+  STATES_OFF,
 } from "./ha";
 
 export function cacheByProperty<T>(
@@ -223,7 +225,37 @@ export function toTileConfig(cardConfig: {
   };
 }
 
-let cachedHelpers: any = null;
+export function isEntityActive(
+  entity: HassEntity,
+  domain?: string,
+  deviceClass?: string,
+  isInverted = false
+): boolean {
+  const effectiveDomain = domain || computeDomain(entity.entity_id);
+  const effectiveDeviceClass =
+    deviceClass ?? entity.attributes.device_class;
+
+  if (effectiveDomain === "climate") {
+    const hvacAction = entity.attributes.hvac_action;
+    if (hvacAction !== undefined) {
+      const active = !["idle", "off"].includes(hvacAction);
+      return isInverted ? !active : active;
+    }
+  }
+
+  if (effectiveDomain === "humidifier") {
+    const humAction = entity.attributes.action;
+    if (humAction !== undefined) {
+      const active = !["idle", "off"].includes(humAction);
+      return isInverted ? !active : active;
+    }
+  }
+
+  const isOn = !STATES_OFF.includes(entity.state);
+  return isInverted ? !isOn : isOn;
+}
+
+let cachedHelpers: { createCardElement?: (config: unknown) => LovelaceCard | Promise<LovelaceCard> } | null = null;
 
 export function createCardElementSynchronous(
   hass: HomeAssistant,
@@ -243,7 +275,9 @@ export function createCardElementSynchronous(
       el.setAttribute?.("data-hui-card", "");
       return el;
     }
-  } catch {}
+  } catch (e) {
+    console.debug("status-card: Failed to create card element via customElements", e);
+  }
 
   if (cachedHelpers?.createCardElement) {
     try {
@@ -253,7 +287,8 @@ export function createCardElementSynchronous(
       el.hass = hass;
       el.setAttribute?.("data-hui-card", "");
       return el;
-    } catch {
+    } catch (e) {
+      console.debug("status-card: Failed to create card element via helpers", e);
       return undefined;
     }
   }
@@ -277,7 +312,9 @@ export async function createCardElement(
       el.setAttribute?.("data-hui-card", "");
       return el;
     }
-  } catch {}
+  } catch (e) {
+    console.debug("status-card: Failed to load card helpers", e);
+  }
 
   try {
     const type = cardConfig.type || "tile";
@@ -297,7 +334,8 @@ export async function createCardElement(
     el.hass = hass;
     el.setAttribute?.("data-hui-card", "");
     return el;
-  } catch {
+  } catch (e) {
+    console.debug("status-card: Failed to create card element for type:", cardConfig.type, e);
     if (!isFallback) {
       return createCardElement(hass, toTileConfig(cardConfig), true);
     }
@@ -311,5 +349,7 @@ export async function ensureHelpersLoaded(): Promise<void> {
   if (cachedHelpers) return;
   try {
     cachedHelpers = await window.loadCardHelpers?.();
-  } catch {}
+  } catch (e) {
+    console.debug("status-card: Failed to load card helpers", e);
+  }
 }

@@ -44,22 +44,6 @@ export const mapPersonIdsToStates = (
     .filter((stateObj): stateObj is HassEntity => !!stateObj);
 };
 
-export const computePersonItems = (
-  entities: HomeAssistant["entities"],
-  hiddenEntities: string[],
-  hiddenLabels: string[],
-  hide_person: boolean,
-  hassStates: HomeAssistant["states"]
-): HassEntity[] => {
-  const ids = getPersonEntityIds(
-    entities,
-    hiddenEntities,
-    hiddenLabels,
-    hide_person
-  );
-  return mapPersonIdsToStates(ids, hassStates);
-};
-
 export const computeExtraItems = (
   cfg: LovelaceCardConfig,
   states: { [entity_id: string]: HassEntity },
