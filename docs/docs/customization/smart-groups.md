@@ -5,11 +5,28 @@ title: Smart Groups
 # Smart Groups
 
 Filter-based entity grouping with rule engine. Groups are only displayed when all filters are "true".
+This will let you add a group instead of a single entity.
 
-- **Detection:** Defined via `rulesets`
-- **Rule Keys:** area, floor, label, domain, entity_id, state, name, attributes, device, integration, entity_category, hidden_by, device_manufacturer, device_model, last_changed, last_updated, last_triggered, group
+- **Rule Keys:** 
+    - area
+    - floor
+    - label
+    - domain
+    - entity_id
+    - state, name
+    - attributes
+    - device
+    - integration
+    - entity_category
+    - hidden_by
+    - device_manufacturer
+    - device_model
+    - last_changed
+    - last_updated
+    - last_triggered
+    - group
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/smart_groups.png" alt="Smart Groups Feature" width="50%">
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/low_batteries.png" alt="Smart Groups Feature" width="50%">
 
 ---
 
@@ -38,7 +55,7 @@ Filter-based entity grouping with rule engine. Groups are only displayed when al
 | **Color** | Change color |
 | **Tap / Hold / Double Tap** | Individual actions |
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/smart-groups-editor.png" alt="Smart Groups Editor" width="50%">
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/smart-groups.png" alt="Smart Groups Editor" width="50%">
 
 ---
 

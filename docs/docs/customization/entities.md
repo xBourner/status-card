@@ -14,7 +14,20 @@ If you hide an entity using the 'Hide Entity' function, you will see some tabs w
 
 ---
 
-## Editor Settings (per Extra Entity Customization)
+## Editor Settings 
+
+### Entity Settings
+
+| Option | Description |
+|--------|-------------|
+| **Extra Entities** | Add one or more extra entities |
+| **Hide Filter** | Set the way you want to hide entities |
+| **Hidden Entities** | Hide one or more entities |
+| **Hidden Labels** | Hide one or more entities per label |
+| **Hidden Areas** | Hide one or more entities per area |
+
+
+### Editor Settings (per extra entity via customization)
 
 | Option | Description |
 |--------|-------------|
@@ -29,22 +42,7 @@ If you hide an entity using the 'Hide Entity' function, you will see some tabs w
 | **Tap / Hold / Double Tap** | Individual actions |
 | **Styles** | Custom CSS |
 
-### Editor Settings (per Extra Entity Customization)
-
-| Option | Description |
-|--------|-------------|
-| **Name** | Change display name |
-| **Icon** | Change icon |
-| **Color** | Change icon color |
-| **Invert State** | Invert state |
-| **State** | Force a specific state |
-| **State Content** | Change state content |
-| **Show Entity Picture** | Show entity picture |
-| **Activate State Color** | Enable color based on state |
-| **Tap / Hold / Double Tap** | Individual actions |
-| **Styles** | Custom CSS |
-
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/entities-editor.png" alt="Extra Entities Editor" width="50%">
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/extra_entity_editor.png.png" alt="Extra Entities Editor" width="50%">
 
 ---
 
@@ -53,9 +51,13 @@ If you hide an entity using the 'Hide Entity' function, you will see some tabs w
 ```yaml
 extra_entities:
   - sun.sun
-hide_filter: entity
+hide_filter: entity|label|area
 hidden_entities:
   - cover.test
+hidden_labels:
+  - matter
+hidden_areas:
+  - bathroom   
 customization:
   - type: sun.sun
     state: "above_horizon"

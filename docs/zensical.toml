@@ -20,10 +20,10 @@ nav = [
     {"Badge Mode" = "customization/badge-mode.md"},
     {"Persons" = "customization/persons.md"},
     {"Filters" = "customization/filters.md"},
-    {"Domain Items" = "customization/domain-items.md"},
-    {"Device-Class Items" = "customization/device-class-items.md"},
     {"Entities" = "customization/entities.md"},
     {"Smart Groups" = "customization/smart-groups.md"},
+    {"Domain Items" = "customization/domain-items.md"},
+    {"Device-Class Items" = "customization/device-class-items.md"},
     {"Popup / Dialog" = "customization/popup-dialog.md"},
     {"Styles" = "customization/styles.md"}
    ]},

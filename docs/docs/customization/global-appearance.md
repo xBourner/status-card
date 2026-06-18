@@ -20,14 +20,14 @@ Global settings that apply to all items.
 
 <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/appearance.png" alt="Global Appearance" width="35%">
 
-# Content Layout
+## Content Layout
 
 Determines the orientation of items in the card. Default layout is vertical.
 
 - **vertical:** Icon on top, name/state below
 - **horizontal:** Icon on left, name/state on right
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/content-layout.png" alt="Content Layout Feature" width="50%">
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/content_layout.png" alt="Content Layout Feature" width="50%">
 
 ---
 
