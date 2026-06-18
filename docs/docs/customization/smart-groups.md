@@ -26,7 +26,7 @@ This will let you add a group instead of a single entity.
     - last_triggered
     - group
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/low_batteries.png" alt="Smart Groups Feature" width="50%">
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/low_batteries.png" alt="Smart Groups Feature" width="25%">
 
 ---
 
@@ -43,7 +43,7 @@ This will let you add a group instead of a single entity.
 
 ---
 
-## Editor Settings (per Rule)
+## Editor Settings (per Rule via customization)
 
 | Option | Description |
 |--------|-------------|
@@ -55,7 +55,7 @@ This will let you add a group instead of a single entity.
 | **Color** | Change color |
 | **Tap / Hold / Double Tap** | Individual actions |
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/smart-groups.png" alt="Smart Groups Editor" width="50%">
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/smart_groups.png" alt="Smart Groups Editor" width="50%">
 
 ---
 
