@@ -24,7 +24,7 @@ All customization options are optional. Customizations are grouped by features â
 | [Persons](persons.md) | Automatic detection of person entities, home/away status, entity picture |
 | [Domain Items](domain-items.md) | Grouping by domain (light, switch, fan, etc.) |
 | [Device-Class Items](device-class-items.md) | Split by device class (binary_sensor, cover, switch) |
-| [Extra Entities](extra-entities.md) | Manually added individual entities |
+| [Entities](entities.md) | Manually added individual entities |
 | [Smart Groups](smart-groups.md) | Filter-based entity grouping with rule engine |
 | [Popup / Dialog](popup-dialog.md) | Popup view with tile cards and area grouping |
 | [Styles](styles.md) | Custom CSS and animations |

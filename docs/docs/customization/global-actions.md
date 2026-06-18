@@ -4,7 +4,7 @@ title: Global Actions
 
 # Global Actions
 
-Actions that apply to all domains and device classes (can be overridden per item).
+Actions that apply to all domains and device classes (can be overridden per item). Default is more info for persons and the custom popup for all other items.
 
 - **tap\_action:** Action on tap (default: more-info)
 - **hold\_action:** Action on hold (default: more-info)
@@ -16,7 +16,7 @@ Actions that apply to all domains and device classes (can be overridden per item
 
 ## Supported Actions
 
-`more-info`, `toggle`, `navigate`, `url`, `perform-action`, `none`
+`default`, `more-info`, `toggle`, `navigate`, `url`, `perform-action`, `none`
 
 ---
 
