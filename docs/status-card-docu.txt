@@ -1,0 +1,174 @@
+Status Card — Vollständige Referenz (v3.2.4)
+1. Alle Konfigurationsoptionen
+Top-Level
+Property	Typ	Default	Beschreibung
+type	string	(required)	custom:status-card
+columns	number (1-4)	4	Spalten im Popup
+hide_person	boolean	false	Person-Entitys ausblenden
+list_mode	boolean	false	Textlisten-Modus
+hide_content_name	boolean	false	Namen ausblenden
+show_total_number	boolean	false	Aktiv/Total-Anzeige
+show_total_entities	boolean	false	Alle Entitys zeigen (nicht nur aktive)
+square	boolean	false	Eckige statt runde Items
+no_scroll	boolean	false	Wrap-Modus statt Scrollen
+badge_mode	boolean	false	Badge-Anzeige
+badge_color	string	""	Globale Badge-Farbe
+badge_text_color	string	""	Globale Badge-Textfarbe
+no_background	boolean	false	Hintergrund/Border ausblenden
+hide_card_if_empty	boolean	false	Karte ausblenden wenn leer
+content_layout	"vertical" | "horizontal"	—	Layout: Icon oben oder links
+color	string	—	Globale Icon-Farbe
+background_color	number[]	—	Globale Hintergrundfarbe (RGB/RGBA)
+theme	string	—	HA-Theme für die Karte
+Filter
+Property	Typ	Beschreibung
+filter	"area" | "floor"	Filter-Modus
+label_filter	boolean	Label-Filter aktivieren
+area	string | string[]	Area-ID(s)
+floor	string | string[]	Floor-ID(s)
+label	string[]	Label-ID(s)
+hidden_entities	string[]	Ausgeblendete Entity-ID(s)
+hidden_labels	string[]	Entitys mit diesen Labels ausblenden
+hidden_areas	string[]	Entitys aus diesen Areas ausblenden
+hide_filter	"entity" | "label" | "area"	Ausblendungs-Filter-Typ
+Popup
+Property	Typ	Default	Beschreibung
+ungroup_areas	boolean	—	Area-Gruppierung im Popup deaktivieren
+popup_sort	"name" | "state"	"name"	Sortierung im Popup
+Person
+Property	Typ	Default
+person_home_color	string	"green"
+person_away_color	string	"red"
+person_home_icon	string	"mdi:home"
+person_away_icon	string	"mdi:home-export-outline"
+Globale Aktionen
+Property	Typ	Default
+tap_action	UiAction	more-info
+hold_action	UiAction	more-info
+double_tap_action	UiAction	more-info
+Unterstützt: more-info, toggle, navigate, url, perform-action, none
+Content-Reihenfolge & Extra-Entitys
+Property	Typ	Beschreibung
+content	string[]	Geordnete Liste: Domains, Device-Classes, Entity-IDs, Group-IDs
+extra_entities	string[]	Zusätzliche einzelne Entity-ID(s)
+Styles
+styles:
+  card: "background-color: rgba(255,0,0,0.1);"  # oder Record
+  button: "border: none;"
+  icon: "animation: spin 2s linear infinite;"
+  name: "font-weight: bold;"
+  state: "color: green;"
+2. Features
+2.1 Tab-Gruppen-Rendering
+- Nutzt <ha-tab-group> / <ha-tab-group-tab> für die Hauptstruktur
+- Items: Persons → Extra → Groups → Domain/DeviceClass (nach content-Reihenfolge)
+- Leere Domains werden automatisch ausgeblendet
+2.2 Personen-Entitys
+- Automatische Erkennung aller person.* Entitys
+- Entity-Picture (Foto) oder Fallback-Icon
+- Home/Away-Status bestimmt Icon, Farbe, Graustufen-Filter
+2.3 Domain-Items
+- Gruppierung nach Domain (light, switch, fan, etc.)
+- Domain-spezifische Icons mit On/Off-Zuständen aus DOMAIN_ICONS
+- Toggle-Verhalten via toggleDomain()
+2.4 Device-Class-Items
+- Für binary_sensor, cover, switch: Aufteilung nach Device-Class
+- Format in content: "binary_sensor - motion", "cover - window"
+2.5 Extra-Entities
+- Manuell hinzugefügte einzelne Entitys
+- Bild-URLs als <img>, SVG-Pfade (M...), HA-State-Icons
+- Custom CSS für Icons via icon_css
+2.6 Smart Groups (Rulesets)
+- Filter-basierte Entity-Gruppierung
+- Rule-Engine mit: Exakter Match, Wildcards (*), Regex (/pattern/), Numerische Vergleiche (<10, >=5), Zeitvergleiche (<30m, >2h, >=1d), Negation (!value)
+Verfügbare Rule-Keys: area, floor, label, domain, entity_id, state, name, attributes, device, integration, entity_category, hidden_by, device_manufacturer, device_model, last_changed, last_updated, last_triggered, group
+2.7 Popup/Dialog
+- <ha-adaptive-dialog> mit Tile-Cards
+- Area-Gruppierung mit Toggle-All-Buttons
+- Sortierung nach Name/State
+- Responsives Spalten-Layout (1-4)
+- "Show all" Toggle
+- Menu: "Turn off all", "Toggle total entities"
+- Bestätigungs-Dialog für Bulk-Toggle
+- Browser-History-Integration (Back-Button schließt Popup)
+- Individuelle popup_card-Konfiguration pro Domain
+2.8 Badge Mode
+- Kompakt: nur Icon + Badge-Anzahl
+- Konfigurierbare Badge-Farbe (global und pro Item)
+- Person-Badges zeigen Home/Away-Icons
+2.9 Content Layout
+- vertical: Icon oben, Name/State darunter
+- horizontal: Icon links, Name/State rechts
+3. Editor-Struktur
+Tab	Inhalte
+Config	Person-Settings, Filter, Popup, Extra-Entities, Content-Reihenfolge, Smart Groups
+Appearance	Layout, Badge, Farben, Theme, Hintergrund
+Actions	Tap/Hold/Double-Tap Aktionen
+Style	CSS-Objekt-Editor mit Style-Guide
+Per-Domain/DeviceClass/Entity Customization (Item-Editor)
+Tab	Properties
+Appearance	invert, badge_mode, badge_color, show_total_number, show_total_entities, name, icon, icon_color, background_color
+Extra Entity	invert_state, state, state_content, show_entity_picture, activate_state_color
+Actions	tap_action, hold_action, double_tap_action
+Style	styles (CSS-Objekt)
+Popup	popup_card (HA Card Picker + Editor)
+4. HA-Integration
+- Entity Registry: config/entity_registry/list — Labels, device_id, area_id
+- Device Registry: config/device_registry/list — Manufacturer, Model
+- Area Registry: config/area_registry/list — Floor-Mapping
+- Themes: applyThemesOnElement() bei Theme-/Config-Änderung
+- Translations: hass.localize() für States, Domains, Device-Classes
+5. Übersetzbare Strings
+Alle Labels werden dynamisch via hass.localize() erzeugt. Entity-State-Übersetzungen: component.{domain}.entity_component._.state.{state}
+6. CSS-Animationen (in card-styles.ts verfügbar)
+spin, pulse, shake, blink, bounce — nutzbar in styles.icon oder styles.button
+7. Beispiel-YAML
+type: custom:status-card
+columns: 3
+badge_mode: true
+badge_color: red
+no_scroll: true
+square: true
+content_layout: horizontal
+color: green
+theme: dark-mode
+filter: area
+area:
+  - kitchen
+  - living_room
+label:
+  - lights
+hidden_entities:
+  - sensor.unused
+content:
+  - light
+  - switch - outlet
+  - binary_sensor - motion
+  - custom_group_1
+  - sun.sun
+extra_entities:
+  - weather.home
+  - sensor.temperature
+rulesets:
+  - group_id: all_sensors
+    group_icon: mdi:thermometer
+    domain: sensor
+    state: "*>0"
+customization:
+  - type: light
+    name: Beleuchtung
+    icon_color: yellow
+    badge_color: orange
+    invert: false
+    show_total_entities: true
+    tap_action:
+      action: toggle
+    styles:
+      icon: "animation: pulse 2s ease-in-out infinite"
+  - type: binary_sensor - motion
+    icon: mdi:motion-sensor
+    badge_mode: true
+  - type: sun.sun
+    state: "above_horizon"
+    show_entity_picture: true
+    state_content: "state"
