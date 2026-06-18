@@ -4,13 +4,13 @@ title: Badge Mode
 
 # Badge Mode
 
-Compact display: icon + badge count instead of a full content item.
+Compact display: icon + badge count instead of a full content item. Badge mode is disabled at default.
 
 - **Global:** `badge_mode: true` enables badge mode for all items
-- **Per Item:** Individually enableable via customization
+- **Per Item:** Individually enable per item via customization
 - **Person Badges:** Show home/away icons
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/badge-mode.png" alt="Badge Mode Feature" width="50%">
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/badge_mode.png" alt="Badge Mode Feature" width="50%">
 
 ---
 
@@ -21,9 +21,9 @@ Compact display: icon + badge count instead of a full content item.
 | **Badge Mode** | Enable badge mode (global or per item) |
 | **Badge Color** | Global badge color |
 | **Badge Text Color** | Global badge text color |
-| **Badge Color (per Item)** | Individual badge color per domain/device class |
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/badge-editor.png" alt="Badge Mode Editor" width="50%">
+
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/badge_editor.png" alt="Badge Mode Editor" width="50%">
 
 ---
 
