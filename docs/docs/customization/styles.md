@@ -6,7 +6,7 @@ title: Styles
 
 Custom CSS for individual elements. Works globally and per item.
 
-<img class="doc-img-responsive" src="./img/css_styles.png" alt="Styles">
+<img class="doc-img-responsive" src="../img/css_styles.png" alt="Styles">
 
 - **styles.card:** CSS for the entire card
 - **styles.button:** CSS for the buttons

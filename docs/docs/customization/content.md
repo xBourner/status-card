@@ -10,7 +10,7 @@ The 'Edit Content' Tab will let you choose which content you want to see. You ca
 - **Customization:** Choose the item you want to customize. Only visible items can be customized.
 
 
-<img class="doc-img-responsive" src="./img/domain_customization.png" alt="Popup Feature">
+<img class="doc-img-responsive" src="../img/domain_customization.png" alt="Popup Feature">
 
 ---
 

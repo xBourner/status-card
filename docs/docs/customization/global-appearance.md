@@ -6,7 +6,7 @@ title: Global Appearance
 
 Global settings that apply to all items.
 
-<img class="doc-img-responsive" src="./img/appearance.png" alt="Global Appearance">
+<img class="doc-img-responsive" src="../img/appearance.png" alt="Global Appearance">
 
 - **Hide Content Name:** Hide names from domains, device classes and persons
 - **Enable Total Number:** Will show how many entities are turned on and how much in total you have. This wont change entities in Popup.
@@ -29,7 +29,7 @@ Determines the orientation of items in the card. Default layout is vertical.
 - **vertical:** Icon on top, name/state below
 - **horizontal:** Icon on left, name/state on right
 
-<img class="doc-img-responsive" src="./img/content_layout.png" alt="Content Layout Feature">
+<img class="doc-img-responsive" src="../img/content_layout.png" alt="Content Layout Feature">
 
 ---
 

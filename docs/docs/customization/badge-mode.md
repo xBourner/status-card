@@ -10,7 +10,7 @@ Compact display: icon + badge count instead of a full content item. Badge mode i
 - **Per Item:** Individually enable per item via customization
 - **Person Badges:** Show home/away icons
 
-<img src="./img/badge_mode.png" alt="Badge Mode Feature" width="50%">
+<img class="doc-img-responsive" src="../img/badge_mode.png" alt="Badge Mode Feature">
 
 ---
 
@@ -23,7 +23,7 @@ Compact display: icon + badge count instead of a full content item. Badge mode i
 | **Badge Text Color** | Global badge text color |
 
 
-<img class="doc-img-responsive" src="./img/badge_editor.png" alt="Badge Mode Editor">
+<img class="doc-img-responsive" src="../img/badge_editor.png" alt="Badge Mode Editor">
 
 ---
 

@@ -10,7 +10,7 @@ If you hide an entity using the 'Hide Entity' function, you will see some tabs w
 - **Extra Entities:** - Choose the entities you want to add to status card from an entity picker
 - **Hide Entities:** - Choose which entity you want to hide by entity, ara or label
 
-<img class="doc-img-responsive" src="./img/entities.png" alt="Extra Entities Feature">
+<img class="doc-img-responsive" src="../img/entities.png" alt="Extra Entities Feature">
 
 ---
 
@@ -29,7 +29,7 @@ If you hide an entity using the 'Hide Entity' function, you will see some tabs w
 
 ### Editor Settings (per extra entity via customization)
 
-<img class="doc-img-responsive" src="./img/extra_entity_editor.png" alt="Extra Entities Editor">
+<img class="doc-img-responsive" src="../img/extra_entity_editor.png" alt="Extra Entities Editor">
 
 | Option | Description |
 |--------|-------------|
