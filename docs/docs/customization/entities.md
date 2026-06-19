@@ -42,7 +42,7 @@ If you hide an entity using the 'Hide Entity' function, you will see some tabs w
 | **Tap / Hold / Double Tap** | Individual actions |
 | **Styles** | Custom CSS |
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/extra_entity_editor.png.png" alt="Extra Entities Editor" width="50%">
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/extra_entity_editor.png" alt="Extra Entities Editor" width="50%">
 
 ---
 

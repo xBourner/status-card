@@ -12,7 +12,7 @@ Custom CSS for individual elements. Works globally and per item.
 - **styles.name:** CSS for the names
 - **styles.state:** CSS for the states
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/styles.png" alt="Styles" width="50%">
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/css_styles.png" alt="Styles" width="50%">
 
 ---
 

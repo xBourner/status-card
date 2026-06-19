@@ -879,7 +879,7 @@ export class StatusCard extends LitElement {
   private _computeButtonStyles(customization?: LovelaceCardConfig) {
     const itemStyles = getParsedCss(
       customization?.styles?.button || customization?.styles?.card,
-      customization,
+      customization as { _parsedCss?: Record<string, string> },
     );
     return { ...this._parsedGlobalCss, ...itemStyles };
   }

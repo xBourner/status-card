@@ -6,6 +6,9 @@ title: Persons
 
 Automatically detects all `person.*` entities from the HA entity registry. At default all person entities are shown.
 
+!!! info "Info"
+    First person which was created will be shown first.
+
 <img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/persons_overview.png" alt="Persons Feature" width="25%">
 
 - **Detection:** Automatically detects all person entities

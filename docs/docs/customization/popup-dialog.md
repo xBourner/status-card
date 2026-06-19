@@ -6,6 +6,9 @@ title: Popup / Dialog
 
 Displays all entities of a domain or device class in a custom popup with tile cards.
 
+!!! info "Info"
+    Almost all domains have specific tile card options set to be more useful in popup.
+
 - **Display:** Renders the default HA popups with tile cards calculated from status card
 - **Area Grouping:** Groups entities by their area by default
 - **Smart Actions:** Lets you toggle between "on" or all entities, turn off all at once, turn of all by area

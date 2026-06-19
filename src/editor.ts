@@ -43,9 +43,9 @@ import {
   SmartGroupItem,
 } from "./ha/types";
 
-function omitKey<T extends Record<string, unknown>>(obj: T, key: string): Omit<T, string> {
+function omitKey<T extends Record<string, unknown>>(obj: T, key: string): T {
   const { [key]: _, ...rest } = obj;
-  return rest as Omit<T, string>;
+  return rest as T;
 }
 
 @customElement("status-card-editor")

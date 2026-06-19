@@ -4,31 +4,46 @@ title: Domain Items
 
 # Domain Items
 
-Groups entities by domain (light, switch, fan, climate, etc.). Domain-specific icons with on/off states are automatically loaded from `DOMAIN_ICONS`.
+Automatic entity grouping by domain (light, switch, fan, climate, etc.). HA default domain-specific icons for on and off states. Specific toggle or on/off actions.
 
-- **Detection:** Automatically grouped by domain
-- **Toggle:** `toggleDomain()` for on/off switching
+!!! info "Info"
+    Make sure all wanted domains are listed in the content section. Otherwise the domain isnt shown in the card.
+
+- **Auto Grouping:** Automatically grouped entities by domain
+- **Default toggle actions:** actions that toggle or switch on/off
 - **Icons:** Domain-specific (e.g. mdi:lightbulb / mdi:lightbulb-outline)
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/domain-items.png" alt="Domain Items Feature" width="50%">
+Allowed Domains with their default toggle actions:
+
+| Domain | Toggle Action (On → Off) | Toggle Action (Off → On) |
+|--------|--------------------------|--------------------------|
+| **Alarm_control_panel** | `alarm_arm_away` | `alarm_disarm` |
+| **Siren** | `toggle` | `toggle` |
+| **Lock** | `lock` | `unlock` |
+| **Light** | `toggle` | `toggle` |
+| **Media_player** | `media_pause` | `media_play` |
+| **Climate** | `toggle` | `toggle` |
+| **Switch** | `toggle` | `toggle` |
+| **Vacuum** | `stop` | `start` |
+| **Fan** | `toggle` | `toggle` |
+| **Cover** | `toggle` | `toggle` |
+| **Binary Sensor** | — | — |
+| **Humidifier** | `toggle` | `toggle` |
+| **Lawn Mower** | `pause` | `start_mowing` |
+| **Valve** | `toggle` | `toggle` |
+| **Water Heater** | `turn_off` | `turn_on` |
+| **Remote** | `toggle` | `toggle` |
+| **Update** | `skip` | `install` |
+| **Device Tracker** | — | — |
+| **Input Boolean** | — | — |
+| **Timer** | — | — |
+| **Counter** | — | — |
+| **Calendar** | — | — |
 
 ---
 
-## Content Selection
 
-Domains can be specified as an ordered list in `content`:
-
-```yaml
-content:
-  - light
-  - switch
-  - fan
-  - climate
-```
-
----
-
-## Editor Settings (per Domain)
+## Editor Settings (per Domain customization)
 
 | Option | Description |
 |--------|-------------|
@@ -45,8 +60,9 @@ content:
 | **Hold Action** | Action on hold |
 | **Double Tap Action** | Action on double tap |
 | **Styles** | Custom CSS |
+| **Popup Card** | Change card type shown in popup for specific domain |
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/domain-editor.png" alt="Domain Editor" width="50%">
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/domain-customization.png" alt="Domain Editor" width="50%">
 
 ---
 
