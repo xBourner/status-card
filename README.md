@@ -36,54 +36,9 @@ I always wanted to make an overview card that shows a lot of entities without th
 
 **Note:** This card is highly influenced by [Dwains Dashboard](https://github.com/dwainscheeren/dwains-lovelace-dashboard). Now you can use this great idea as a single card in all of your Dashboards.
 
-## ✨ Features
+## 📥⚙️ Documentation
 
-- 🤖 **Zero-Configuration Magic** - Automatically generates your dashboard simply by reading the entities and devices assigned to your Home Assistant Areas.
-- 📊 **Smart State Filtering** - Intelligently displays only the entities that are currently active or "on" (with the option to invert logic for custom use-cases).
-- 📚 **Dynamic Grouping** - Neatly organizes your active entities by their `domain` (lights, switches, media players) or `device_class` (doors, windows, motion sensors).
-- 🧑‍🤝‍🧑 **Powerful Smart Groups** - Build custom, intelligent groups with advanced, multi-layered filters (by state, domain, and more) to perfectly tailor your overview.
-- ➕ **Extra & Ignored Entities** - Full control over your view: manually add missing entities or hide specific ones you don't want to see.
-- 📑 **Interactive Detail Popups** - Tap any group to open a beautiful, native-feeling popup that renders all containing entities as interactive Tile Cards.
-- 🎨 **Extensive Customization & Styling** - Modify colors, configure custom actions (tap, hold, double-tap), and style your headers directly within the UI.
-- 🌗 **Seamless Theme Support** - Looks gorgeous in both Light and Dark mode, adapting perfectly to your Home Assistant theme.
-- 🧠 **100% GUI Editor Ready** - A fully-featured visual editor means absolutely no YAML editing is required to set up or process the card!
-- 📱 **Fully Responsive** - Carefully optimized layouts ensure the optimal viewing experience on both desktop monitors and mobile devices.
-- 🌍 **Native Localization** - Automatically translates perfectly into all Home Assistant supported languages.
-
-## 📥 Installation
-
-### Method 1: HACS (Recommended)
-
-The easiest way to install and keep **Status Card** updated is via HACS.
-
-[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xBourner&repository=status-card&category=plugin)
-
-1. Ensure [HACS](https://hacs.xyz) is installed.
-2. Open HACS in Home Assistant.
-3. Search for **Status Card**.
-4. Download and Install.
-5. **Clear your browser cache** and refresh (F5) the page.
-
-### Method 2: Manual Install
-
-1. Download **status-card.js** file from the latest release.
-2. Put **status-card.js** file into your `config/www` folder.
-3. Add reference to **status-card.js** in Dashboard. There are two ways to do that:
-   - **Using UI:** Settings → Dashboards → More Options icon → Resources → Add Resource → Set Url as `/local/status-card.js` → Set Resource type as JavaScript Module. *(Note: If you do not see the Resources menu, you will need to enable Advanced Mode in your User Profile)*
-   - **Using YAML:** Add the following code to your lovelace section.
-     ```yaml
-      resources:
-      - url: /local/status-card.js
-        type: module
-     ```
-
-## ⚙️ Configuration & Usage
-
-Once installed, simply edit your dashboard, click **Add Card**, and search for **Status Card**. The visual editor will guide you through all options!
-
-The card needs to work with your areas so you need to assign your relevant devices/entities to your areas beforehand.
-
-For advanced configuration and YAML examples, please visit the [Wiki](https://github.com/xBourner/status-card/wiki).
+For more Info visit the [Documentation](https://xbourner.github.io/status-card/).
 
 ### 🎥 Video Tutorial
 
