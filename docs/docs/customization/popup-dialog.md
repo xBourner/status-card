@@ -9,13 +9,15 @@ Displays all entities of a domain or device class in a custom popup with tile ca
 !!! info "Info"
     Almost all domains have specific tile card options set to be more useful in popup.
 
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/popup_view.png" alt="Popup Feature" width="50%">
+
 - **Display:** Renders the default HA popups with tile cards calculated from status card
 - **Area Grouping:** Groups entities by their area by default
 - **Smart Actions:** Lets you toggle between "on" or all entities, turn off all at once, turn of all by area
 - **Display Settings:** Sort by name or state, responsive layout 1-4 entities per column
 - **Browser Actions:** Back buttons and swipe gestures closes popup
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/popup_view.png" alt="Popup Feature" width="50%">
+
 
 ---
 

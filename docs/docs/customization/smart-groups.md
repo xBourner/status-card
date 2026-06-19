@@ -7,6 +7,8 @@ title: Smart Groups
 Filter-based entity grouping with rule engine. Groups are only displayed when all filters are "true".
 This will let you add a group instead of a single entity.
 
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/low_batteries.png" alt="Smart Groups Feature" width="25%">
+
 - **Rule Keys:** 
     - area
     - floor
@@ -26,7 +28,7 @@ This will let you add a group instead of a single entity.
     - last_triggered
     - group
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/low_batteries.png" alt="Smart Groups Feature" width="25%">
+
 
 ---
 

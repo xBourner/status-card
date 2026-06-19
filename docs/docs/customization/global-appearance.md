@@ -6,6 +6,8 @@ title: Global Appearance
 
 Global settings that apply to all items.
 
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/appearance.png" alt="Global Appearance" width="35%">
+
 - **Hide Content Name:** Hide names from domains, device classes and persons
 - **Enable Total Number:** Will show how many entities are turned on and how much in total you have. This wont change entities in Popup.
 - **Render cards as Square:** Square instead of round items
@@ -18,7 +20,7 @@ Global settings that apply to all items.
 - **Background Color:** Global background color (RGB/RGBA)
 
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/appearance.png" alt="Global Appearance" width="35%">
+
 
 ## Content Layout
 

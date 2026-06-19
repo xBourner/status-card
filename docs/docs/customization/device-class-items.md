@@ -14,50 +14,52 @@ Available Device Classes are:
 
 | Domain | Device Class |
 |--------|--------------|
-| **Binary Sensor** | Battery |
-| **Binary Sensor** | Battery Charging |
-| **Binary Sensor** | Carbon Monoxide |
-| **Binary Sensor** | Cold |
-| **Binary Sensor** | Connectivity |
-| **Binary Sensor** | Door |
-| **Binary Sensor** | Garage Door |
-| **Binary Sensor** | Gas |
-| **Binary Sensor** | Heat |
-| **Binary Sensor** | Light |
-| **Binary Sensor** | Lock |
-| **Binary Sensor** | Moisture |
-| **Binary Sensor** | Motion |
-| **Binary Sensor** | Moving |
-| **Binary Sensor** | Occupancy |
-| **Binary Sensor** | Opening |
-| **Binary Sensor** | Plug |
-| **Binary Sensor** | Power |
-| **Binary Sensor** | Presence |
-| **Binary Sensor** | Problem |
-| **Binary Sensor** | Safety |
-| **Binary Sensor** | Smoke |
-| **Binary Sensor** | Sound |
-| **Binary Sensor** | Tamper |
-| **Binary Sensor** | Update |
-| **Binary Sensor** | Vibration |
-| **Binary Sensor** | Window |
-| **Cover** | Awning |
-| **Cover** | Blind |
-| **Cover** | Curtain |
-| **Cover** | Damper |
-| **Cover** | Door |
-| **Cover** | Garage |
-| **Cover** | Gate |
-| **Cover** | Shade |
-| **Cover** | Shutter |
-| **Cover** | Window |
-| **Switch** | Outlet |
-| **Switch** | Switch |
+| Binary Sensor | **Battery** |
+| Binary Sensor | **Battery Charging** |
+| Binary Sensor | **Carbon Monoxide** |
+| Binary Sensor | **Cold** |
+| Binary Sensor | **Connectivity** |
+| Binary Sensor | **Door** |
+| Binary Sensor | **Garage Door** |
+| Binary Sensor | **Gas** |
+| Binary Sensor | **Heat** |
+| Binary Sensor | **Light** |
+| Binary Sensor | **Lock** |
+| Binary Sensor | **Moisture** |
+| Binary Sensor | **Motion** |
+| Binary Sensor | **Moving** |
+| Binary Sensor | **Occupancy** |
+| Binary Sensor | **Opening** |
+| Binary Sensor | **Plug** |
+| Binary Sensor | **Power** |
+| Binary Sensor | **Presence** |
+| Binary Sensor | **Problem** |
+| Binary Sensor | **Safety** |
+| Binary Sensor | **Smoke** |
+| Binary Sensor | **Sound** |
+| Binary Sensor | **Tamper** |
+| Binary Sensor | **Update** |
+| Binary Sensor | **Vibration** |
+| Binary Sensor | **Window** |
+| Cover | **Awning** |
+| Cover | **Blind** |
+| Cover | **Curtain** |
+| Cover | **Damper** |
+| Cover | **Door** |
+| Cover | **Garage** |
+| Cover | **Gate** |
+| Cover | **Shade** |
+| Cover | **Shutter** |
+| Cover | **Window** |
+| Switch | **Outlet** |
+| Switch | **Switch** |
 
 ---
 
 
 ## Editor Settings (per Device-Class customization)
+
+<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/device_class_customization.png" alt="Device-Class Editor" width="50%">
 
 | Option | Description |
 |--------|-------------|
@@ -76,7 +78,7 @@ Available Device Classes are:
 | **Styles** | Custom CSS |
 | **Popup Card** | Change card type shown in popup for specific device class |
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/device_class_customization.png" alt="Device-Class Editor" width="50%">
+
 
 ---
 

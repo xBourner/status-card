@@ -28,7 +28,8 @@ nav = [
     {"Popup / Dialog" = "customization/popup-dialog.md"},
     {"Styles" = "customization/styles.md"}
    ]},
-  {"FAQ" = "faq.md"}
+  {"FAQ" = "faq.md"},
+  {"Projects" = "projects.md"}
 ]
 
 [project.theme]
