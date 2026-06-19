@@ -45,7 +45,7 @@ Allowed Domains with their default toggle actions:
 
 ## Editor Settings (per Domain customization)
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/domain_customization.png" alt="Domain Editor" width="50%">
+<img src="img/domain_customization.png" alt="Domain Editor" width="50%">
 
 | Option | Description |
 |--------|-------------|

@@ -9,7 +9,7 @@ All customization options are optional. Customizations are grouped by features â
 !!! info "Info"
     Some customization combinations may break due to HA updates. Test one option at a time if unsure.
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/status-card-light.png" alt="Status Card Preview" width="70%">
+<img class="doc-img-responsive" src="img/status-card-light.png" alt="Status Card Preview">
 
 ---
 

@@ -9,7 +9,7 @@ Automatically detects all `person.*` entities from the HA entity registry. At de
 !!! info "Info"
     First person which was created will be shown first.
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/persons_overview.png" alt="Persons Feature" width="25%">
+<img src="img/persons_overview.png" alt="Persons Feature" width="25%">
 
 - **Detection:** Automatically detects all person entities
 - **Display:** Entity picture (photo) or fallback icon
@@ -21,7 +21,7 @@ Automatically detects all `person.*` entities from the HA entity registry. At de
 
 ## Editor Settings
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/persons_editor.png" alt="Persons Editor" width="50%">
+<img src="img/persons_editor.png" alt="Persons Editor" width="50%">
 
 | Option | Description |
 |--------|-------------|

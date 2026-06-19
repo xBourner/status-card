@@ -9,7 +9,7 @@ Displays all entities of a domain or device class in a custom popup with tile ca
 !!! info "Info"
     Almost all domains have specific tile card options set to be more useful in popup.
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/popup_view.png" alt="Popup Feature" width="50%">
+<img src="img/popup_view.png" alt="Popup Feature" width="50%">
 
 - **Display:** Renders the default HA popups with tile cards calculated from status card
 - **Area Grouping:** Groups entities by their area by default
@@ -34,7 +34,7 @@ show_total_entities: true
 
 You can also edit the card used in popup. You need to edit the customisation for the domain, device class, extra entity or smart group. Custom cards are also possible but not all are tested.
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/popup_card.png" alt="Popup Feature" width="50%">
+<img src="img/popup_card.png" alt="Popup Feature" width="50%">
 
 ```yaml
 customization:
@@ -59,7 +59,7 @@ customization:
 | **Disable Area Group** | Disable area grouping |
 
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/popup_editor.png" alt="Popup Editor" width="50%">
+<img src="img/popup_editor.png" alt="Popup Editor" width="50%">
 
 ---
 

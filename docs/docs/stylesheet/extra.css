@@ -768,3 +768,17 @@ body:has(.hero-section) .md-container {
     width: 100% !important;
   }
 }
+
+/* === Responsive doc images === */
+.doc-img-responsive {
+  width: 50%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+@media screen and (max-width: 768px) {
+  .doc-img-responsive {
+    width: 80%;
+  }
+}

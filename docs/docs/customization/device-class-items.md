@@ -59,7 +59,7 @@ Available Device Classes are:
 
 ## Editor Settings (per Device-Class customization)
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/device_class_customization.png" alt="Device-Class Editor" width="50%">
+<img src="img/device_class_customization.png" alt="Device-Class Editor" width="50%">
 
 | Option | Description |
 |--------|-------------|

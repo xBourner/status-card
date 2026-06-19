@@ -15,7 +15,7 @@ All filters can be set to one or more options, and they work together (e.g. one 
 
 ## Editor Settings
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/filters.png" alt="Filters Editor" width="50%">
+<img src="img/filters.png" alt="Filters Editor" width="50%">
 
 | Option | Description |
 |--------|-------------|

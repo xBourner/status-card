@@ -13,7 +13,7 @@ Actions that apply to all domains and device classes (can be overridden per item
 - **hold\_action:** Action on hold (default: more-info)
 - **double\_tap\_action:** Action on double tap (default: more-info)
 
-<img src="https://raw.githubusercontent.com/xbourner/status-card/main/.github/img/actions.png" alt="Global Actions" width="50%">
+<img src="img/actions.png" alt="Global Actions" width="50%">
 
 ---
 
