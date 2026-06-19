@@ -62,10 +62,10 @@ hide:
     <section class="hero-preview-section">
       <div class="hero-preview-grid">
         <div class="hero-preview-card reveal" style="transition-delay: 0.1s;">
-          <img src="img/status-card-light.png" alt="Status Card preview light theme" loading="lazy">
+          <img src="./img/status-card-light.png" alt="Status Card preview light theme" loading="lazy">
         </div>
         <div class="hero-preview-card reveal" style="transition-delay: 0.25s;">
-          <img src="img/status-card-dark.png" alt="Status Card preview dark theme" loading="lazy">
+          <img src="./img/status-card-dark.png" alt="Status Card preview dark theme" loading="lazy">
         </div>
       </div>
     </section>

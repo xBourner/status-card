@@ -59,7 +59,7 @@ Available Device Classes are:
 
 ## Editor Settings (per Device-Class customization)
 
-<img src="img/device_class_customization.png" alt="Device-Class Editor" width="50%">
+<img class="doc-img-responsive" src="./img/device_class_customization.png" alt="Device-Class Editor">
 
 | Option | Description |
 |--------|-------------|

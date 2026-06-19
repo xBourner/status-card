@@ -45,7 +45,7 @@ Allowed Domains with their default toggle actions:
 
 ## Editor Settings (per Domain customization)
 
-<img src="img/domain_customization.png" alt="Domain Editor" width="50%">
+<img class="doc-img-responsive" src="./img/domain_customization.png" alt="Domain Editor">
 
 | Option | Description |
 |--------|-------------|

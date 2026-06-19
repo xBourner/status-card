@@ -15,7 +15,7 @@ All filters can be set to one or more options, and they work together (e.g. one 
 
 ## Editor Settings
 
-<img src="img/filters.png" alt="Filters Editor" width="50%">
+<img class="doc-img-responsive" src="./img/filters.png" alt="Filters Editor">
 
 | Option | Description |
 |--------|-------------|
