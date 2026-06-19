@@ -7,7 +7,7 @@ title: Smart Groups
 Filter-based entity grouping with rule engine. Groups are only displayed when all filters are "true".
 This will let you add a group instead of a single entity.
 
-<img class="doc-img-responsive" src="../img/low_batteries.png" alt="Smart Groups Feature">
+<img src="../img/low_batteries.png" alt="Smart Groups Feature" style="width=25%;">
 
 - **Rule Keys:** 
     - area

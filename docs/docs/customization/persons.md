@@ -9,7 +9,7 @@ Automatically detects all `person.*` entities from the HA entity registry. At de
 !!! info "Info"
     First person which was created will be shown first.
 
-<img class="doc-img-responsive" src="../img/persons_overview.png" alt="Persons Feature">
+<img src="../img/persons_overview.png" alt="Persons Feature" style="width=25%;">
 
 - **Detection:** Automatically detects all person entities
 - **Display:** Entity picture (photo) or fallback icon
