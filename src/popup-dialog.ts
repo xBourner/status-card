@@ -7,7 +7,7 @@ import {
   mdiClose,
   mdiDotsVertical,
   mdiSwapHorizontal,
-  mdiToggleSwitchOffOutline,
+  mdiToggleSwitchOutline,
 } from "@mdi/js";
 import {
   LovelaceCard,
@@ -498,6 +498,75 @@ export class StatusCardPopup extends LitElement {
     return TOGGLEABLE_POPUP_DOMAINS.includes(domain);
   }
 
+  private _getDomainToggleLabel(inverted: boolean): string {
+    const domain = this.selectedDomain;
+    const offLabels: Record<string, string> = {
+      light: "Turn off lights",
+      switch: "Turn off switches",
+      fan: "Turn off fans",
+      cover: "Close covers",
+      siren: "Turn off sirens",
+      climate: "Turn off climate",
+      humidifier: "Turn off humidifiers",
+      valve: "Close valves",
+      remote: "Turn off remotes",
+      media_player: "Turn off players",
+      lock: "Lock",
+      vacuum: "Stop vacuums",
+      alarm_control_panel: "Disarm",
+      lawn_mower: "Pause mowers",
+      water_heater: "Turn off water heaters",
+      update: "Skip updates",
+    };
+    const onLabels: Record<string, string> = {
+      light: "Turn on lights",
+      switch: "Turn on switches",
+      fan: "Turn on fans",
+      cover: "Open covers",
+      siren: "Turn on sirens",
+      climate: "Turn on climate",
+      humidifier: "Turn on humidifiers",
+      valve: "Open valves",
+      remote: "Turn on remotes",
+      media_player: "Turn on players",
+      lock: "Unlock",
+      vacuum: "Start vacuums",
+      alarm_control_panel: "Arm",
+      lawn_mower: "Start mowers",
+      water_heater: "Turn on water heaters",
+      update: "Install updates",
+    };
+    if (!domain) {
+      return inverted
+        ? this.hass!.localize("ui.card.common.turn_on")
+        : this.hass!.localize("ui.card.common.turn_off");
+    }
+    return inverted ? (onLabels[domain] ?? "Turn on") : (offLabels[domain] ?? "Turn off");
+  }
+
+  private _getDomainAreaToggleLabel(areaName: string): string {
+    const domain = this.selectedDomain;
+    const areaLabels: Record<string, string> = {
+      light: `Toggle lights in ${areaName}`,
+      switch: `Toggle switches in ${areaName}`,
+      fan: `Toggle fans in ${areaName}`,
+      cover: `Toggle covers in ${areaName}`,
+      siren: `Toggle sirens in ${areaName}`,
+      climate: `Toggle climate in ${areaName}`,
+      humidifier: `Toggle humidifiers in ${areaName}`,
+      valve: `Toggle valves in ${areaName}`,
+      remote: `Toggle remotes in ${areaName}`,
+      media_player: `Toggle players in ${areaName}`,
+      lock: `Toggle locks in ${areaName}`,
+      vacuum: `Toggle vacuums in ${areaName}`,
+      alarm_control_panel: `Toggle alarm in ${areaName}`,
+      lawn_mower: `Toggle mowers in ${areaName}`,
+      water_heater: `Toggle water heaters in ${areaName}`,
+      update: `Skip updates in ${areaName}`,
+    };
+    return domain ? (areaLabels[domain] ?? `Toggle all in ${areaName}`) : `Toggle all in ${areaName}`;
+  }
+
   private _isActive(e: HassEntity): boolean {
     return !STATES_OFF.includes(e.state);
   }
@@ -718,11 +787,9 @@ export class StatusCardPopup extends LitElement {
                     >
                       <ha-svg-icon
                         slot="icon"
-                        .path=${mdiToggleSwitchOffOutline}
+                        .path=${mdiToggleSwitchOutline}
                       ></ha-svg-icon>
-                      ${isInverted
-                        ? this.hass!.localize("ui.card.common.turn_on")
-                        : this.hass!.localize("ui.card.common.turn_off")}
+                      ${this._getDomainToggleLabel(isInverted)}
                     </ha-dropdown-item>`
                   : ""}
 
@@ -766,12 +833,12 @@ export class StatusCardPopup extends LitElement {
                               ${this._isToggleableDomain
                                 ? html`<ha-icon-button
                                     class="area-toggle-btn"
-                                    .path=${mdiToggleSwitchOffOutline}
+                                    .path=${mdiToggleSwitchOutline}
                                     @click=${(e: Event) => {
                                       e.stopPropagation();
                                       this.toggleArea(areaId);
                                     }}
-                                    label="Toggle all in ${areaName}"
+                                    label="${this._getDomainAreaToggleLabel(areaName)}"
                                   ></ha-icon-button>`
                                 : ""}
                             </div>
@@ -813,12 +880,12 @@ export class StatusCardPopup extends LitElement {
                       ${this._isToggleableDomain
                         ? html`<ha-icon-button
                             class="area-toggle-btn"
-                            .path=${mdiToggleSwitchOffOutline}
+                            .path=${mdiToggleSwitchOutline}
                             @click=${(e: Event) => {
                               e.stopPropagation();
                               this.toggleArea(areaId);
                             }}
-                            label="Toggle all in ${areaName}"
+                            label="${this._getDomainAreaToggleLabel(areaName)}"
                           ></ha-icon-button>`
                         : ""}
                     </div>
