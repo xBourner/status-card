@@ -446,23 +446,13 @@ export class StatusCard extends LitElement {
     this.hiddenLabels = config.hidden_labels || [];
     this.hiddenAreas = config.hidden_areas || [];
 
-    if (this._config.styles) {
-      if (this._config.styles.card) {
-        this._parsedGlobalCardCss = parseCss(this._config.styles.card);
-      }
-      if (this._config.styles.button) {
-        this._parsedGlobalCss = parseCss(this._config.styles.button);
-      }
-      if (this._config.styles.icon) {
-        this._parsedGlobalIconCss = parseCss(this._config.styles.icon);
-      }
-      if (this._config.styles.name) {
-        this._parsedGlobalNameCss = parseCss(this._config.styles.name);
-      }
-      if (this._config.styles.state) {
-        this._parsedGlobalStateCss = parseCss(this._config.styles.state);
-      }
-    }
+    const styles = this._config.styles ?? {};
+
+    this._parsedGlobalCardCss = parseCss(styles.card);
+    this._parsedGlobalCss = parseCss(styles.button);
+    this._parsedGlobalIconCss = parseCss(styles.icon);
+    this._parsedGlobalNameCss = parseCss(styles.name);
+    this._parsedGlobalStateCss = parseCss(styles.state);
   }
 
   private _showPopup(
