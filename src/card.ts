@@ -659,23 +659,33 @@ export class StatusCard extends LitElement {
       return true;
     }
 
-    const candidatesMap = this._computeGroupCandidatesMemo(
-      this._config.rulesets || [],
-      this.__registryEntities,
-      this.__registryDevices,
-      this.__registryAreas,
-      this.hiddenEntities,
-    );
+    const groupItems = this.getGroupItems();
 
-    const hasGroupContent = this.getGroupItems().some((g) => {
-      const candidates = candidatesMap.get(g.group_id) || [];
-      if (candidates.length === 0) return false;
-      return candidates.some(
-        (eid) => this.hass.states[eid] && !STATES_OFF.includes(this.hass.states[eid].state)
+    if (groupItems.length > 0) {
+      const candidatesMap = this._computeGroupCandidatesMemo(
+          this._config.rulesets || [],
+          this.__registryEntities,
+          this.__registryDevices,
+          this.__registryAreas,
+          this.hiddenEntities,
       );
-    });
-    if (hasGroupContent) {
-      return true;
+
+      const groupResults = this._computeGroupResultsMemo(
+          candidatesMap,
+          this.hass.states,
+          this._config.rulesets || [],
+          this.__registryEntities,
+          this.__registryDevices,
+          this.__registryAreas,
+      );
+
+      const hasGroupContent = groupItems.some(
+          (group) => (groupResults.get(group.group_id) || []).length > 0,
+      );
+
+      if (hasGroupContent) {
+        return true;
+      }
     }
 
     const includedIds = this._computeIncludedIdsMemo(
