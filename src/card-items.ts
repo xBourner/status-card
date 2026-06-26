@@ -53,22 +53,23 @@ export const computeExtraItems = (
   if (!cfg.extra_entities) return [];
 
   return (cfg.extra_entities as string[])
-    .reduce<ExtraItem[]>((acc: ExtraItem[], eid: string) => {
-      if (!content.includes(eid)) return acc;
-
+    .reduce<ExtraItem[]>((acc: ExtraItem[], eid: string, extraIndex: number) => {
       const entity: HassEntity | undefined = states[eid];
       if (!entity) return acc;
+
       const cust: LovelaceCardConfig | undefined = cfg.customization?.find(
         (c: LovelaceCardConfig) => c.type === eid
       );
-      if (cust && cust.state !== undefined && cust.invert_state !== undefined) {
+
+      if (cust?.state !== undefined && cust.invert_state !== undefined) {
         const inv: boolean = cust.invert_state === "true";
         const match: boolean = entity.state === cust.state;
         if ((!inv && !match) || (inv && match)) return acc;
       }
 
       const idx: number = content.indexOf(eid);
-      const order: number = idx >= 0 ? idx : 0;
+      const order: number = idx >= 0 ? idx : content.length + extraIndex;
+
       const icon: string = getCustomIcon(
         cfg,
         eid,
@@ -76,10 +77,12 @@ export const computeExtraItems = (
         entity,
         customizationMap
       );
+
       const name: string =
         getCustomName(cfg, eid, undefined, entity, customizationMap) ??
         entity.attributes.friendly_name ??
         eid;
+
       const color: string | undefined =
         getResolvedCustomizationValue(
           cfg,
@@ -92,12 +95,14 @@ export const computeExtraItems = (
           ? computeEntityColor(entity)
           : undefined) ||
         cfg.color;
+
       const icon_css: string | undefined = getCustomCSS(
         cfg,
         eid,
         undefined,
         customizationMap
       );
+
       const background_color: string = getBackgroundColor(
         cfg,
         eid,
@@ -116,6 +121,7 @@ export const computeExtraItems = (
         icon_css,
         background_color,
       });
+
       return acc;
     }, [])
     .sort((a: ExtraItem, b: ExtraItem) => a.order - b.order);
