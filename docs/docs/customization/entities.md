@@ -7,6 +7,9 @@ title: Entities
 Used to add single or multiple entities (extra entities) or to hide specific entities inside the status card.
 If you hide an entity using the 'Hide Entity' function, you will see some tabs where your entities are grouped, making it easier to find and hide them.
 
+!!! info "Info"
+    To add an extra entity via YAML only you will also need to add it into the content. See the YAML example below.
+
 - **Extra Entities:** - Choose the entities you want to add to status card from an entity picker
 - **Hide Entities:** - Choose which entity you want to hide by entity, ara or label
 
@@ -59,7 +62,9 @@ hidden_entities:
 hidden_labels:
   - matter
 hidden_areas:
-  - bathroom   
+  - bathroom
+content:
+  - sun.sun
 customization:
   - type: sun.sun
     state: "above_horizon"
