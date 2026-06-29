@@ -37,6 +37,9 @@ body:
     description: What version of HA are you running? Please update version if you
       don't see your running verision in this list.
     options:
+    - 2026.7.0b2
+    - 2026.7.0b1
+    - 2026.7.0b0
     - 2026.6.4
     - 2026.6.3
     - 2026.6.2
@@ -57,22 +60,6 @@ body:
     - 2026.5.0b1
     - 2026.5.0b0
     - 2026.5.0
-    - 2026.4.4
-    - 2026.4.3
-    - 2026.4.2
-    - 2026.4.1
-    - 2026.4.0b10
-    - 2026.4.0b9
-    - 2026.4.0b8
-    - 2026.4.0b7
-    - 2026.4.0b6
-    - 2026.4.0b5
-    - 2026.4.0b4
-    - 2026.4.0b3
-    - 2026.4.0b2
-    - 2026.4.0b1
-    - 2026.4.0b0
-    - 2026.4.0
     default: 0
   validations:
     required: true
@@ -82,7 +69,9 @@ body:
     label: Card Version
     description: What version of the card are you running?
     options:
+    - v3.3b2
     - v3.3b1
+    - v3.3
     - v3.2.5b1
     - v3.2.4b4
     - v3.2.4b3
