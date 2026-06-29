@@ -24,7 +24,6 @@ import {
   actionHandler,
   applyThemesOnElement,
   LovelaceCardConfig,
-  STATES_OFF,
   Schema,
   EntityRegistryEntry,
   DeviceRegistryEntry,
@@ -424,7 +423,7 @@ export class StatusCard extends LitElement {
     const isInverted = customization?.invert === true;
 
     return ents.filter((entity) =>
-      isEntityActive(entity, domain, deviceClass, isInverted)
+      isEntityActive(entity, domain, deviceClass, isInverted),
     );
   }
 
@@ -446,23 +445,13 @@ export class StatusCard extends LitElement {
     this.hiddenLabels = config.hidden_labels || [];
     this.hiddenAreas = config.hidden_areas || [];
 
-    if (this._config.styles) {
-      if (this._config.styles.card) {
-        this._parsedGlobalCardCss = parseCss(this._config.styles.card);
-      }
-      if (this._config.styles.button) {
-        this._parsedGlobalCss = parseCss(this._config.styles.button);
-      }
-      if (this._config.styles.icon) {
-        this._parsedGlobalIconCss = parseCss(this._config.styles.icon);
-      }
-      if (this._config.styles.name) {
-        this._parsedGlobalNameCss = parseCss(this._config.styles.name);
-      }
-      if (this._config.styles.state) {
-        this._parsedGlobalStateCss = parseCss(this._config.styles.state);
-      }
-    }
+    const styles = this._config.styles ?? {};
+
+    this._parsedGlobalCardCss = parseCss(styles.card);
+    this._parsedGlobalCss = parseCss(styles.button);
+    this._parsedGlobalIconCss = parseCss(styles.icon);
+    this._parsedGlobalNameCss = parseCss(styles.name);
+    this._parsedGlobalStateCss = parseCss(styles.state);
   }
 
   private _showPopup(
@@ -553,7 +542,10 @@ export class StatusCard extends LitElement {
         this.selectedGroup !== null ? this.selectedGroup : undefined,
       card: this,
       opener: this,
-      content: entities.length ? undefined : (this.hass?.localize("ui.card.empty_state.no_entities") ?? "No entities"),
+      content: entities.length
+        ? undefined
+        : (this.hass?.localize("ui.card.empty_state.no_entities") ??
+          "No entities"),
       initialShowAll: showAll,
     });
   }
@@ -635,7 +627,9 @@ export class StatusCard extends LitElement {
     }
   }
 
-  private _handlePersonAction = (entity: HassEntity): ((ev: ActionHandlerEvent) => void) => {
+  private _handlePersonAction = (
+    entity: HassEntity,
+  ): ((ev: ActionHandlerEvent) => void) => {
     return (ev: ActionHandlerEvent) => {
       ev.stopPropagation();
       this.showMoreInfo(entity);
@@ -655,8 +649,18 @@ export class StatusCard extends LitElement {
     if (this.getPersonItems().length > 0) {
       return true;
     }
-    if (this.getExtraItems().length > 0) {
-      return true;
+
+    const extra = this.getExtraItems();
+    if (extra.length > 0) {
+      const hasVisibleExtra = extra.some((item) => {
+        const stateObj = this.hass?.states[item.panel];
+        return (
+          stateObj &&
+          stateObj.state !== "unavailable" &&
+          stateObj.state !== "unknown"
+        );
+      });
+      if (hasVisibleExtra) return true;
     }
 
     const candidatesMap = this._computeGroupCandidatesMemo(
@@ -667,57 +671,55 @@ export class StatusCard extends LitElement {
       this.hiddenEntities,
     );
 
+    const allGroupEntities = this._computeGroupResultsMemo(
+      candidatesMap,
+      this.hass.states,
+      this._config.rulesets || [],
+      this.__registryEntities,
+      this.__registryDevices,
+      this.__registryAreas,
+    );
+
     const hasGroupContent = this.getGroupItems().some((g) => {
-      const candidates = candidatesMap.get(g.group_id) || [];
-      if (candidates.length === 0) return false;
-      return candidates.some(
-        (eid) => this.hass.states[eid] && !STATES_OFF.includes(this.hass.states[eid].state)
-      );
+      const entities = allGroupEntities.get(g.group_id) || [];
+      return entities.length > 0;
     });
     if (hasGroupContent) {
       return true;
     }
 
-    const includedIds = this._computeIncludedIdsMemo(
-      this.hass.entities,
-      this.hass.devices,
-      this.hass.areas,
-      this._config?.area || null,
-      this._config?.floor || null,
-      this._config?.label || null,
-      this.hiddenAreas,
-      this.hiddenLabels,
-      this.hiddenEntities,
-    );
-
-    if (includedIds.length === 0) return false;
-
-    const states = this.hass.states;
     const domainAndDeviceClassItems = [
       ...this.getDomainItems(),
       ...this.getDeviceClassItems(),
     ];
 
     for (const item of domainAndDeviceClassItems) {
-      const domain = item.domain;
-      const devClass = (item as DeviceClassItem).deviceClass;
-      const key = devClass ? `${domain} - ${devClass}` : domain;
-      const customization = this.getCustomizationForType(key);
-      const showAll = this._config.show_total_entities || customization?.show_total_entities === true;
+      const entities = this._baseEntities(
+        item.domain,
+        (item as DeviceClassItem).deviceClass,
+      );
+      if (entities.length === 0) continue;
 
-      const hasMatch = includedIds.some((eid) => {
-        if (!eid.startsWith(domain + ".")) return false;
-        if (devClass) {
-          const stateObj = states[eid];
-          if (!stateObj) return false;
-          const entityDc = stateObj.attributes?.device_class;
-          if (entityDc !== devClass) return false;
-        }
-        if (showAll) return true;
-        const stateObj = states[eid];
-        return stateObj ? !STATES_OFF.includes(stateObj.state) : false;
-      });
-      if (hasMatch) return true;
+      const key = (item as DeviceClassItem).deviceClass
+        ? `${item.domain} - ${(item as DeviceClassItem).deviceClass}`
+        : item.domain;
+      const customization = this.getCustomizationForType(key);
+      const showAll =
+        this._config.show_total_entities ||
+        customization?.show_total_entities === true;
+
+      if (showAll) return true;
+
+      const isInverted = customization?.invert === true;
+      const active = entities.filter((entity) =>
+        isEntityActive(
+          entity,
+          item.domain,
+          (item as DeviceClassItem).deviceClass,
+          isInverted,
+        ),
+      );
+      if (active.length > 0) return true;
     }
 
     return false;
@@ -777,7 +779,10 @@ export class StatusCard extends LitElement {
   }
 
   private _handleDomainAction = memoizeOne(
-    (domain: string, deviceClass?: string): ((ev: ActionHandlerEvent) => void) => {
+    (
+      domain: string,
+      deviceClass?: string,
+    ): ((ev: ActionHandlerEvent) => void) => {
       return (ev: ActionHandlerEvent) => {
         handleDomainAction(
           this,
@@ -898,7 +903,9 @@ export class StatusCard extends LitElement {
     const handler = undefined; // placeholder, set by caller
     const ah = this._computeActionHandler(
       hasAction(customization?.hold_action ?? this._config.hold_action),
-      hasAction(customization?.double_tap_action ?? this._config.double_tap_action),
+      hasAction(
+        customization?.double_tap_action ?? this._config.double_tap_action,
+      ),
     );
     const contentClasses = {
       horizontal: this._config.content_layout === "horizontal",
@@ -911,7 +918,15 @@ export class StatusCard extends LitElement {
     const buttonStyles = this._computeButtonStyles(customization);
     const customIconStyles = this._computeCustomIconStyles(customization);
     const showBadge = customization?.badge_mode ?? this.badge_mode;
-    return { ah, contentClasses, iconStyles, badgeStyles, buttonStyles, customIconStyles, showBadge };
+    return {
+      ah,
+      contentClasses,
+      iconStyles,
+      badgeStyles,
+      buttonStyles,
+      customIconStyles,
+      showBadge,
+    };
   }
 
   private renderExtraTab(item: ExtraItem): TemplateResult {
@@ -919,8 +934,18 @@ export class StatusCard extends LitElement {
     const stateObj = this.hass.states[panel];
     const customization = this.getCustomizationForType(panel);
     const handler = this._handleDomainAction(panel);
-    const { ah, contentClasses, iconStyles, badgeStyles, buttonStyles, customIconStyles, showBadge } =
-      this._computeTabStyles(customization, "extra", { color, background_color });
+    const {
+      ah,
+      contentClasses,
+      iconStyles,
+      badgeStyles,
+      buttonStyles,
+      customIconStyles,
+      showBadge,
+    } = this._computeTabStyles(customization, "extra", {
+      color,
+      background_color,
+    });
     const stateContent = customization?.state_content ?? "state";
 
     return html`
@@ -1036,8 +1061,18 @@ export class StatusCard extends LitElement {
 
     const handler = this._handleGroupAction(groupId, index, entities);
 
-    const { ah, contentClasses, iconStyles, badgeStyles, buttonStyles, customIconStyles, showBadge } =
-      this._computeTabStyles(customization, "domain", { color, background_color });
+    const {
+      ah,
+      contentClasses,
+      iconStyles,
+      badgeStyles,
+      buttonStyles,
+      customIconStyles,
+      showBadge,
+    } = this._computeTabStyles(customization, "domain", {
+      color,
+      background_color,
+    });
 
     return html`
       <ha-tab-group-tab
@@ -1110,16 +1145,23 @@ export class StatusCard extends LitElement {
     );
 
     const handler = this._handleDomainAction(domain, deviceClass);
-    const { ah, contentClasses, iconStyles, badgeStyles, buttonStyles, customIconStyles, showBadge } =
-      this._computeTabStyles(customization, "domain", {
-        color,
-        background_color: getBackgroundColor(
-          this._config,
-          domain,
-          deviceClass,
-          this._customizationIndexMemo(this._config.customization),
-        ),
-      });
+    const {
+      ah,
+      contentClasses,
+      iconStyles,
+      badgeStyles,
+      buttonStyles,
+      customIconStyles,
+      showBadge,
+    } = this._computeTabStyles(customization, "domain", {
+      color,
+      background_color: getBackgroundColor(
+        this._config,
+        domain,
+        deviceClass,
+        this._customizationIndexMemo(this._config.customization),
+      ),
+    });
 
     const name =
       getCustomName(this._config, domain, deviceClass) ||

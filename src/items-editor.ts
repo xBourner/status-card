@@ -56,6 +56,7 @@ abstract class BaseItemsEditor extends LitElement {
                 .selector=${{
                   select: {
                     options: this.SelectOptions,
+                    mode: "dropdown",
                   },
                 }}
                 .value=${conf.type}
@@ -93,6 +94,7 @@ abstract class BaseItemsEditor extends LitElement {
             .selector=${{
               select: {
                 options: availableOptions,
+                mode: "dropdown",
               },
             }}
             .value=${""}
