@@ -35,7 +35,7 @@ nav = [
 [project.theme]
 name = "material"
 custom_dir = "overrides"
-logo = "./docs/img/logo.png"
+logo = "img/logo.png"
 features = [
     "navigation.tabs",
     "navigation.footer",
