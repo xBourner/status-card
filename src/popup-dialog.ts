@@ -148,6 +148,7 @@ export class StatusCardPopup extends LitElement {
     }
     this.open = false;
     this._cardEls.clear();
+    this._currentEntitiesCache = [];
     this._popupCardConfigCache.clear();
     this._cardElementCache.clear();
     this.dispatchEvent(
@@ -175,6 +176,7 @@ export class StatusCardPopup extends LitElement {
     super.disconnectedCallback();
     window.removeEventListener("popstate", this._onPopState);
     this._cardEls.clear();
+    this._currentEntitiesCache = [];
     this._popupCardConfigCache.clear();
     this._cardElementCache.clear();
   }
