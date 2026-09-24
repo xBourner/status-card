@@ -26,6 +26,7 @@ import {
   ensureHelpersLoaded,
 } from "./helpers";
 import { computeLabelCallback, translateEntityState } from "./translations";
+import { getTranslation, TranslationKey } from "./translations-data";
 import { DOMAIN_FEATURES } from "./const";
 import { toggleDomain } from "./card-actions";
 import { StatusCard } from "./card";
@@ -503,70 +504,74 @@ export class StatusCardPopup extends LitElement {
   private _getDomainToggleLabel(inverted: boolean): string {
     const domain = this.selectedDomain;
     const offLabels: Record<string, string> = {
-      light: "Turn off lights",
-      switch: "Turn off switches",
-      fan: "Turn off fans",
-      cover: "Close covers",
-      siren: "Turn off sirens",
-      climate: "Turn off climate",
-      humidifier: "Turn off humidifiers",
-      valve: "Close valves",
-      remote: "Turn off remotes",
-      media_player: "Turn off players",
-      lock: "Lock",
-      vacuum: "Stop vacuums",
-      alarm_control_panel: "Disarm",
-      lawn_mower: "Pause mowers",
-      water_heater: "Turn off water heaters",
-      update: "Skip updates",
+      light: "off_light",
+      switch: "off_switch",
+      fan: "off_fan",
+      cover: "off_cover",
+      siren: "off_siren",
+      climate: "off_climate",
+      humidifier: "off_humidifier",
+      valve: "off_valve",
+      remote: "off_remote",
+      media_player: "off_media_player",
+      lock: "off_lock",
+      vacuum: "off_vacuum",
+      alarm_control_panel: "off_alarm_control_panel",
+      lawn_mower: "off_lawn_mower",
+      water_heater: "off_water_heater",
+      update: "off_update",
     };
     const onLabels: Record<string, string> = {
-      light: "Turn on lights",
-      switch: "Turn on switches",
-      fan: "Turn on fans",
-      cover: "Open covers",
-      siren: "Turn on sirens",
-      climate: "Turn on climate",
-      humidifier: "Turn on humidifiers",
-      valve: "Open valves",
-      remote: "Turn on remotes",
-      media_player: "Turn on players",
-      lock: "Unlock",
-      vacuum: "Start vacuums",
-      alarm_control_panel: "Arm",
-      lawn_mower: "Start mowers",
-      water_heater: "Turn on water heaters",
-      update: "Install updates",
+      light: "on_light",
+      switch: "on_switch",
+      fan: "on_fan",
+      cover: "on_cover",
+      siren: "on_siren",
+      climate: "on_climate",
+      humidifier: "on_humidifier",
+      valve: "on_valve",
+      remote: "on_remote",
+      media_player: "on_media_player",
+      lock: "on_lock",
+      vacuum: "on_vacuum",
+      alarm_control_panel: "on_alarm_control_panel",
+      lawn_mower: "on_lawn_mower",
+      water_heater: "on_water_heater",
+      update: "on_update",
     };
+    const map = inverted ? onLabels : offLabels;
+    const fallback = inverted ? "toggle_on" : "toggle_off";
     if (!domain) {
       return inverted
         ? this.hass!.localize("ui.card.common.turn_on")
         : this.hass!.localize("ui.card.common.turn_off");
     }
-    return inverted ? (onLabels[domain] ?? "Turn on") : (offLabels[domain] ?? "Turn off");
+    const key = (map[domain] ?? fallback) as TranslationKey;
+    return getTranslation(key, this.hass!.locale.language);
   }
 
   private _getDomainAreaToggleLabel(areaName: string): string {
     const domain = this.selectedDomain;
     const areaLabels: Record<string, string> = {
-      light: `Toggle lights in ${areaName}`,
-      switch: `Toggle switches in ${areaName}`,
-      fan: `Toggle fans in ${areaName}`,
-      cover: `Toggle covers in ${areaName}`,
-      siren: `Toggle sirens in ${areaName}`,
-      climate: `Toggle climate in ${areaName}`,
-      humidifier: `Toggle humidifiers in ${areaName}`,
-      valve: `Toggle valves in ${areaName}`,
-      remote: `Toggle remotes in ${areaName}`,
-      media_player: `Toggle players in ${areaName}`,
-      lock: `Toggle locks in ${areaName}`,
-      vacuum: `Toggle vacuums in ${areaName}`,
-      alarm_control_panel: `Toggle alarm in ${areaName}`,
-      lawn_mower: `Toggle mowers in ${areaName}`,
-      water_heater: `Toggle water heaters in ${areaName}`,
-      update: `Skip updates in ${areaName}`,
+      light: "area_light",
+      switch: "area_switch",
+      fan: "area_fan",
+      cover: "area_cover",
+      siren: "area_siren",
+      climate: "area_climate",
+      humidifier: "area_humidifier",
+      valve: "area_valve",
+      remote: "area_remote",
+      media_player: "area_media_player",
+      lock: "area_lock",
+      vacuum: "area_vacuum",
+      alarm_control_panel: "area_alarm_control_panel",
+      lawn_mower: "area_lawn_mower",
+      water_heater: "area_water_heater",
+      update: "area_update",
     };
-    return domain ? (areaLabels[domain] ?? `Toggle all in ${areaName}`) : `Toggle all in ${areaName}`;
+    const key = ((domain && areaLabels[domain]) || "area_all") as TranslationKey;
+    return getTranslation(key, this.hass!.locale.language).replace("{area}", areaName);
   }
 
   private _isActive(e: HassEntity): boolean {

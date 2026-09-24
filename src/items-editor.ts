@@ -9,6 +9,7 @@ import {
   SelectOption,
   EditorTarget,
 } from "./ha";
+import { getTranslation, TranslationKey } from "./translations-data";
 
 abstract class BaseItemsEditor extends LitElement {
   @property({ attribute: false }) hass?: HomeAssistant;
@@ -46,13 +47,8 @@ abstract class BaseItemsEditor extends LitElement {
             <div class="customize-item">
               <ha-selector
                 .hass=${this.hass}
-                .label=${this.hass!.localize(
-                  "ui.panel.lovelace.editor.common.edit"
-                ) +
-                " " +
-                this.hass!.localize(
-                  "ui.panel.lovelace.editor.card.markdown.content"
-                )}
+                .label=${getTranslation("edit_domains_dc", this.hass!.locale.language)}
+                .required=${false}
                 .selector=${{
                   select: {
                     options: this.SelectOptions,
@@ -84,13 +80,8 @@ abstract class BaseItemsEditor extends LitElement {
         <div class="add-item row">
           <ha-selector
             .hass=${this.hass}
-            .label=${this.hass!.localize(
-              "ui.panel.lovelace.editor.common.edit"
-            ) +
-            " " +
-            this.hass!.localize(
-              "ui.panel.lovelace.editor.card.markdown.content"
-            )}
+            .label=${getTranslation("edit_domains_dc", this.hass.locale.language)}
+            .required=${false}
             .selector=${{
               select: {
                 options: availableOptions,
