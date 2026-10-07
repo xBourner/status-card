@@ -132,11 +132,12 @@ hide:
 <div class="support-block">
   <h2 class="support-heading">Become a sponsor</h2>
   <p class="support-text">
-    By supporting the <strong>Status Card</strong> project, you help ensure its ongoing development and maintenance.
-    Together, we can build the best dashboard experience for Home Assistant!
+    I develop and maintain the Status Card in my spare time. If it makes your
+    dashboard a little better, consider becoming a sponsor — it directly supports
+    new features and fixes. Thanks a lot for keeping this project alive!
   </p>
   <div class="video-buttons u-btn-group" style="margin-top: 2rem;">
-    <a href="https://github.com/sponsors/" class="u-btn-native u-btn-dark" style="color: hsla(var(--md-hue), 15%, 5%, 1);">
+    <a href="https://github.com/sponsors/xBourner" class="u-btn-native u-btn-dark" style="color: hsla(var(--md-hue), 15%, 5%, 1);">
       LEARN MORE
       <div class="label_corner">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="48" fill="none" viewBox="0 0 18 48">
@@ -145,7 +146,7 @@ hide:
         </svg>
       </div>
     </a>
-    <a href="https://github.com/sponsors/" class="u-btn-native u-btn-lime">
+    <a href="https://github.com/sponsors/xBourner" class="u-btn-native u-btn-lime">
       <svg xmlns="http://www.w3.org/2000/svg" width="51" height="48" fill="none" viewBox="0 0 51 48"
         class="btn-shape">
         <path class="btn-path"
