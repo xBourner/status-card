@@ -11,7 +11,7 @@ show_total_number	boolean	false	Aktiv/Total-Anzeige
 show_total_entities	boolean	false	Alle Entitys zeigen (nicht nur aktive)
 square	boolean	false	Eckige statt runde Items
 no_scroll	boolean	false	Wrap-Modus statt Scrollen
-badge_mode	boolean	false	Badge-Anzeige
+display_mode	string	standard	Darstellung: standard, badge oder chip
 badge_color	string	""	Globale Badge-Farbe
 badge_text_color	string	""	Globale Badge-Textfarbe
 no_background	boolean	false	Hintergrund/Border ausblenden
@@ -107,7 +107,7 @@ Actions	Tap/Hold/Double-Tap Aktionen
 Style	CSS-Objekt-Editor mit Style-Guide
 Per-Domain/DeviceClass/Entity Customization (Item-Editor)
 Tab	Properties
-Appearance	invert, badge_mode, badge_color, show_total_number, show_total_entities, name, icon, icon_color, background_color
+Appearance	invert, display_mode, badge_color, show_total_number, show_total_entities, name, icon, icon_color, background_color
 Extra Entity	invert_state, state, state_content, show_entity_picture, activate_state_color
 Actions	tap_action, hold_action, double_tap_action
 Style	styles (CSS-Objekt)
@@ -125,7 +125,7 @@ spin, pulse, shake, blink, bounce — nutzbar in styles.icon oder styles.button
 7. Beispiel-YAML
 type: custom:status-card
 columns: 3
-badge_mode: true
+display_mode: badge
 badge_color: red
 no_scroll: true
 square: true
@@ -167,7 +167,7 @@ customization:
       icon: "animation: pulse 2s ease-in-out infinite"
   - type: binary_sensor - motion
     icon: mdi:motion-sensor
-    badge_mode: true
+    display_mode: badge
   - type: sun.sun
     state: "above_horizon"
     show_entity_picture: true

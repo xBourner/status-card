@@ -21,6 +21,14 @@ icon:
 name:
   font-size: 15px;`;
 
+// Optional, appended to the example for domains, device classes and groups.
+const COUNT_STYLE_EXAMPLE = `
+count:  # optional, highest reached min wins
+  - min: 3
+    icon: "color: orange;"
+  - min: 6
+    icon: "color: red; animation: pulse 1s infinite;"`;
+
 @customElement("status-card-item-editor")
 export class ItemEditor extends LitElement {
   @property({ attribute: false }) config?: LovelaceCardConfig;
@@ -58,7 +66,7 @@ export class ItemEditor extends LitElement {
         this.getSchema!,
         this.config?.type,
         this.hass,
-        this._config?.badge_mode ?? false,
+        this._config?.display_mode === "badge",
         this.isGroup
       );
     } else if (this._activeTab === "actions") {
@@ -104,7 +112,12 @@ export class ItemEditor extends LitElement {
       </ha-tab-group>
       ${this._activeTab === "style"
         ? html`
-            ${renderStyleGuide(["button", "icon", "name", "state"], ITEM_STYLE_EXAMPLE)}
+            ${renderStyleGuide(
+              ["button", "icon", "name", "state"],
+              this.getSchema === "domain"
+                ? ITEM_STYLE_EXAMPLE + COUNT_STYLE_EXAMPLE
+                : ITEM_STYLE_EXAMPLE,
+            )}
           `
         : ""}
       ${this._activeTab === "popup"

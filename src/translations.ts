@@ -102,8 +102,7 @@ const LABEL_MAP: Record<string, (hass: HomeAssistant) => string> = {
     hass.localize("ui.panel.lovelace.editor.card.tile.state_content"),
   hide_card_if_empty: (hass) =>
     getTranslation("hide_card_if_empty", hass.locale.language),
-  badge_mode: (hass) =>
-    getTranslation("badge_mode", hass.locale.language),
+  display_mode: (hass) => getTranslation("display_mode", hass.locale.language),
   badge_color: (hass) =>
     `Badge ${hass.localize("ui.panel.lovelace.editor.card.tile.color")}`,
   badge_text_color: (hass) =>

@@ -1265,7 +1265,7 @@ export class StatusCardEditor extends LitElement {
       this._config!.label_filter ?? false,
       this._config!.multiple_areas ?? false,
       this._config!.multiple_floors ?? false,
-      this._config!.badge_mode ?? false,
+      this._config!.display_mode === "badge",
     );
 
     const possibleToggleDomains = this.possibleToggleDomains;

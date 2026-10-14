@@ -92,5 +92,5 @@ content:
 customization:
   - type: binary_sensor - motion
     icon: mdi:motion-sensor
-    badge_mode: true
+    display_mode: badge
 ```

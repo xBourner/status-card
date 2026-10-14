@@ -19,7 +19,7 @@ All customization options are optional. Customizations are grouped by features â
 |---------|-------------|
 | [Global Appearance](global-appearance.md) | Global settings for all items |
 | [Global Actions](global-actions.md) | Tap, hold and double tap actions |
-| [Badge Mode](badge-mode.md) | Compact display: icon + badge count |
+| [Display Mode](display-mode.md) | Standard, badge or chip display |
 | [Filters](filters.md) | Filter by area, floor or label what you want to see |
 | [Persons](persons.md) | Automatic detection of person entities, home/away status, entity picture |
 | [Entities](entities.md) | Manually added individual entities |
