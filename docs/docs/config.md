@@ -66,6 +66,7 @@ hide_person: false  # hide person entities in card
 list_mode: false  # enable buk mode for accessing entities as text you can copy (easy to add hidden_entities)
 hide_content_name: false  # hide names for domains/device classes/exta entities
 show_total_number: false  # lets you show how many entities of a domain are on and how many in total e.g. 1/4 on
+display_mode: standard # standard, badge or chip
 square: false # renders card items as a rounded square instaed of a circle
 show_total_entities: false # lets you choose between showing only 'on' entities or all entities that belongs to a domain
 theme: optional # choose a theme to sytle your card

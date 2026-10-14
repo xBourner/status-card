@@ -124,6 +124,46 @@ export const cardStyles = css`
   ha-tab-group-tab.badge-mode::part(base) {
     padding: 0 4px !important;
   }
+  /* Chip design: each item as a pill, icon left, name and state stacked. */
+  /* Margin on the chip itself, so per item chips in other designs get it too. */
+  ha-tab-group-tab.chip-mode {
+    margin: 0 3px;
+  }
+  ha-tab-group-tab.chip-mode::part(base) {
+    padding: 0 !important;
+  }
+  ha-tab-group-tab.chip-mode .entity,
+  ha-tab-group-tab.chip-mode .extra-entity {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 14px 4px 4px;
+    border-radius: 999px;
+    background-color: rgba(var(--rgb-primary-text-color), 0.06);
+  }
+  .square ha-tab-group-tab.chip-mode .entity,
+  .square ha-tab-group-tab.chip-mode .extra-entity {
+    border-radius: 12px;
+  }
+  ha-tab-group-tab.chip-mode .entity .entity-icon,
+  ha-tab-group-tab.chip-mode .extra-entity .entity-icon {
+    width: 32px;
+    height: 32px;
+    --mdc-icon-size: 18px;
+  }
+  ha-tab-group-tab.chip-mode .entity .entity-info,
+  ha-tab-group-tab.chip-mode .extra-entity .entity-info {
+    margin-top: 0;
+    padding-left: 0;
+    text-align: left;
+    line-height: 1.15;
+  }
+  ha-tab-group-tab.chip-mode .entity-name {
+    font-size: 13px;
+  }
+  ha-tab-group-tab.chip-mode .entity-state {
+    font-size: 11px;
+  }
   ha-tab-group.no-scroll::part(tabs) {
     display: flex;
     flex-wrap: wrap;
@@ -256,6 +296,37 @@ export const cardStyles = css`
   }
 `;
 
+export type StyleArea = "button" | "icon" | "name" | "state";
+export type ParsedStyles = Partial<Record<StyleArea, Record<string, string>>>;
+export interface CountLevel {
+  min: number;
+  styles: ParsedStyles;
+}
+
+const STYLE_AREAS: StyleArea[] = ["button", "icon", "name", "state"];
+
+/** styles.count levels, parsed and sorted by min (highest first). */
+export const parseCountStyles = (
+  levels: ({ min?: number | string } & Partial<Record<StyleArea, string>>)[],
+): CountLevel[] =>
+  levels
+    .filter((l) => l && typeof l === "object")
+    .map((l) => ({
+      min: Number(l.min ?? 0),
+      styles: Object.fromEntries(
+        STYLE_AREAS.filter((a) => l[a]).map((a) => [a, parseCss(l[a])]),
+      ) as ParsedStyles,
+    }))
+    // A typo like "min: three" drops the level instead of matching everything.
+    .filter((l) => !Number.isNaN(l.min))
+    .sort((a, b) => b.min - a.min);
+
+/** Styles of the highest level whose min the count reaches. */
+export const getCountStyles = (
+  levels: CountLevel[] | undefined,
+  count: number,
+): ParsedStyles => levels?.find((l) => count >= l.min)?.styles ?? {};
+
 export const customizationIndex = (list?: LovelaceCardConfig[]) => {
   const map = new Map<string, LovelaceCardConfig>();
   (list ?? []).forEach((c) => {
@@ -267,6 +338,11 @@ export const customizationIndex = (list?: LovelaceCardConfig[]) => {
         copy._parsedCss = { ...copy._parsedCss, ...buttonStyles };
       }
       if (copy.styles?.icon) copy._parsedIconCss = parseCss(copy.styles.icon);
+      if (copy.styles?.name) copy._parsedNameCss = parseCss(copy.styles.name);
+      if (copy.styles?.state) copy._parsedStateCss = parseCss(copy.styles.state);
+      if (Array.isArray(copy.styles?.count)) {
+        copy._countLevels = parseCountStyles(copy.styles.count);
+      }
       map.set(copy.type.toLowerCase(), copy);
     }
   });

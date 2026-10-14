@@ -1,5 +1,22 @@
 import { Schema, HomeAssistant, UiAction } from "./ha";
 import { computeLabelCallback } from "./translations";
+import { getTranslation } from "./translations-data";
+
+const DESIGNS = ["standard", "badge", "chip"] as const;
+
+// Not required: an empty item design follows the card design.
+const designField = (hass: HomeAssistant) => ({
+  name: "display_mode",
+  selector: {
+    select: {
+      mode: "dropdown",
+      options: DESIGNS.map((value) => ({
+        value,
+        label: getTranslation(`design_${value}`, hass.locale.language),
+      })),
+    },
+  },
+});
 
 export function getConfigSchema(
   hass: HomeAssistant,
@@ -155,6 +172,7 @@ export function getAppearanceSchema(
   BadgeMode: boolean,
 ): Schema[] {
   return [
+    designField(hass),
     {
       name: "",
       type: "grid",
@@ -180,7 +198,6 @@ export function getAppearanceSchema(
           name: "hide_card_if_empty",
           selector: { boolean: {} },
         },
-        { name: "badge_mode", selector: { boolean: {} } },
         { name: "no_background", selector: { boolean: {} } },
       ],
     },
@@ -273,12 +290,12 @@ export const getItemAppearanceSchema = (
 ): Schema[] => {
   if (type === "domain") {
     return [
+      designField(hass!),
       {
         name: "",
         type: "grid",
         schema: [
           ...(!isGroup ? [{ name: "invert", selector: { boolean: {} } }] : []),
-          { name: "badge_mode", selector: { boolean: {} } },
           ...(badgeMode
             ? ([
                 {

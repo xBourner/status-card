@@ -42,6 +42,6 @@ customization:
       navigation_path: /lights
   - type: Low Batteries
     invert_state: "false"
-    badge_mode: false
+    display_mode: standard
     icon_color: red
 ```

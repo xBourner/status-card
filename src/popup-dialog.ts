@@ -898,7 +898,6 @@ export class StatusCardPopup extends LitElement {
       justify-content: center;
       box-sizing: border-box;
       width: 100%;
-      overflow-x: auto;
     }
     .entity-list {
       list-style: none;
@@ -941,7 +940,6 @@ export class StatusCardPopup extends LitElement {
       gap: 8px;
       width: 100%;
       box-sizing: border-box;
-      overflow-x: hidden;
       justify-content: center;
       padding: 8px;
     }
@@ -993,7 +991,6 @@ export class StatusCardPopup extends LitElement {
       .cards-wrapper {
         align-items: stretch;
         width: 100%;
-        overflow-x: hidden;
       }
       .entity-cards {
         grid-template-columns: 1fr;

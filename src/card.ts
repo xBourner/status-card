@@ -61,9 +61,15 @@ import {
   getParsedCss,
   cardStyles,
   toCssColor,
+  getCountStyles,
 } from "./card-styles";
 import { handleDomainAction, toggleDomain } from "./card-actions";
 import { mdiFormatListGroup } from "@mdi/js";
+
+export type CardDesign = "standard" | "badge" | "chip";
+
+const designClass = (design: CardDesign): string =>
+  design === "standard" ? "" : `${design}-mode`;
 
 // Memo equality for (ids, states): same id list and same state object per id.
 const sameIdsAndStates = (
@@ -83,7 +89,7 @@ export class StatusCard extends LitElement {
   @state() private hide_person: boolean = false;
   @state() private hide_content_name: boolean = false;
   @state() public list_mode: boolean = false;
-  @state() public badge_mode: boolean = false;
+  @state() public design: CardDesign = "standard";
   @state() public no_background: boolean = false;
   @state() public badge_color: string = "";
   @state() public badge_text_color: string = "";
@@ -158,7 +164,7 @@ export class StatusCard extends LitElement {
     if (changedProps.has("selectedDeviceClass")) return true;
     if (changedProps.has("selectedGroup")) return true;
     if (changedProps.has("list_mode")) return true;
-    if (changedProps.has("badge_mode")) return true;
+    if (changedProps.has("design")) return true;
     if (changedProps.has("_shouldHideCard")) return true;
     if (changedProps.has("__registryEntities")) return true;
     if (changedProps.has("__registryDevices")) return true;
@@ -456,7 +462,7 @@ export class StatusCard extends LitElement {
     this.hide_content_name =
       config.hide_content_name !== undefined ? config.hide_content_name : false;
     this.list_mode = config.list_mode !== undefined ? config.list_mode : false;
-    this.badge_mode = !!config.badge_mode;
+    this.design = config.display_mode || "standard";
     this.no_background = !!config.no_background;
     this.badge_color = config.badge_color || "";
     this.badge_text_color = config.badge_text_color || "";
@@ -888,7 +894,8 @@ export class StatusCard extends LitElement {
     const { badgeStyles } = this._computeBadgeStyles(customization);
     const buttonStyles = this._computeButtonStyles(customization);
     const customIconStyles = this._computeCustomIconStyles(customization);
-    const showBadge = customization?.badge_mode ?? this.badge_mode;
+    const design: CardDesign = customization?.display_mode || this.design;
+    const showBadge = design === "badge";
     return {
       ah,
       contentClasses,
@@ -897,6 +904,7 @@ export class StatusCard extends LitElement {
       buttonStyles,
       customIconStyles,
       showBadge,
+      design,
     };
   }
 
@@ -914,7 +922,7 @@ export class StatusCard extends LitElement {
     iconType: "domain" | "extra";
     color?: string;
     background_color?: string;
-    badge: string;
+    count: number;
     entityClass: "entity" | "extra-entity";
     icon: TemplateResult;
     name: unknown;
@@ -928,10 +936,15 @@ export class StatusCard extends LitElement {
       buttonStyles,
       customIconStyles,
       showBadge,
+      design,
     } = this._computeTabStyles(opts.customization, opts.iconType, {
       color: opts.color,
       background_color: opts.background_color,
     });
+    const countStyles = getCountStyles(
+      opts.customization?._countLevels,
+      opts.count,
+    );
 
     return html`
       <ha-tab-group-tab
@@ -939,17 +952,21 @@ export class StatusCard extends LitElement {
         panel=${opts.panel}
         @action=${opts.handler}
         .actionHandler=${ah}
-        class=${showBadge ? "badge-mode" : ""}
+        class=${designClass(design)}
         style=${styleMap(badgeStyles)}
-        data-badge=${ifDefined(showBadge ? opts.badge : undefined)}
+        data-badge=${ifDefined(showBadge ? String(opts.count) : undefined)}
       >
         <div
           class=${classMap({ [opts.entityClass]: true, ...contentClasses })}
-          style=${styleMap(buttonStyles)}
+          style=${styleMap({ ...buttonStyles, ...countStyles.button })}
         >
           <div
             class="entity-icon"
-            style=${styleMap({ ...iconStyles, ...customIconStyles })}
+            style=${styleMap({
+              ...iconStyles,
+              ...customIconStyles,
+              ...countStyles.icon,
+            })}
           >
             ${opts.icon}
           </div>
@@ -958,14 +975,22 @@ export class StatusCard extends LitElement {
                 ${!this.hide_content_name
                   ? html`<div
                       class="entity-name"
-                      style=${styleMap(this._parsedGlobalNameCss)}
+                      style=${styleMap({
+                        ...this._parsedGlobalNameCss,
+                        ...opts.customization?._parsedNameCss,
+                        ...countStyles.name,
+                      })}
                     >
                       ${opts.name}
                     </div>`
                   : ""}
                 <div
                   class="entity-state"
-                  style=${styleMap(this._parsedGlobalStateCss)}
+                  style=${styleMap({
+                    ...this._parsedGlobalStateCss,
+                    ...opts.customization?._parsedStateCss,
+                    ...countStyles.state,
+                  })}
                 >
                   ${opts.state}
                 </div>
@@ -1012,7 +1037,7 @@ export class StatusCard extends LitElement {
       iconType: "extra",
       color,
       background_color,
-      badge: "1",
+      count: 1,
       entityClass: "extra-entity",
       icon: iconTpl,
       name,
@@ -1058,7 +1083,7 @@ export class StatusCard extends LitElement {
       iconType: "domain",
       color,
       background_color,
-      badge: String(entities.length),
+      count: entities.length,
       entityClass: "entity",
       icon: this._renderIcon(groupIcon),
       name: groupId,
@@ -1127,7 +1152,7 @@ export class StatusCard extends LitElement {
         deviceClass,
         this._custMap,
       ),
-      badge: String(entities.length),
+      count: entities.length,
       entityClass: "entity",
       icon: this._renderIcon(
         getCustomIcon(
@@ -1171,9 +1196,9 @@ export class StatusCard extends LitElement {
         slot="nav"
         @action=${this._handlePersonAction(entity)}
         .actionHandler=${this._computeActionHandler(false, false)}
-        class=${this.badge_mode ? "badge-mode" : ""}
+        class=${designClass(this.design)}
       >
-        ${this.badge_mode
+        ${this.design === "badge"
           ? html`<div
               class="person-badge"
               style=${styleMap({
@@ -1207,7 +1232,7 @@ export class StatusCard extends LitElement {
                     style=${styleMap(iconStyles)}
                   ></ha-icon>`}
           </div>
-          ${!this.badge_mode
+          ${this.design !== "badge"
             ? html`<div class="entity-info">
                 ${!this.hide_content_name
                   ? html`<div class="entity-name">
@@ -1279,7 +1304,9 @@ export class StatusCard extends LitElement {
 
     const noScroll = {
       "no-scroll": !!this._config.no_scroll,
-      "badge-mode": this.badge_mode,
+      "badge-mode": this.design === "badge",
+      "chip-mode": this.design === "chip",
+      square: !!this._config.square,
       "no-background": this.no_background,
     };
     return html`
