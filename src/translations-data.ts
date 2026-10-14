@@ -70,7 +70,18 @@ export type TranslationKey =
   | "off_lawn_mower"
   | "off_water_heater"
   | "off_update"
-  | "ungroup_areas";
+  | "ungroup_areas"
+  | "entities_in"
+  | "unassigned"
+  | "style"
+  | "styles"
+  | "smart_groups"
+  | "popup_card"
+  | "popup_card_type"
+  | "hidden_by"
+  | "manufacturer"
+  | "model"
+  | "loading";
 
 export const translations: Record<TranslationKey, Record<string, string>> = {
   area_all: {
@@ -3889,6 +3900,19 @@ export const translations: Record<TranslationKey, Record<string, string>> = {
     "zh-Hans": "禁用区域分组",
     "zh-Hant": "停用區域群組",
   },
+
+  // Only en/de so far; other languages fall back to English.
+  entities_in: { en: "Entities in {name}", de: "Entitäten in {name}" },
+  unassigned: { en: "Unassigned", de: "Nicht zugewiesen" },
+  style: { en: "Style", de: "Stil" },
+  styles: { en: "Styles", de: "Stile" },
+  smart_groups: { en: "Smart Groups", de: "Smarte Gruppen" },
+  popup_card: { en: "Popup Card", de: "Popup-Karte" },
+  popup_card_type: { en: "Change Popup Card Type", de: "Popup-Kartentyp ändern" },
+  hidden_by: { en: "Hidden by", de: "Ausgeblendet durch" },
+  manufacturer: { en: "Manufacturer", de: "Hersteller" },
+  model: { en: "Model", de: "Modell" },
+  loading: { en: "Loading…", de: "Wird geladen…" },
 };
 
 export function getTranslation(key: TranslationKey, lang: string): string {

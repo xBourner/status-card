@@ -6,6 +6,7 @@ import {
   LovelaceCard,
   STATES_OFF,
 } from "./ha";
+import type { Ruleset } from "./ha/types";
 
 export function cacheByProperty<T>(
   hass: HomeAssistant,
@@ -25,55 +26,88 @@ export function cacheByProperty<T>(
     });
 }
 
+/** Accepts a single value or a list (YAML allows both) and always returns a list. */
+export function toArray<T>(value: T | T[] | null | undefined): T[] {
+  if (value === null || value === undefined || value === "") return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+export interface LocationFilter {
+  area: string[];
+  floor: string[];
+  label: string[];
+}
+
+type RegistryEntry = HomeAssistant["entities"][string];
+type RegistryDevice = HomeAssistant["devices"][string];
+
+/**
+ * Card level area/floor/label filter. An entity must be assigned to an area
+ * (directly or through its device); entity and device both count for each
+ * filter. Empty filter lists are ignored.
+ */
+export function matchesLocationFilter(
+  entry: RegistryEntry | undefined,
+  device: RegistryDevice | undefined,
+  floorByArea: Map<string, string | null | undefined>,
+  filter: LocationFilter
+): boolean {
+  if (entry?.area_id == null && device?.area_id == null) return false;
+
+  if (filter.label.length) {
+    const hasLabel = (labels?: string[]) =>
+      !!labels?.some((l) => filter.label.includes(l));
+    if (!hasLabel(entry?.labels) && !hasLabel(device?.labels)) return false;
+  }
+
+  if (filter.area.length) {
+    const inArea = (areaId?: string | null) =>
+      !!areaId && filter.area.includes(areaId);
+    if (!inArea(entry?.area_id) && !inArea(device?.area_id)) return false;
+  }
+
+  if (filter.floor.length) {
+    const onFloor = (areaId?: string | null) => {
+      const floorId = areaId ? floorByArea.get(areaId) : undefined;
+      return !!floorId && filter.floor.includes(floorId);
+    };
+    if (!onFloor(entry?.area_id) && !onFloor(device?.area_id)) return false;
+  }
+
+  return true;
+}
+
+export function floorByAreaMap(
+  areas: HomeAssistant["areas"]
+): Map<string, string | null | undefined> {
+  return new Map(Object.values(areas).map((a) => [a.area_id, a.floor_id]));
+}
+
 export function getIncludedEntityIds(
   entities: HomeAssistant["entities"],
   devices: HomeAssistant["devices"],
   areas: HomeAssistant["areas"],
   filters: {
-    area?: string[] | null;
-    floor?: string[] | null;
-    label?: string[] | null;
+    area?: string | string[] | null;
+    floor?: string | string[] | null;
+    label?: string | string[] | null;
     hiddenAreas?: string[];
     hiddenLabels?: string[];
     hiddenEntities?: string[];
   },
   allowedDomains: string[]
 ): string[] {
-  const areaSel =
-    filters.area && filters.area.length > 0
-      ? Array.isArray(filters.area)
-        ? filters.area
-        : [filters.area]
-      : null;
-  const floorSel =
-    filters.floor && filters.floor.length > 0
-      ? Array.isArray(filters.floor)
-        ? filters.floor
-        : [filters.floor]
-      : null;
-  const labelSel =
-    filters.label && filters.label.length > 0
-      ? Array.isArray(filters.label)
-        ? filters.label
-        : [filters.label]
-      : null;
+  const location: LocationFilter = {
+    area: toArray(filters.area),
+    floor: toArray(filters.floor),
+    label: toArray(filters.label),
+  };
 
-  const hiddenAreas = filters.hiddenAreas || [];
-  const hiddenLabels = filters.hiddenLabels || [];
-  const hiddenEntities = filters.hiddenEntities || [];
-
-  const hiddenAreasSet = new Set(hiddenAreas);
-  const hiddenLabelsSet = new Set(hiddenLabels);
-  const hiddenEntitiesSet = new Set(hiddenEntities);
+  const hiddenAreasSet = new Set(filters.hiddenAreas || []);
+  const hiddenLabelsSet = new Set(filters.hiddenLabels || []);
+  const hiddenEntitiesSet = new Set(filters.hiddenEntities || []);
   const allowedDomainsSet = new Set(allowedDomains);
-
-  const deviceMap = new Map(Object.values(devices).map((d) => [d.id, d]));
-  const floorByArea = new Map(
-    Object.values(areas).map((a) => [
-      a.area_id,
-      a.floor_id as string | undefined,
-    ])
-  );
+  const floorByArea = floorByAreaMap(areas);
 
   return Object.values(entities)
     .filter((entry) => {
@@ -83,47 +117,10 @@ export function getIncludedEntityIds(
         return !entry.hidden;
       }
 
-      const device = entry.device_id
-        ? deviceMap.get(entry.device_id)
-        : undefined;
+      const device = entry.device_id ? devices[entry.device_id] : undefined;
 
-      const isInAnyArea =
-        entry.area_id != null || (device && device.area_id != null);
-
-      if (!isInAnyArea) return false;
-      if (labelSel) {
-        const matchesLabel =
-          (entry.labels?.some((l) => (labelSel as string[]).includes(l)) ??
-            false) ||
-          (device?.labels?.some((l) => (labelSel as string[]).includes(l)) ??
-            false);
-        if (!matchesLabel) return false;
-      }
-
-      if (areaSel) {
-        const areaOk =
-          (entry.area_id !== undefined &&
-            entry.area_id !== null &&
-            (areaSel as string[]).includes(entry.area_id)) ||
-          (device &&
-            device.area_id !== undefined &&
-            device.area_id !== null &&
-            (areaSel as string[]).includes(device.area_id));
-        if (!areaOk) return false;
-      }
-
-      if (floorSel) {
-        const entryFloor = entry.area_id
-          ? floorByArea.get(entry.area_id)
-          : undefined;
-        const deviceFloor = device?.area_id
-          ? floorByArea.get(device.area_id)
-          : undefined;
-        const floorOk =
-          (entryFloor && (floorSel as string[]).includes(entryFloor)) ||
-          (deviceFloor && (floorSel as string[]).includes(deviceFloor));
-        if (!floorOk) return false;
-      }
+      if (!matchesLocationFilter(entry, device, floorByArea, location))
+        return false;
 
       if (hiddenAreasSet.size) {
         const inHiddenArea =
@@ -160,9 +157,9 @@ export function computeEntitiesByDomain(
   areas: HomeAssistant["areas"],
   states: { [entity_id: string]: HassEntity },
   filters: {
-    area?: string[] | null;
-    floor?: string[] | null;
-    label?: string[] | null;
+    area?: string | string[] | null;
+    floor?: string | string[] | null;
+    label?: string | string[] | null;
     hiddenAreas?: string[];
     hiddenLabels?: string[];
     hiddenEntities?: string[];
@@ -180,8 +177,37 @@ export function computeEntitiesByDomain(
   return mapIdsToStates(includedEntityIds, states);
 }
 
+const GROUP_META_KEYS = ["group_id", "group_icon", "group_status"];
+
+/** A smart group only counts once it has at least one real filter. */
+export function rulesetHasFilters(ruleset: Ruleset): boolean {
+  return Object.keys(ruleset).some(
+    (key) =>
+      !GROUP_META_KEYS.includes(key) &&
+      ruleset[key] !== undefined &&
+      ruleset[key] !== ""
+  );
+}
+
 export function typeKey(domain: string, deviceClass?: string): string {
   return deviceClass ? `${domain} - ${deviceClass}` : domain;
+}
+
+export function normalizeDomain(domain: string): string {
+  return domain.trim().toLowerCase().replace(/\s+/g, "_");
+}
+
+/** Inverse of typeKey: "Binary Sensor - Door" -> { domain: "binary_sensor", deviceClass: "door" }. */
+export function parseTypeKey(type: string): {
+  domain: string;
+  deviceClass?: string;
+} {
+  const match = type.match(/^(.+?)\s*-\s*(.+)$/);
+  if (!match) return { domain: normalizeDomain(type) };
+  return {
+    domain: normalizeDomain(match[1]),
+    deviceClass: match[2].trim().toLowerCase(),
+  };
 }
 
 export function getFriendlyName(
@@ -225,6 +251,11 @@ export function toTileConfig(cardConfig: {
   };
 }
 
+/**
+ * The one definition of "active" used for counting, filtering and sorting:
+ * climate/humidifier use their current action, everything else STATES_OFF.
+ * Colors use HA's own stateActive (entity_color) on purpose.
+ */
 export function isEntityActive(
   entity: HassEntity,
   domain?: string,
@@ -232,8 +263,6 @@ export function isEntityActive(
   isInverted = false
 ): boolean {
   const effectiveDomain = domain || computeDomain(entity.entity_id);
-  const effectiveDeviceClass =
-    deviceClass ?? entity.attributes.device_class;
 
   if (effectiveDomain === "climate") {
     const hvacAction = entity.attributes.hvac_action;

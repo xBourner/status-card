@@ -1,6 +1,6 @@
 import { HomeAssistant, Schema } from "./ha";
 import { ALLOWED_DOMAINS, deviceClasses } from "./const";
-import { getTranslation } from "./translations-data";
+import { getTranslation, translations } from "./translations-data";
 
 export function translateEntityState(
   hass: HomeAssistant,
@@ -70,7 +70,9 @@ const LABEL_MAP: Record<string, (hass: HomeAssistant) => string> = {
     hass.localize("ui.panel.lovelace.editor.card.generic.hold_action"),
   double_tap_action: (hass) =>
     hass.localize("ui.panel.lovelace.editor.card.generic.double_tap_action"),
-  popup_card: () => "Change Popup Card Type",
+  popup_card: (hass) =>
+    getTranslation("popup_card_type", hass.locale.language),
+  styles: (hass) => getTranslation("styles", hass.locale.language),
   group_id: (hass) =>
     getTranslation("group_id", hass.locale.language),
   group_icon: (hass) =>
@@ -140,21 +142,36 @@ function getHeaderLabel(
 ): string {
   if (domain && deviceClass) {
     if (domain === "switch" && deviceClass === "switch") {
-      return `${hass.localize(
-        "ui.panel.lovelace.editor.card.entities.name"
-      )} in ${hass.localize("component.switch.entity_component._.name")}`;
+      return entitiesIn(
+        hass,
+        hass.localize("component.switch.entity_component._.name")
+      );
     }
-    return `${hass.localize(
-      "ui.panel.lovelace.editor.card.entities.name"
-    )} in ${hass.localize(
-      `ui.dialogs.entity_registry.editor.device_classes.${domain}.${deviceClass}`
-    )}`;
+    return entitiesIn(
+      hass,
+      hass.localize(
+        `ui.dialogs.entity_registry.editor.device_classes.${domain}.${deviceClass}`
+      )
+    );
   } else if (domain) {
-    return `${hass.localize(
-      "ui.panel.lovelace.editor.card.entities.name"
-    )} in ${hass.localize(`component.${domain}.entity_component._.name`)}`;
+    return entitiesIn(
+      hass,
+      hass.localize(`component.${domain}.entity_component._.name`)
+    );
   }
   return hass.localize("ui.panel.lovelace.editor.card.entities.name");
+}
+
+/** "Entities in <name>"; languages without own text keep HA's word for "Entities". */
+export function entitiesIn(hass: HomeAssistant, name: string): string {
+  const lang = hass.locale.language;
+  const tpl =
+    translations.entities_in[lang] ??
+    translations.entities_in[lang.split("-")[0]];
+  if (tpl) return tpl.replace("{name}", name);
+  return `${hass.localize(
+    "ui.panel.lovelace.editor.card.entities.name"
+  )} in ${name}`;
 }
 
 function getDefaultLabel(hass: HomeAssistant, name: string): string {

@@ -62,7 +62,10 @@ export const deepEqual = (a: any, b: any): boolean => {
         return false;
       }
       for (i = length; i-- !== 0;) {
-        if (a[i] !== b[i]) {
+        if (
+          (a as unknown as ArrayLike<unknown>)[i] !==
+          (b as unknown as ArrayLike<unknown>)[i]
+        ) {
           return false;
         }
       }

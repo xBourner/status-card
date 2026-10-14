@@ -301,6 +301,23 @@ export const TOGGLEABLE_DOMAINS = [
   "remote",
 ];
 
+/** Domains without a toggle service: [service when active, service when inactive]. */
+export const ENTITY_TOGGLE_SERVICES: Record<string, [string, string]> = {
+  media_player: ["media_pause", "media_play"],
+  lock: ["lock", "unlock"],
+  vacuum: ["stop", "start"],
+  alarm_control_panel: ["alarm_disarm", "alarm_arm_away"],
+  lawn_mower: ["pause", "start_mowing"],
+  water_heater: ["turn_off", "turn_on"],
+  update: ["skip", "install"],
+};
+
+/** Everything the popup can switch as a whole domain. */
+export const CONTROLLABLE_DOMAINS = [
+  ...TOGGLEABLE_DOMAINS,
+  ...Object.keys(ENTITY_TOGGLE_SERVICES),
+];
+
 export const OPENABLE_DEVICE_CLASSES = [
   "window",
   "door",

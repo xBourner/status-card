@@ -2,11 +2,24 @@ import { LitElement, TemplateResult, html, css, CSSResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, LovelaceCardConfig, Schema } from "./ha";
 import { computeLabelCallback } from "./translations";
+import { getTranslation } from "./translations-data";
 import {
   getItemAppearanceSchema,
-  getItemActionsSchema,
-  getItemStyleSchema,
+  getActionsSchema,
+  getStyleSchema,
 } from "./editor-schema";
+import { renderStyleGuide } from "./style-guide";
+
+const ITEM_STYLE_EXAMPLE = `button:
+  --mdc-icon-size: 24px;
+  border: none;
+  color: green;
+icon:
+  animation: spin 2s linear infinite;
+  --mdc-icon-size: 40px;
+  color: var(--primary-color);
+name:
+  font-size: 15px;`;
 
 @customElement("status-card-item-editor")
 export class ItemEditor extends LitElement {
@@ -18,6 +31,10 @@ export class ItemEditor extends LitElement {
   @property({ type: Boolean }) public isGroup = false;
   @state() private _config?: LovelaceCardConfig;
   @state() private _activeTab = "appearance";
+
+  // Stable function reference for ha-form's computeLabel.
+  private _computeLabel = (schema: Schema): string =>
+    computeLabelCallback(this.hass!, schema);
 
   protected willUpdate(
     changedProps: Map<string | number | symbol, unknown>
@@ -45,14 +62,9 @@ export class ItemEditor extends LitElement {
         this.isGroup
       );
     } else if (this._activeTab === "actions") {
-      schema = getItemActionsSchema(
-        this.getSchema!,
-        this.config?.type,
-        this.hass,
-        this._config?.badge_mode ?? false
-      );
+      schema = getActionsSchema();
     } else if (this._activeTab === "style") {
-      schema = getItemStyleSchema();
+      schema = getStyleSchema();
     }
 
     const data = {
@@ -77,7 +89,7 @@ export class ItemEditor extends LitElement {
           .active=${this._activeTab === "style"}
           @click=${() => (this._activeTab = "style")}
         >
-          Style
+          ${getTranslation("style", this.hass.locale.language)}
         </ha-tab-group-tab>
         ${this.getSchema === "domain"
           ? html`
@@ -85,45 +97,14 @@ export class ItemEditor extends LitElement {
                 .active=${this._activeTab === "popup"}
                 @click=${() => (this._activeTab = "popup")}
               >
-                Popup Card
+                ${getTranslation("popup_card", this.hass.locale.language)}
               </ha-tab-group-tab>
             `
           : ""}
       </ha-tab-group>
       ${this._activeTab === "style"
         ? html`
-            <ha-alert alert-type="info" title="Style Guide">
-              <p>
-                You can use standard CSS per identifier. <br />
-                <strong>Identifiers:</strong>
-              </p>
-              <ul>
-                <li><b>button</b>: Item Container (Background, Border)</li>
-                <li><b>icon</b>: Item Icon</li>
-                <li><b>name</b>: Entity Name</li>
-                <li><b>state</b>: Entity State Value</li>
-                ${this.getSchema === "entity"
-                  ? html`<li><b>name</b>: Item Name (Label)</li>`
-                  : html``}
-              </ul>
-              <p>
-                <strong>Animations:</strong> <br />
-                spin, pulse, shake, blink, bounce
-              </p>
-              <p><strong>Example:</strong></p>
-              <pre>
-button:
-  --mdc-icon-size: 24px;
-  border: none;
-  color: green;            
-icon:
-  animation: spin 2s linear infinite;
-  --mdc-icon-size: 40px;
-  color: var(--primary-color);
-name:
-  font-size: 15px;    </pre
-              >
-            </ha-alert>
+            ${renderStyleGuide(["button", "icon", "name", "state"], ITEM_STYLE_EXAMPLE)}
           `
         : ""}
       ${this._activeTab === "popup"
@@ -133,10 +114,7 @@ name:
               .hass=${this.hass}
               .data=${data}
               .schema=${schema}
-              .computeLabel=${(schema: Schema) => {
-                if (schema.name === "styles") return "Styles";
-                return computeLabelCallback(this.hass!, schema);
-              }}
+              .computeLabel=${this._computeLabel}
               @value-changed=${this._valueChangedSchema}
             ></ha-form>
           `}
@@ -247,13 +225,6 @@ name:
         composed: true,
       })
     );
-  }
-
-  setConfig(config: LovelaceCardConfig) {
-    this._config = {
-      ...config,
-      customization: config.customization ?? [],
-    };
   }
 
   static get styles(): CSSResult {

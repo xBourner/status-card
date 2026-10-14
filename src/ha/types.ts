@@ -8,14 +8,33 @@ import type {
   HassServiceTarget,
   MessageBase,
 } from "home-assistant-js-websocket";
-import type { LocalizeFunc } from "./common/translations/localize";
 import type {
-  FrontendLocaleData,
-  TranslationCategory,
-} from "./data/translation";
-import type { Themes } from "./data/ws-themes";
-import type { LovelaceCardConfig, EntityRegistryEntry } from "../ha";
+  LovelaceCardConfig,
+  EntityRegistryEntry,
+  EntityRegistryDisplayEntry,
+} from "../ha";
 import { TemplateResult } from "lit";
+
+// Minimal stand-ins for HA frontend types the card does not ship.
+export type LocalizeFunc = (
+  key: string,
+  values?: Record<string, unknown>
+) => string;
+
+export interface FrontendLocaleData {
+  language: string;
+  [key: string]: unknown;
+}
+
+export type TranslationCategory = string;
+
+export interface Themes {
+  default_theme: string;
+  default_dark_theme: string | null;
+  themes: Record<string, Record<string, unknown>>;
+  darkMode: boolean;
+  theme: string;
+}
 
 export interface ConfigChangedEvent {
   config: LovelaceCardConfig;
@@ -25,16 +44,6 @@ export interface ConfigChangedEvent {
 }
 
 declare global {
-  /* eslint-disable no-var, no-redeclare */
-  var __DEV__: boolean;
-  var __DEMO__: boolean;
-  var __BUILD__: "latest" | "es5";
-  var __VERSION__: string;
-  var __STATIC_PATH__: string;
-  var __BACKWARDS_COMPAT__: boolean;
-  var __SUPERVISOR__: boolean;
-  /* eslint-enable no-var, no-redeclare */
-
   interface CustomCardEntry {
     type: string;
     name: string;
@@ -43,20 +52,9 @@ declare global {
   }
 
   interface Window {
-    // Custom panel entry point url
-    customPanelJS: string;
     customCards: CustomCardEntry[];
     customBadges: CustomCardEntry[];
     loadCardHelpers?(): Promise<any>;
-    ShadyCSS: {
-      nativeCss: boolean;
-      nativeShadow: boolean;
-      prepareTemplate(templateElement, elementName, elementExtension);
-      styleElement(element);
-      styleSubtree(element, overrideProperties);
-      styleDocument(overrideProperties);
-      getComputedStyleValue(element, propertyName);
-    };
   }
   // for fire event
   interface HASSDomEvents {
@@ -81,19 +79,6 @@ export interface Schema {
   default?: any;
   type?: string;
   schema?: Schema[];
-}
-
-interface EntityRegistryDisplayEntry {
-  entity_id: string;
-  name?: string;
-  device_id?: string;
-  area_id?: string;
-  hidden?: boolean;
-  entity_category?: "config" | "diagnostic";
-  translation_key?: string;
-  platform?: string;
-  display_precision?: number;
-  labels?: string[];
 }
 
 export interface DeviceRegistryEntry {
@@ -237,7 +222,7 @@ export interface HomeAssistant {
   defaultPanel: string;
   moreInfoEntityId: string | null;
   user?: CurrentUser;
-  hassUrl(path?): string;
+  hassUrl(path?: string): string;
   callService(
     domain: ServiceCallRequest["domain"],
     service: ServiceCallRequest["service"],

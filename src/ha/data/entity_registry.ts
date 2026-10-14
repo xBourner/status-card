@@ -10,6 +10,7 @@ export interface EntityRegistryDisplayEntry {
   translation_key?: string;
   platform?: string;
   display_precision?: number;
+  labels?: string[];
 }
 
 export type LightColor =

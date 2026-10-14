@@ -3,19 +3,18 @@ import {
   ActionConfig,
   ActionHandlerEvent,
   handleAction,
-  STATES_OFF,
   computeDomain,
   LovelaceCardConfig,
 } from "./ha";
 import { HassEntity } from "home-assistant-js-websocket";
-import { TOGGLEABLE_DOMAINS } from "./const";
+import { ENTITY_TOGGLE_SERVICES, TOGGLEABLE_DOMAINS } from "./const";
+import { isEntityActive } from "./helpers";
 import { getResolvedCustomizationValue } from "./card-styles";
 
 export function toggleDomain(
   hass: HomeAssistant,
   entities: HassEntity[],
-  domain: string,
-  deviceClass?: string
+  domain: string
 ): void {
   if (entities.length === 0) {
     console.warn(`No active entities found for domain: ${domain}`);
@@ -29,40 +28,17 @@ export function toggleDomain(
     return;
   }
 
-  for (const entity of entities) {
-    let isOn = !STATES_OFF.includes(entity.state);
+  const services = ENTITY_TOGGLE_SERVICES[domain];
+  if (!services) return;
 
-    if (domain === "media_player") {
-      hass.callService(domain, isOn ? "media_pause" : "media_play", {
-        entity_id: entity.entity_id,
-      });
-    } else if (domain === "lock") {
-      hass.callService(domain, isOn ? "lock" : "unlock", {
-        entity_id: entity.entity_id,
-      });
-    } else if (domain === "vacuum") {
-      hass.callService(domain, isOn ? "stop" : "start", {
-        entity_id: entity.entity_id,
-      });
-    } else if (domain === "alarm_control_panel") {
-      hass.callService(domain, isOn ? "alarm_arm_away" : "alarm_disarm", {
-        entity_id: entity.entity_id,
-      });
-    } else if (domain === "lawn_mower") {
-      hass.callService(domain, isOn ? "pause" : "start_mowing", {
-        entity_id: entity.entity_id,
-      });
-    } else if (domain === "water_heater") {
-      hass.callService(domain, isOn ? "turn_off" : "turn_on", {
-        entity_id: entity.entity_id,
-      });
-    } else if (domain === "update") {
-      hass.callService(domain, isOn ? "skip" : "install", {
-        entity_id: entity.entity_id,
-      });
-    }
+  for (const entity of entities) {
+    const [whenActive, whenInactive] = services;
+    hass.callService(
+      domain,
+      isEntityActive(entity, domain) ? whenActive : whenInactive,
+      { entity_id: entity.entity_id }
+    );
   }
-  return;
 }
 
 export function getResolvedAction(
