@@ -247,7 +247,8 @@ export function getAppearanceSchema(
   ];
 }
 
-export function getActionsSchema(hass: HomeAssistant): Schema[] {
+// Shared by the card editor and the per item editor.
+export function getActionsSchema(): Schema[] {
   const actions: UiAction[] = [
     "more-info",
     "toggle",
@@ -380,39 +381,7 @@ export const getItemAppearanceSchema = (
   ];
 };
 
-export const getItemActionsSchema = (
-  type: "domain" | "entity",
-  entityId?: string,
-  hass?: HomeAssistant,
-  badgeMode?: boolean,
-): Schema[] => {
-  const actions: UiAction[] = [
-    "more-info",
-    "toggle",
-    "navigate",
-    "url",
-    "perform-action",
-    "none",
-  ];
-
-  return [
-    { name: "tap_action", selector: { ui_action: { actions } } },
-    { name: "double_tap_action", selector: { ui_action: { actions } } },
-    { name: "hold_action", selector: { ui_action: { actions } } },
-  ];
-};
-
-export const getItemStyleSchema = (): Schema[] => {
-  return [
-    {
-      name: "styles",
-      selector: {
-        object: {},
-      },
-    },
-  ];
-};
-
+// Shared by the card editor and the per item editor.
 export const getStyleSchema = (): Schema[] => {
   return [
     {

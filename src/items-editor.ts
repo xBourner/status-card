@@ -9,13 +9,13 @@ import {
   SelectOption,
   EditorTarget,
 } from "./ha";
-import { getTranslation, TranslationKey } from "./translations-data";
+import { getTranslation } from "./translations-data";
 
-abstract class BaseItemsEditor extends LitElement {
+@customElement("status-items-editor")
+export class StatusItemsEditor extends LitElement {
   @property({ attribute: false }) hass?: HomeAssistant;
   @property({ type: Array }) SelectOptions: SelectOption[] = [];
-
-  protected abstract customizationkey: LovelaceCardConfig[] | undefined;
+  @property({ attribute: false }) customization?: LovelaceCardConfig[];
 
   private _entityKeys = new WeakMap<LovelaceCardConfig, string>();
 
@@ -31,7 +31,7 @@ abstract class BaseItemsEditor extends LitElement {
       return nothing;
     }
     const selectedTypes = new Set(
-      (this.customizationkey || []).map((conf) => conf.type)
+      (this.customization || []).map((conf) => conf.type)
     );
     const availableOptions = this.SelectOptions.filter(
       (option) => !selectedTypes.has(option.value)
@@ -39,9 +39,9 @@ abstract class BaseItemsEditor extends LitElement {
 
     return html`
       <div class="customization">
-        ${this.customizationkey &&
+        ${this.customization &&
         repeat(
-          this.customizationkey,
+          this.customization,
           (conf) => this._getKey(conf),
           (conf, index) => html`
             <div class="customize-item">
@@ -97,14 +97,14 @@ abstract class BaseItemsEditor extends LitElement {
   }
 
   private _valueChanged(ev: CustomEvent): void {
-    if (!this.customizationkey || !this.hass) {
+    if (!this.customization || !this.hass) {
       return;
     }
     const value = ev.detail.value;
     const target = ev.target as HTMLElement & { index?: number };
     const index = target.index;
     if (index === undefined) return;
-    const newCustomization = this.customizationkey.concat();
+    const newCustomization = this.customization.concat();
     newCustomization[index] = { ...newCustomization[index], type: value || "" };
     this.dispatchEvent(
       new CustomEvent("config-changed", {
@@ -119,7 +119,7 @@ abstract class BaseItemsEditor extends LitElement {
     ev.stopPropagation();
     const index = (ev.currentTarget as EditorTarget).index;
     if (index != undefined) {
-      const customization = this.customizationkey!.concat();
+      const customization = this.customization!.concat();
       customization.splice(index, 1);
       this.dispatchEvent(
         new CustomEvent("config-changed", {
@@ -141,7 +141,7 @@ abstract class BaseItemsEditor extends LitElement {
 
   private _addRow(ev: CustomEvent): void {
     ev.stopPropagation();
-    if (!this.customizationkey || !this.hass) {
+    if (!this.customization || !this.hass) {
       return;
     }
     const preset = ev.detail.value;
@@ -151,7 +151,7 @@ abstract class BaseItemsEditor extends LitElement {
     const newItem: LovelaceCardConfig = { type: preset };
     this.dispatchEvent(
       new CustomEvent("config-changed", {
-        detail: { config: [...this.customizationkey, newItem] },
+        detail: { config: [...this.customization, newItem] },
         bubbles: true,
         composed: true,
       })
@@ -180,13 +180,5 @@ abstract class BaseItemsEditor extends LitElement {
         flex: 1;
       }
     `;
-  }
-}
-
-@customElement("status-items-editor")
-export class StatusItemsEditor extends BaseItemsEditor {
-  @property({ attribute: false }) customization?: LovelaceCardConfig[];
-  protected get customizationkey() {
-    return this.customization;
   }
 }

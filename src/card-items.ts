@@ -10,11 +10,12 @@ import {
 import {
   getCustomIcon,
   getCustomName,
-  getCustomColor,
   getCustomCSS,
   getBackgroundColor,
+  getCustomizationForType,
   getResolvedCustomizationValue,
 } from "./card-styles";
+import { normalizeDomain, parseTypeKey, rulesetHasFilters } from "./helpers";
 
 export const getPersonEntityIds = (
   entities: HomeAssistant["entities"],
@@ -58,9 +59,7 @@ export const computeExtraItems = (
 
       const entity: HassEntity | undefined = states[eid];
       if (!entity) return acc;
-      const cust: LovelaceCardConfig | undefined = cfg.customization?.find(
-        (c: LovelaceCardConfig) => c.type === eid
-      );
+      const cust = getCustomizationForType(cfg, eid, customizationMap);
       if (cust && cust.state !== undefined && cust.invert_state !== undefined) {
         const inv: boolean = cust.invert_state === "true";
         const match: boolean = entity.state === cust.state;
@@ -117,8 +116,7 @@ export const computeExtraItems = (
         background_color,
       });
       return acc;
-    }, [])
-    .sort((a: ExtraItem, b: ExtraItem) => a.order - b.order);
+    }, []);
 };
 
 export const computeGroupItems = (
@@ -129,14 +127,7 @@ export const computeGroupItems = (
     .map((id, idx) => {
       const ruleset = rulesets.find((g) => g.group_id === id);
       if (!ruleset) return undefined;
-      const hasAttrs = Object.keys(ruleset).some(
-        (key) =>
-          key !== "group_id" &&
-          key !== "group_icon" &&
-          ruleset[key] !== undefined &&
-          ruleset[key] !== ""
-      );
-      if (!hasAttrs) return undefined;
+      if (!rulesetHasFilters(ruleset)) return undefined;
       return {
         type: "group" as const,
         group_id: id,
@@ -146,13 +137,14 @@ export const computeGroupItems = (
     })
     .filter((g): g is GroupItem => !!g);
 
+// Classification stays strict (" - "), parsing is shared with the editor.
 export const computeDomainItems = (content: string[]): DomainItem[] =>
   content
     .map((c, idx) =>
       !c.includes(" - ")
         ? ({
           type: "domain" as const,
-          domain: c.trim().toLowerCase().replace(/\s+/g, "_"),
+          domain: normalizeDomain(c),
           order: idx,
         } as DomainItem)
         : null
@@ -163,11 +155,11 @@ export const computeDeviceClassItems = (content: string[]): DeviceClassItem[] =>
   content
     .map((c, idx) => {
       if (!c.includes(" - ")) return null;
-      const [rawDomain, rawClass] = c.split(" - ");
+      const { domain, deviceClass } = parseTypeKey(c);
       return {
         type: "deviceClass" as const,
-        domain: rawDomain.trim().toLowerCase().replace(/\s+/g, "_"),
-        deviceClass: rawClass.trim().toLowerCase(),
+        domain,
+        deviceClass,
         order: idx,
       } as DeviceClassItem;
     })

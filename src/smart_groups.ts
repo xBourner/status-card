@@ -21,15 +21,25 @@ const STATIC_KEYS = [
   "device_model",
 ];
 
+const DYNAMIC_KEYS = [
+  "state",
+  "name",
+  "attributes",
+  "last_changed",
+  "last_updated",
+  "last_triggered",
+  "level",
+  "group",
+];
+
 export const filterStaticEntities = (
   ruleset: Ruleset,
   entities: EntityRegistryEntry[],
-  devices: DeviceRegistryEntry[],
-  areas: AreaRegistryEntry[],
   hiddenEntities: string[],
   entityMap: Map<string, EntityRegistryEntry>,
   deviceMap: Map<string, DeviceRegistryEntry>,
-  areaMap: Map<string, AreaRegistryEntry>
+  areaMap: Map<string, AreaRegistryEntry>,
+  labels?: StatusCardLike["labels"]
 ): string[] => {
   let filters: Rule[] = [];
   if (Array.isArray(ruleset.filters)) {
@@ -47,18 +57,16 @@ export const filterStaticEntities = (
     return entities.map((e) => e.entity_id);
   }
 
+  const hidden = new Set(hiddenEntities);
   return entities
     .filter((entry) => {
-      if (hiddenEntities.includes(entry.entity_id)) return false;
+      if (hidden.has(entry.entity_id)) return false;
       if (!filters.length) return true;
 
       const fakeEntity = { entity_id: entry.entity_id } as HassEntity;
 
       return filters.every((rule) =>
-        matchesRule({} as StatusCardLike, fakeEntity, rule, {
-          areas,
-          devices,
-          entities,
+        matchesRule({ labels } as StatusCardLike, fakeEntity, rule, {
           entityMap,
           deviceMap,
           areaMap,
@@ -82,16 +90,7 @@ export const filterDynamicEntities = (
     filters = ruleset.filters.filter((f) => !STATIC_KEYS.includes(f.key));
   } else {
     const rulesetAsRecord = ruleset as Record<string, unknown>;
-    [
-      "state",
-      "name",
-      "attributes",
-      "last_changed",
-      "last_updated",
-      "last_triggered",
-      "level",
-      "group",
-    ].forEach((key) => {
+    DYNAMIC_KEYS.forEach((key) => {
       if (rulesetAsRecord[key] !== undefined) {
         filters.push({ key, value: rulesetAsRecord[key] as RuleValue });
       }
@@ -118,66 +117,6 @@ export const filterDynamicEntities = (
     });
 };
 
-export function filterEntitiesByRuleset(
-  card: StatusCardLike,
-  ruleset: Ruleset,
-  entityMap?: Map<string, EntityRegistryEntry>,
-  deviceMap?: Map<string, DeviceRegistryEntry>,
-  areaMap?: Map<string, AreaRegistryEntry>
-): HassEntity[] {
-  const entitiesArr = card.__registryEntities || [];
-  const devicesArr = card.__registryDevices || [];
-  const areasArr = card.__registryAreas || [];
-
-  const eMap = entityMap || new Map(entitiesArr.map((e) => [e.entity_id, e]));
-  const dMap = deviceMap || new Map(devicesArr.map((d) => [d.id, d]));
-  const aMap = areaMap || new Map(areasArr.map((a) => [a.area_id, a]));
-
-  const candidateIds = filterStaticEntities(
-    ruleset,
-    entitiesArr,
-    devicesArr,
-    areasArr,
-    card.hiddenEntities || [],
-    eMap,
-    dMap,
-    aMap
-  );
-
-  return filterDynamicEntities(
-    card,
-    ruleset,
-    candidateIds,
-    card.hass?.states || {},
-    eMap,
-    dMap,
-    aMap
-  );
-}
-function compareMinutesAgo(dateStr: string, filter: string): boolean {
-  if (!dateStr) return false;
-  const match = filter.match(/^([<>]=?)?\s*(\d+)$/);
-  if (!match) return false;
-  const [, op, numStr] = match;
-  const num = parseInt(numStr, 10);
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMinutes = (now.getTime() - date.getTime()) / 60000;
-
-  switch (op) {
-    case ">":
-      return diffMinutes > num;
-    case ">=":
-      return diffMinutes >= num;
-    case "<":
-      return diffMinutes < num;
-    case "<=":
-      return diffMinutes <= num;
-    default:
-      return Math.round(diffMinutes) === num;
-  }
-}
-
 function match(actual: unknown, expected: unknown): boolean {
   if (Array.isArray(expected)) {
     return expected.some((v) => match(actual, v));
@@ -185,12 +124,11 @@ function match(actual: unknown, expected: unknown): boolean {
   if (typeof expected === "string" && expected.startsWith("!")) {
     return !match(actual, expected.slice(1));
   }
-  if (
+  const timeCmp =
     typeof expected === "string" &&
-    /^([<>]=?)\s*(-?\d+(\.\d+)?)([mhd])$/.test(expected)
-  ) {
-    const [, op, numStr, , unit] =
-      expected.match(/^([<>]=?)\s*(-?\d+(\.\d+)?)([mhd])$/) || [];
+    expected.match(/^([<>]=?)\s*(-?\d+(\.\d+)?)([mhd])$/);
+  if (timeCmp) {
+    const [, op, numStr, , unit] = timeCmp;
     const num = parseFloat(numStr);
     const now = Date.now();
     const actualTime = new Date(actual as string | number | Date).getTime();
@@ -210,11 +148,11 @@ function match(actual: unknown, expected: unknown): boolean {
     }
   }
 
-  if (
+  const numCmp =
     typeof expected === "string" &&
-    /^([<>]=?)\s*(-?\d+(\.\d+)?)$/.test(expected)
-  ) {
-    const [, op, numStr] = expected.match(/^([<>]=?)\s*(-?\d+(\.\d+)?)$/) || [];
+    expected.match(/^([<>]=?)\s*(-?\d+(\.\d+)?)$/);
+  if (numCmp) {
+    const [, op, numStr] = numCmp;
     const num = parseFloat(numStr);
     const val = parseFloat(actual as string);
     switch (op) {
@@ -257,14 +195,31 @@ function match(actual: unknown, expected: unknown): boolean {
 }
 
 interface MatcherHelpers {
-  areas?: AreaRegistryEntry[];
-  devices?: DeviceRegistryEntry[];
-  entities?: EntityRegistryEntry[];
   entityMap?: Map<string, EntityRegistryEntry>;
   deviceMap?: Map<string, DeviceRegistryEntry>;
   areaMap?: Map<string, AreaRegistryEntry>;
   card: StatusCardLike;
 }
+
+// Entity area wins, the device area is only the fallback (HA semantics).
+const resolveAreaId = (
+  entry: EntityRegistryEntry | undefined,
+  deviceMap?: Map<string, DeviceRegistryEntry>
+): string | null | undefined => {
+  if (entry?.area_id) return entry.area_id;
+  return entry?.device_id ? deviceMap?.get(entry.device_id)?.area_id : undefined;
+};
+
+// "<15" without unit means minutes for last_* filters.
+const timeMatcher =
+  (get: (entity: HassEntity) => unknown) =>
+  (entity: HassEntity, value: unknown) =>
+    match(
+      get(entity),
+      typeof value === "string" && /^[<>]=?\s*\d+$/.test(value)
+        ? `${value}m`
+        : value
+    );
 
 const matchers: {
   [key: string]: (
@@ -274,17 +229,8 @@ const matchers: {
     entry?: EntityRegistryEntry
   ) => boolean;
 } = {
-  area: (entity, value, { entityMap, deviceMap }, entry) => {
-    let areaId = entry?.area_id;
-    if (!areaId && entry?.device_id) {
-      const device = deviceMap?.get(entry.device_id);
-      areaId = device?.area_id;
-    }
-    if (Array.isArray(value)) {
-      return value.includes(areaId);
-    }
-    return areaId === value;
-  },
+  area: (entity, value, { deviceMap }, entry) =>
+    match(resolveAreaId(entry, deviceMap), value),
   domain: (entity, value) => match(computeDomain(entity.entity_id), value),
   entity_id: (entity, value) => match(entity.entity_id, value),
   state: (entity, value) => match(entity.state, value),
@@ -324,14 +270,10 @@ const matchers: {
     }
     return false;
   },
-  floor: (entity, value, { entityMap, deviceMap, areaMap }, entry) => {
-    let areaId = entry?.area_id;
-    if (!areaId && entry?.device_id) {
-      areaId = deviceMap?.get(entry.device_id)?.area_id;
-    }
+  floor: (entity, value, { deviceMap, areaMap }, entry) => {
+    const areaId = resolveAreaId(entry, deviceMap);
     if (!areaId) return false;
-    const areaObj = areaMap?.get(areaId);
-    return match(areaObj?.floor_id, value);
+    return match(areaMap?.get(areaId)?.floor_id, value);
   },
   hidden_by: (entity, value, _, entry) => match(entry?.hidden_by, value),
   device_manufacturer: (entity, value, { deviceMap }, entry) => {
@@ -344,24 +286,9 @@ const matchers: {
     const device = deviceMap?.get(entry.device_id);
     return match(device?.model, value);
   },
-  last_changed: (entity, value) => {
-    if (typeof value === "string" && /^[<>]=?\s*\d+$/.test(value)) {
-      return compareMinutesAgo(entity.last_changed, value);
-    }
-    return match(entity.last_changed, value);
-  },
-  last_updated: (entity, value) => {
-    if (typeof value === "string" && /^[<>]=?\s*\d+$/.test(value)) {
-      return compareMinutesAgo(entity.last_updated, value);
-    }
-    return match(entity.last_updated, value);
-  },
-  last_triggered: (entity, value) => {
-    if (typeof value === "string" && /^[<>]=?\s*\d+$/.test(value)) {
-      return compareMinutesAgo(entity.attributes.last_triggered, value);
-    }
-    return match(entity.attributes.last_triggered, value);
-  },
+  last_changed: timeMatcher((e) => e.last_changed),
+  last_updated: timeMatcher((e) => e.last_updated),
+  last_triggered: timeMatcher((e) => e.attributes.last_triggered),
   group: (entity, value, { card }) => {
     const group = card.hass.states[value as string];
     return !!group?.attributes?.entity_id?.includes(entity.entity_id);
@@ -372,18 +299,9 @@ function matchesRule(
   card: StatusCardLike,
   entity: HassEntity,
   rule: { key: string; value: unknown },
-  helpers: {
-    areas?: AreaRegistryEntry[];
-    devices?: DeviceRegistryEntry[];
-    entities?: EntityRegistryEntry[];
-    entityMap?: Map<string, EntityRegistryEntry>;
-    deviceMap?: Map<string, DeviceRegistryEntry>;
-    areaMap?: Map<string, AreaRegistryEntry>;
-  }
+  helpers: Omit<MatcherHelpers, "card">
 ): boolean {
-  const entry =
-    helpers.entityMap?.get(entity.entity_id) ||
-    helpers.entities?.find((e) => e.entity_id === entity.entity_id);
+  const entry = helpers.entityMap?.get(entity.entity_id);
 
   const matcher = matchers[rule.key];
   if (matcher) {

@@ -3,7 +3,7 @@ import "./card";
 import "./editor";
 
 console.info(
-  `%c STATUS-CARD %c ${packageJson.version} `,
+  `%c STATUS-CARD %c v${packageJson.version} `,
   "color: steelblue; background: black; font-weight: bold;",
   "color: white ; background: dimgray; font-weight: bold;"
 );
