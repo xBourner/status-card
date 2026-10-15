@@ -881,8 +881,11 @@ export class StatusCardPopup extends LitElement {
       --ha-bottom-sheet-max-height: var(--ha-bottom-sheet-height) !important;
     }
 
+    /* Padding (not margin) inside the scroll area leaves room for card
+       shadows from themes; the scroll box clips at its own edge. */
     .dialog-content.scrollable {
-      margin-bottom: 16px;
+      padding: 4px 8px 24px;
+      box-sizing: border-box;
       max-height: 80vh;
       overflow-y: auto;
       scrollbar-width: none;
