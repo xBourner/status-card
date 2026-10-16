@@ -259,7 +259,7 @@ export function toTileConfig(cardConfig: {
 export function isEntityActive(
   entity: HassEntity,
   domain?: string,
-  deviceClass?: string,
+  _deviceClass?: string,
   isInverted = false
 ): boolean {
   const effectiveDomain = domain || computeDomain(entity.entity_id);

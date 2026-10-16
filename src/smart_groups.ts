@@ -229,7 +229,7 @@ const matchers: {
     entry?: EntityRegistryEntry
   ) => boolean;
 } = {
-  area: (entity, value, { deviceMap }, entry) =>
+  area: (_entity, value, { deviceMap }, entry) =>
     match(resolveAreaId(entry, deviceMap), value),
   domain: (entity, value) => match(computeDomain(entity.entity_id), value),
   entity_id: (entity, value) => match(entity.entity_id, value),
@@ -247,13 +247,13 @@ const matchers: {
       return attrValue !== undefined ? match(attrValue, expected) : false;
     });
   },
-  device: (entity, value, _, entry) => match(entry?.device_id, value),
-  integration: (entity, value, _, entry) =>
+  device: (_entity, value, _, entry) => match(entry?.device_id, value),
+  integration: (_entity, value, _, entry) =>
     !!entry &&
     (match(entry.platform, value) || match(entry.config_entry_id, value)),
-  entity_category: (entity, value, _, entry) =>
+  entity_category: (_entity, value, _, entry) =>
     match(entry?.entity_category, value),
-  label: (entity, value, { deviceMap, card }, entry) => {
+  label: (_entity, value, { deviceMap, card }, entry) => {
     const allLabels = card.labels;
     const match_label = (lbl: string) => {
       if (match(lbl, value)) return true;
@@ -270,18 +270,18 @@ const matchers: {
     }
     return false;
   },
-  floor: (entity, value, { deviceMap, areaMap }, entry) => {
+  floor: (_entity, value, { deviceMap, areaMap }, entry) => {
     const areaId = resolveAreaId(entry, deviceMap);
     if (!areaId) return false;
     return match(areaMap?.get(areaId)?.floor_id, value);
   },
-  hidden_by: (entity, value, _, entry) => match(entry?.hidden_by, value),
-  device_manufacturer: (entity, value, { deviceMap }, entry) => {
+  hidden_by: (_entity, value, _, entry) => match(entry?.hidden_by, value),
+  device_manufacturer: (_entity, value, { deviceMap }, entry) => {
     if (!entry?.device_id) return false;
     const device = deviceMap?.get(entry.device_id);
     return match(device?.manufacturer, value);
   },
-  device_model: (entity, value, { deviceMap }, entry) => {
+  device_model: (_entity, value, { deviceMap }, entry) => {
     if (!entry?.device_id) return false;
     const device = deviceMap?.get(entry.device_id);
     return match(device?.model, value);
