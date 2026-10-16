@@ -1,23 +1,5 @@
-var e = {
-	name: "status-card",
-	version: "3.4.0",
-	type: "module",
-	devDependencies: {
-		"home-assistant-js-websocket": "^9.4.0",
-		typescript: "~7.0.2",
-		vite: "^8.3.4"
-	},
-	dependencies: {
-		"@mdi/js": "^7.4.47",
-		lit: "^3.2.1",
-		"memoize-one": "^6.0.0"
-	},
-	scripts: {
-		dev: "vite",
-		check: "tsc",
-		build: "tsc && vite build"
-	}
-}, t = globalThis, n = t.ShadowRoot && (t.ShadyCSS === void 0 || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, r = Symbol(), i = /* @__PURE__ */ new WeakMap(), a = class {
+//#region package.json
+var e = "3.4.0", t = globalThis, n = t.ShadowRoot && (t.ShadyCSS === void 0 || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, r = Symbol(), i = /* @__PURE__ */ new WeakMap(), a = class {
 	constructor(e, t, n) {
 		if (this._$cssResult$ = !0, n !== r) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
 		this.cssText = e, this.t = t;
@@ -928,11 +910,7 @@ var Yr = /* @__PURE__ */ new Set(/* @__PURE__ */ "alarm_control_panel.alert.auto
 		if (t) return `rgb(${t.join(",")})`;
 	}
 	return $r(e);
-};
-//#endregion
-//#region src/ha/common/string/compare.ts
-I((e) => new Intl.Collator(e));
-var ti = I((e) => new Intl.Collator(e, { sensitivity: "accent" })), ni = (e, t) => e < t ? -1 : +(e > t), ri = (e, t, n = void 0) => Intl?.Collator ? ti(n).compare(e, t) : ni(e.toLowerCase(), t.toLowerCase()), ii = (e, t) => {
+}, ti = I((e) => new Intl.Collator(e, { sensitivity: "accent" })), ni = (e, t) => e < t ? -1 : +(e > t), ri = (e, t, n = void 0) => Intl?.Collator ? ti(n).compare(e, t) : ni(e.toLowerCase(), t.toLowerCase()), ii = (e, t) => {
 	if (e === t) return !0;
 	if (e && t && typeof e == "object" && typeof t == "object") {
 		if (e.constructor !== t.constructor) return !1;
@@ -991,8 +969,8 @@ var ti = I((e) => new Intl.Collator(e, { sensitivity: "accent" })), ni = (e, t) 
 		});
 	}
 	bind(e, t = {}) {
-		e.actionHandler && ii(t, e.actionHandler.options) || (e.actionHandler && (e.removeEventListener("touchstart", e.actionHandler.start), e.removeEventListener("touchend", e.actionHandler.end), e.removeEventListener("touchcancel", e.actionHandler.end), e.removeEventListener("mousedown", e.actionHandler.start), e.removeEventListener("click", e.actionHandler.end), e.removeEventListener("keydown", e.actionHandler.handleKeyDown)), e.actionHandler = { options: t }, !t.disabled && (e.actionHandler.start = (e) => {
-			this.cancelled = !1, e.touches ? (e.touches[0].clientX, e.touches[0].clientY) : (e.clientX, e.clientY), t.hasHold && (this.held = !1, this.timer = window.setTimeout(() => {
+		e.actionHandler && ii(t, e.actionHandler.options) || (e.actionHandler && (e.removeEventListener("touchstart", e.actionHandler.start), e.removeEventListener("touchend", e.actionHandler.end), e.removeEventListener("touchcancel", e.actionHandler.end), e.removeEventListener("mousedown", e.actionHandler.start), e.removeEventListener("click", e.actionHandler.end), e.removeEventListener("keydown", e.actionHandler.handleKeyDown)), e.actionHandler = { options: t }, !t.disabled && (e.actionHandler.start = () => {
+			this.cancelled = !1, t.hasHold && (this.held = !1, this.timer = window.setTimeout(() => {
 				this.held = !0;
 			}, this.holdTime));
 		}, e.actionHandler.end = (e) => {
@@ -9132,7 +9110,7 @@ var $ = class extends k {
     `;
 	}
 };
-q([A({ attribute: !1 })], $.prototype, "hass", void 0), q([A({ attribute: !1 })], $.prototype, "lovelace", void 0), q([A({ type: Object })], $.prototype, "_config", void 0), q([j()], $.prototype, "_subElementEditorDomain", void 0), q([j()], $.prototype, "_subElementEditorEntity", void 0), q([j()], $.prototype, "rulesets", void 0), q([j()], $.prototype, "_activeTab", void 0), $ = q([Re("status-card-editor")], $), console.info(`%c STATUS-CARD %c v${e.version} `, "color: steelblue; background: black; font-weight: bold;", "color: white ; background: dimgray; font-weight: bold;"), window.customCards = window.customCards || [], window.customCards.push({
+q([A({ attribute: !1 })], $.prototype, "hass", void 0), q([A({ attribute: !1 })], $.prototype, "lovelace", void 0), q([A({ type: Object })], $.prototype, "_config", void 0), q([j()], $.prototype, "_subElementEditorDomain", void 0), q([j()], $.prototype, "_subElementEditorEntity", void 0), q([j()], $.prototype, "rulesets", void 0), q([j()], $.prototype, "_activeTab", void 0), $ = q([Re("status-card-editor")], $), console.info(`%c STATUS-CARD %c v${e} `, "color: steelblue; background: black; font-weight: bold;", "color: white ; background: dimgray; font-weight: bold;"), window.customCards = window.customCards || [], window.customCards.push({
 	type: "status-card",
 	name: "Status Card",
 	preview: !0,

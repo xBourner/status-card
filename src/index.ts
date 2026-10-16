@@ -1,9 +1,9 @@
-import packageJson from "../package.json";
+import { version } from "../package.json";
 import "./card";
 import "./editor";
 
 console.info(
-  `%c STATUS-CARD %c v${packageJson.version} `,
+  `%c STATUS-CARD %c v${version} `,
   "color: steelblue; background: black; font-weight: bold;",
   "color: white ; background: dimgray; font-weight: bold;"
 );

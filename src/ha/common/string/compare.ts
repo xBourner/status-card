@@ -1,9 +1,5 @@
 import memoizeOne from "memoize-one";
 
-const collator = memoizeOne(
-  (language: string | undefined) => new Intl.Collator(language)
-);
-
 const caseInsensitiveCollator = memoizeOne(
   (language: string | undefined) =>
     new Intl.Collator(language, { sensitivity: "accent" })

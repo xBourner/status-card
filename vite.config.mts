@@ -4,8 +4,14 @@ export default defineConfig({
   build: {
     lib: {
       entry: "src/index.ts",
+      formats: ["es"],
       fileName: () => "status-card.js",
-      formats: ["es"], // Home Assistant loads cards as ES modules
+    },
+    outDir: "dist",
+    rolldownOptions: {
+      output: {
+        codeSplitting: false,
+      },
     },
   },
 });

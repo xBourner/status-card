@@ -95,17 +95,8 @@ class ActionHandler extends HTMLElement implements ActionHandlerType {
       return;
     }
 
-    element.actionHandler.start = (ev: Event) => {
+    element.actionHandler.start = () => {
       this.cancelled = false;
-      let x: number;
-      let y: number;
-      if ((ev as TouchEvent).touches) {
-        x = (ev as TouchEvent).touches[0].clientX;
-        y = (ev as TouchEvent).touches[0].clientY;
-      } else {
-        x = (ev as MouseEvent).clientX;
-        y = (ev as MouseEvent).clientY;
-      }
 
       if (options.hasHold) {
         this.held = false;
