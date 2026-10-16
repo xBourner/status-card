@@ -151,6 +151,7 @@ body:
     - v1.2.0
     - v1.1.1
     - v1.1.0
+    - 3.4.0b2
     default: 0
   validations:
     required: true
