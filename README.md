@@ -38,7 +38,7 @@ I always wanted to make an overview card that shows a lot of entities without th
 
 ## 📥⚙️ Documentation
 
-For more Info visit the [Documentation](https://xbourner.github.io/status-card/).
+For more Info visit the [Documentation](https://xbourner.github.io/card-docu/status-card/).
 
 ### 🎥 Video Tutorial
 
